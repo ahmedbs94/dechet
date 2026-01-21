@@ -1,0 +1,60 @@
+﻿Launching lib\main.dart on Chrome in debug mode...
+Waiting for connection from debug service on Chrome...          
+C:\flutter\bin\flutter.bat 
+: ../../AppData/Local/Pub/Ca
+che/hosted/pub.dev/font_awes
+ome_flutter-10.9.0/lib/src/f
+a_icon.dart:139:29: Error: 
+The method 'withValues' 
+isn't defined for the class 
+'Color'.
+Au caractère Ligne:1 : 1
++ 
+C:\flutter\bin\flutter.bat 
+run -d chrome > 
+run_output.txt 2>&1; Get-C 
+...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~
+    + CategoryInfo          
+    : NotSpecified: (../..  
+  /AppData/L... class 'Co   
+ lor'.:String) [], Remot    
+eException
+    + FullyQualifiedErrorId 
+    : NativeCommandError
+ 
+ - 'Color' is from 
+'dart:ui'.
+Try correcting the name to 
+the name of an existing 
+method, or defining a 
+method named 'withValues'.
+      iconColor = 
+iconColor.withValues(alpha: 
+iconColor.a * iconOpacity);
+                            
+^^^^^^^^^^
+../../AppData/Local/Pub/Cach
+e/hosted/pub.dev/font_awesom
+e_flutter-10.9.0/lib/src/fa_
+icon.dart:139:57: Error: 
+The getter 'a' isn't 
+defined for the class 
+'Color'.
+ - 'Color' is from 
+'dart:ui'.
+Try correcting the name to 
+the name of an existing 
+getter, or defining a 
+getter or field named 'a'.
+      iconColor = 
+iconColor.withValues(alpha: 
+iconColor.a * iconOpacity);
+                            
+                            
+^
+Waiting for connection from debug service on Chrome...             24,3s
+Failed to compile 
+application.
