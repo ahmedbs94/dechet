@@ -1,0 +1,199 @@
+﻿Analyzing TriD├®chet...                                          
+
+   info - The imported package 'flutter_map_cancellable_tile_provider' isn't a dependency of the importing package - lib\screens\admin\add_sorting_center_screen.dart:4:8 - depend_on_referenced_packages
+  error - Target of URI doesn't exist: 'package:flutter_map_cancellable_tile_provider/flutter_map_cancellable_tile_provider.dart' - lib\screens\admin\add_sorting_center_screen.dart:4:8 - uri_does_not_exist
+   info - The imported package 'geolocator' isn't a dependency of the importing package - lib\screens\admin\add_sorting_center_screen.dart:7:8 - depend_on_referenced_packages
+  error - Target of URI doesn't exist: 'package:geolocator/geolocator.dart' - lib\screens\admin\add_sorting_center_screen.dart:7:8 - uri_does_not_exist
+   info - The imported package 'http' isn't a dependency of the importing package - lib\screens\admin\add_sorting_center_screen.dart:8:8 - depend_on_referenced_packages
+  error - Undefined name 'Geolocator' - lib\screens\admin\add_sorting_center_screen.dart:50:35 - undefined_identifier
+  error - Undefined class 'LocationPermission' - lib\screens\admin\add_sorting_center_screen.dart:55:7 - undefined_class
+  error - Undefined name 'Geolocator' - lib\screens\admin\add_sorting_center_screen.dart:55:45 - undefined_identifier
+  error - Undefined name 'LocationPermission' - lib\screens\admin\add_sorting_center_screen.dart:56:25 - undefined_identifier
+  error - Undefined name 'Geolocator' - lib\screens\admin\add_sorting_center_screen.dart:57:28 - undefined_identifier
+  error - Undefined name 'LocationPermission' - lib\screens\admin\add_sorting_center_screen.dart:58:27 - undefined_identifier
+  error - Undefined name 'Geolocator' - lib\screens\admin\add_sorting_center_screen.dart:63:30 - undefined_identifier
+  error - Undefined name 'LocationAccuracy' - lib\screens\admin\add_sorting_center_screen.dart:64:26 - undefined_identifier
+  error - The method 'CancellableNetworkTileProvider' isn't defined for the type '_AddSortingCenterScreenState' - lib\screens\admin\add_sorting_center_screen.dart:215:31 - undefined_method
+warning - Unused import: '../../widgets/glass_card.dart' - lib\screens\admin\admin_dashboard.dart:6:8 - unused_import
+warning - Unused import: 'educator_tab.dart' - lib\screens\admin\admin_dashboard.dart:9:8 - unused_import
+   info - Use 'const' with the constructor to improve performance - lib\screens\admin\admin_dashboard.dart:157:27 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\screens\admin\admin_dashboard.dart:159:31 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\screens\admin\admin_dashboard.dart:159:54 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\screens\admin\admin_dashboard.dart:160:30 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\screens\admin\admin_dashboard.dart:160:53 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\screens\admin\admin_dashboard.dart:161:32 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\screens\admin\admin_dashboard.dart:161:55 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\screens\admin\admin_dashboard.dart:185:30 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\screens\admin\admin_dashboard.dart:237:30 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\screens\admin\admin_dashboard.dart:298:13 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\screens\admin\admin_dashboard.dart:299:13 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\screens\admin\admin_dashboard.dart:303:13 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\screens\admin\admin_dashboard.dart:304:13 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\screens\admin\admin_dashboard.dart:310:13 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\screens\admin\admin_dashboard.dart:311:13 - prefer_const_constructors
+   info - The declaration '_buildValidationTab' isn't referenced - lib\screens\admin\admin_dashboard.dart:539:10 - unused_element
+warning - Unused import: '../../widgets/glass_card.dart' - lib\screens\admin\collector_tab.dart:5:8 - unused_import
+   info - Use 'const' with the constructor to improve performance - lib\screens\admin\collector_tab.dart:112:11 - prefer_const_constructors
+   info - Use 'const' literals as arguments to constructors of '@immutable' classes - lib\screens\admin\collector_tab.dart:114:23 - prefer_const_literals_to_create_immutables
+   info - Use 'const' with the constructor to improve performance - lib\screens\admin\collector_tab.dart:115:15 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\screens\admin\collector_tab.dart:116:15 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\screens\admin\collector_tab.dart:117:15 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\screens\admin\collector_tab.dart:142:24 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\screens\admin\collector_tab.dart:142:47 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\screens\admin\collector_tab.dart:196:34 - prefer_const_constructors
+warning - Unused import: 'package:font_awesome_flutter/font_awesome_flutter.dart' - lib\screens\admin\educator_tab.dart:3:8 - unused_import
+warning - Unused import: '../../widgets/glass_card.dart' - lib\screens\admin\educator_tab.dart:6:8 - unused_import
+   info - Use 'const' with the constructor to improve performance - lib\screens\admin\educator_tab.dart:356:29 - prefer_const_constructors
+warning - Unused import: '../../widgets/glass_card.dart' - lib\screens\admin\intercommunality_tab.dart:4:8 - unused_import
+warning - Unused import: '../../widgets/glass_card.dart' - lib\screens\admin\point_manager_tab.dart:4:8 - unused_import
+   info - Use 'const' with the constructor to improve performance - lib\screens\admin\point_manager_tab.dart:30:11 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\screens\admin\point_manager_tab.dart:31:11 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\screens\admin\point_manager_tab.dart:32:11 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\screens\admin\point_manager_tab.dart:70:146 - prefer_const_constructors
+warning - Unused import: '../../widgets/glass_card.dart' - lib\screens\auth\login_screen.dart:7:8 - unused_import
+   info - Use 'const' with the constructor to improve performance - lib\screens\auth\login_screen.dart:104:63 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\screens\auth\login_screen.dart:123:60 - prefer_const_constructors
+   info - The declaration '_buildTrustedBy' isn't referenced - lib\screens\auth\marketing_landing_screen.dart:574:10 - unused_element
+warning - Unused import: '../../widgets/glass_card.dart' - lib\screens\auth\onboarding_screen.dart:6:8 - unused_import
+   info - Use 'const' literals as arguments to constructors of '@immutable' classes - lib\screens\auth\onboarding_screen.dart:148:32 - prefer_const_literals_to_create_immutables
+   info - Use 'const' with the constructor to improve performance - lib\screens\auth\onboarding_screen.dart:148:33 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\screens\auth\onboarding_screen.dart:148:47 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\screens\auth\onboarding_screen.dart:162:60 - prefer_const_constructors
+warning - The value of the field '_selectedDate' isn't used - lib\screens\auth\signup_screen.dart:23:13 - unused_field
+   info - Use 'const' literals as arguments to constructors of '@immutable' classes - lib\screens\auth\signup_screen.dart:81:30 - prefer_const_literals_to_create_immutables
+   info - Use 'const' with the constructor to improve performance - lib\screens\auth\signup_screen.dart:81:31 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\screens\auth\signup_screen.dart:81:45 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\screens\auth\signup_screen.dart:93:58 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\screens\auth\signup_screen.dart:107:58 - prefer_const_constructors
+   info - 'foregroundColor' is deprecated and shouldn't be used. use colors in eyeStyle and dataModuleStyle instead - lib\screens\client\badge_screen.dart:79:25 - deprecated_member_use
+warning - Unused import: 'track_records_screen.dart' - lib\screens\client\client_home.dart:10:8 - unused_import
+warning - Unused import: 'badge_screen.dart' - lib\screens\client\client_home.dart:11:8 - unused_import
+   info - 'MaterialStateProperty' is deprecated and shouldn't be used. Use WidgetStateProperty instead. Moved to the Widgets layer to make code available outside of Material. This feature was deprecated after v3.19.0-0.3.pre - lib\screens\client\client_home.dart:101:31 - deprecated_member_use
+   info - 'MaterialState' is deprecated and shouldn't be used. Use WidgetState instead. Moved to the Widgets layer to make code available outside of Material. This feature was deprecated after v3.19.0-0.3.pre - lib\screens\client\client_home.dart:102:37 - deprecated_member_use
+   info - 'MaterialStateProperty' is deprecated and shouldn't be used. Use WidgetStateProperty instead. Moved to the Widgets layer to make code available outside of Material. This feature was deprecated after v3.19.0-0.3.pre - lib\screens\client\client_home.dart:107:26 - deprecated_member_use
+   info - 'MaterialState' is deprecated and shouldn't be used. Use WidgetState instead. Moved to the Widgets layer to make code available outside of Material. This feature was deprecated after v3.19.0-0.3.pre - lib\screens\client\client_home.dart:108:37 - deprecated_member_use
+   info - Use 'const' with the constructor to improve performance - lib\screens\client\client_home.dart:109:26 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\screens\client\client_home.dart:111:24 - prefer_const_constructors
+warning - Unused import: 'package:font_awesome_flutter/font_awesome_flutter.dart' - lib\screens\client\feed_tab.dart:3:8 - unused_import
+warning - Unused import: '../../widgets/glass_card.dart' - lib\screens\client\feed_tab.dart:7:8 - unused_import
+   info - Use 'const' literals as arguments to constructors of '@immutable' classes - lib\screens\client\feed_tab.dart:151:24 - prefer_const_literals_to_create_immutables
+   info - Use 'const' with the constructor to improve performance - lib\screens\client\feed_tab.dart:151:25 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\screens\client\feed_tab.dart:151:39 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\screens\client\feed_tab.dart:172:21 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\screens\client\feed_tab.dart:394:53 - prefer_const_constructors
+   info - The imported package 'image_picker' isn't a dependency of the importing package - lib\screens\client\feed_tab_new.dart:9:8 - depend_on_referenced_packages
+  error - Target of URI doesn't exist: 'package:image_picker/image_picker.dart' - lib\screens\client\feed_tab_new.dart:9:8 - uri_does_not_exist
+  error - The getter 'navigationSignal' isn't defined for the type 'PostRegistry' - lib\screens\client\feed_tab_new.dart:33:18 - undefined_getter
+  error - The getter 'navigationSignal' isn't defined for the type 'PostRegistry' - lib\screens\client\feed_tab_new.dart:38:33 - undefined_getter
+  error - The getter 'navigationSignal' isn't defined for the type 'PostRegistry' - lib\screens\client\feed_tab_new.dart:69:18 - undefined_getter
+  error - The method 'syncAllPosts' isn't defined for the type 'PostRegistry' - lib\screens\client\feed_tab_new.dart:77:24 - undefined_method
+  error - The method 'syncAllPosts' isn't defined for the type 'PostRegistry' - lib\screens\client\feed_tab_new.dart:83:24 - undefined_method
+  error - The method 'navigateToPost' isn't defined for the type 'PostRegistry' - lib\screens\client\feed_tab_new.dart:406:61 - undefined_method
+  error - The getter 'userId' isn't defined for the type 'String' - lib\screens\client\feed_tab_new.dart:587:45 - undefined_getter
+  error - The getter 'id' isn't defined for the type 'String' - lib\screens\client\feed_tab_new.dart:587:80 - undefined_getter
+  error - The argument type 'String' can't be assigned to the parameter type 'PostComment'.  - lib\screens\client\feed_tab_new.dart:613:88 - argument_type_not_assignable
+  error - The method 'deleteComment' isn't defined for the type 'PostRegistry' - lib\screens\client\feed_tab_new.dart:622:60 - undefined_method
+  error - The getter 'id' isn't defined for the type 'String' - lib\screens\client\feed_tab_new.dart:622:91 - undefined_getter
+  error - The getter 'userAvatar' isn't defined for the type 'String' - lib\screens\client\feed_tab_new.dart:637:43 - undefined_getter
+  error - The getter 'userAvatar' isn't defined for the type 'String' - lib\screens\client\feed_tab_new.dart:646:77 - undefined_getter
+  error - The getter 'userName' isn't defined for the type 'String' - lib\screens\client\feed_tab_new.dart:667:53 - undefined_getter
+  error - The getter 'content' isn't defined for the type 'String' - lib\screens\client\feed_tab_new.dart:672:53 - undefined_getter
+  error - The named parameter 'id' is required, but there's no corresponding argument - lib\screens\client\feed_tab_new.dart:712:48 - missing_required_argument
+  error - The named parameter 'userId' is required, but there's no corresponding argument - lib\screens\client\feed_tab_new.dart:712:48 - missing_required_argument
+  error - The argument type 'String?' can't be assigned to the parameter type 'String'.  - lib\screens\client\feed_tab_new.dart:715:43 - argument_type_not_assignable
+  error - The method 'addComment' isn't defined for the type 'PostRegistry' - lib\screens\client\feed_tab_new.dart:717:42 - undefined_method
+  error - The method 'updateComment' isn't defined for the type 'PostRegistry' - lib\screens\client\feed_tab_new.dart:757:30 - undefined_method
+warning - The '!' will have no effect because the receiver can't be null - lib\screens\client\feed_tab_new.dart:757:62 - unnecessary_non_null_assertion
+  error - The method 'deletePost' isn't defined for the type 'PostRegistry' - lib\screens\client\feed_tab_new.dart:836:30 - undefined_method
+  error - Undefined class 'XFile' - lib\screens\client\feed_tab_new.dart:872:3 - undefined_class
+  error - Undefined class 'ImagePicker' - lib\screens\client\feed_tab_new.dart:873:9 - undefined_class
+  error - The method 'ImagePicker' isn't defined for the type '_PremiumCreatePostModalState' - lib\screens\client\feed_tab_new.dart:873:31 - undefined_method
+  error - Undefined class 'XFile' - lib\screens\client\feed_tab_new.dart:877:13 - undefined_class
+  error - Undefined name 'ImageSource' - lib\screens\client\feed_tab_new.dart:877:60 - undefined_identifier
+   info - Use 'const' with the constructor to improve performance - lib\screens\client\map_tab.dart:18:22 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\screens\client\map_tab.dart:65:19 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\screens\client\map_tab.dart:67:28 - prefer_const_constructors
+   info - Use 'const' literals as arguments to constructors of '@immutable' classes - lib\screens\client\map_tab.dart:68:33 - prefer_const_literals_to_create_immutables
+   info - Use 'const' with the constructor to improve performance - lib\screens\client\map_tab.dart:71:25 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\screens\client\map_tab.dart:72:34 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\screens\client\map_tab.dart:73:41 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\screens\client\map_tab.dart:75:42 - prefer_const_constructors
+   info - Don't use 'BuildContext's across async gaps - lib\screens\client\multimedia_tab.dart:122:28 - use_build_context_synchronously
+   info - Use 'const' literals as arguments to constructors of '@immutable' classes - lib\screens\client\multimedia_tab.dart:257:30 - prefer_const_literals_to_create_immutables
+   info - Use 'const' with the constructor to improve performance - lib\screens\client\multimedia_tab.dart:257:31 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\screens\client\multimedia_tab.dart:257:45 - prefer_const_constructors
+   info - Use 'const' literals as arguments to constructors of '@immutable' classes - lib\screens\client\multimedia_tab.dart:269:24 - prefer_const_literals_to_create_immutables
+   info - Use 'const' with the constructor to improve performance - lib\screens\client\multimedia_tab.dart:269:25 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\screens\client\multimedia_tab.dart:269:39 - prefer_const_constructors
+   info - Use 'const' literals as arguments to constructors of '@immutable' classes - lib\screens\client\multimedia_tab.dart:305:30 - prefer_const_literals_to_create_immutables
+   info - Use 'const' with the constructor to improve performance - lib\screens\client\multimedia_tab.dart:305:31 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\screens\client\multimedia_tab.dart:305:45 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\screens\client\profile_tab.dart:73:18 - prefer_const_constructors
+   info - Use 'const' literals as arguments to constructors of '@immutable' classes - lib\screens\client\profile_tab.dart:75:21 - prefer_const_literals_to_create_immutables
+   info - Use 'const' with the constructor to improve performance - lib\screens\client\profile_tab.dart:189:54 - prefer_const_constructors
+warning - Unused import: 'package:lottie/lottie.dart' - lib\screens\client\rewards_tab.dart:4:8 - unused_import
+   info - Use 'const' literals as arguments to constructors of '@immutable' classes - lib\screens\client\rewards_tab.dart:24:22 - prefer_const_literals_to_create_immutables
+   info - Use 'const' with the constructor to improve performance - lib\screens\client\rewards_tab.dart:24:23 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\screens\client\rewards_tab.dart:24:37 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\screens\client\rewards_tab.dart:39:21 - prefer_const_constructors
+   info - Use 'const' literals as arguments to constructors of '@immutable' classes - lib\screens\client\rewards_tab.dart:223:16 - prefer_const_literals_to_create_immutables
+   info - Use 'const' with the constructor to improve performance - lib\screens\client\rewards_tab.dart:223:17 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\screens\client\rewards_tab.dart:223:31 - prefer_const_constructors
+   info - Use 'const' literals as arguments to constructors of '@immutable' classes - lib\screens\client\sorting_guide_screen.dart:47:30 - prefer_const_literals_to_create_immutables
+   info - Use 'const' with the constructor to improve performance - lib\screens\client\sorting_guide_screen.dart:47:31 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\screens\client\sorting_guide_screen.dart:47:45 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\screens\client\sorting_guide_screen.dart:117:30 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\screens\client\sorting_guide_screen.dart:118:32 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\screens\client\sorting_guide_screen.dart:124:19 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\screens\client\sorting_guide_screen.dart:126:28 - prefer_const_constructors
+   info - Use 'const' literals as arguments to constructors of '@immutable' classes - lib\screens\client\sorting_guide_screen.dart:127:33 - prefer_const_literals_to_create_immutables
+warning - Unused import: 'package:timeago/timeago.dart' - lib\screens\client\track_records_screen.dart:8:8 - unused_import
+   info - Use 'const' with the constructor to improve performance - lib\screens\client\waste_prediction_result_screen.dart:259:23 - prefer_const_constructors
+   info - Don't use 'BuildContext's across async gaps - lib\screens\client\waste_prediction_result_screen.dart:334:21 - use_build_context_synchronously
+warning - Unused import: '../../widgets/glass_card.dart' - lib\screens\client\waste_scanner_screen.dart:4:8 - unused_import
+   info - Use 'const' for final variables initialized to a constant value - lib\screens\client\waste_scanner_screen.dart:33:7 - prefer_const_declarations
+   info - The imported package 'http' isn't a dependency of the importing package - lib\services\auth_service.dart:4:8 - depend_on_referenced_packages
+   info - The imported package 'shared_preferences' isn't a dependency of the importing package - lib\services\auth_service.dart:5:8 - depend_on_referenced_packages
+  error - Target of URI doesn't exist: 'package:shared_preferences/shared_preferences.dart' - lib\services\auth_service.dart:5:8 - uri_does_not_exist
+   info - The imported package 'google_sign_in' isn't a dependency of the importing package - lib\services\auth_service.dart:6:8 - depend_on_referenced_packages
+  error - Target of URI doesn't exist: 'package:google_sign_in/google_sign_in.dart' - lib\services\auth_service.dart:6:8 - uri_does_not_exist
+   info - The imported package 'flutter_facebook_auth' isn't a dependency of the importing package - lib\services\auth_service.dart:7:8 - depend_on_referenced_packages
+  error - Target of URI doesn't exist: 'package:flutter_facebook_auth/flutter_facebook_auth.dart' - lib\services\auth_service.dart:7:8 - uri_does_not_exist
+  error - Undefined class 'GoogleSignIn' - lib\services\auth_service.dart:20:9 - undefined_class
+  error - The method 'GoogleSignIn' isn't defined for the type 'AuthService' - lib\services\auth_service.dart:20:38 - undefined_method
+  error - Undefined class 'GoogleSignInAccount' - lib\services\auth_service.dart:93:13 - undefined_class
+  error - Undefined class 'GoogleSignInAuthentication' - lib\services\auth_service.dart:98:13 - undefined_class
+  error - Undefined name 'FacebookAuth' - lib\services\auth_service.dart:148:15 - undefined_identifier
+  error - Undefined class 'LoginResult' - lib\services\auth_service.dart:156:13 - undefined_class
+  error - Undefined name 'FacebookAuth' - lib\services\auth_service.dart:156:45 - undefined_identifier
+  error - Undefined name 'LoginStatus' - lib\services\auth_service.dart:163:33 - undefined_identifier
+  error - Undefined name 'LoginStatus' - lib\services\auth_service.dart:169:33 - undefined_identifier
+  error - Undefined name 'LoginStatus' - lib\services\auth_service.dart:180:33 - undefined_identifier
+  error - Undefined class 'AccessToken' - lib\services\auth_service.dart:188:13 - undefined_class
+  error - Undefined name 'SharedPreferences' - lib\services\auth_service.dart:346:25 - undefined_identifier
+  error - Undefined name 'SharedPreferences' - lib\services\auth_service.dart:352:25 - undefined_identifier
+  error - Undefined name 'SharedPreferences' - lib\services\auth_service.dart:382:29 - undefined_identifier
+  error - Undefined name 'SharedPreferences' - lib\services\auth_service.dart:724:25 - undefined_identifier
+  error - Undefined name 'FacebookAuth' - lib\services\auth_service.dart:732:13 - undefined_identifier
+warning - Unused import: '../theme/app_theme.dart' - lib\widgets\glass_card.dart:3:8 - unused_import
+   info - Constructors for public widgets should have a named 'key' parameter - lib\widgets\glass_card.dart:12:9 - use_key_in_widget_constructors
+warning - Unused import: 'package:flutter/foundation.dart' - lib\widgets\safe_network_image.dart:1:8 - unused_import
+warning - Unused import: 'package:tri_dechet/main.dart' - test\widget_test.dart:11:8 - unused_import
+  error - The name 'MyApp' isn't a class - test\widget_test.dart:16:35 - creation_with_non_type
+
+flutter : 180 issues found. 
+(ran in 2.9s)
+Au caractère Ligne:1 : 1
++ flutter analyze 2>&1 | 
+Out-File -FilePath 
+C:\Users\lenovo\Desktop\Tri 
+...
++ ~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo           
+   : NotSpecified: (180 iss  
+  ues found. (ran in 2.9s)   
+ :String) [], RemoteExcep    
+tion
+    + FullyQualifiedErrorId  
+   : NativeCommandError
+ 

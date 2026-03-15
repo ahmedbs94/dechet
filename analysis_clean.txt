@@ -1,0 +1,102 @@
+Analyzing lib...
+warning - screens\admin\admin_dashboard.dart:6:8 - Unused import: '../../widgets/glass_card.dart'. Try removing the import directive. - unused_import
+warning - screens\admin\admin_dashboard.dart:9:8 - Unused import: 'educator_tab.dart'. Try removing the import directive. - unused_import
+warning - screens\admin\collector_tab.dart:5:8 - Unused import: '../../widgets/glass_card.dart'. Try removing the import directive. - unused_import
+warning - screens\admin\educator_tab.dart:3:8 - Unused import: 'package:font_awesome_flutter/font_awesome_flutter.dart'. Try removing the import direc
+warning - screens\admin\educator_tab.dart:6:8 - Unused import: '../../widgets/glass_card.dart'. Try removing the import directive. - unused_import
+warning - screens\admin\intercommunality_tab.dart:4:8 - Unused import: '../../widgets/glass_card.dart'. Try removing the import directive. - unused_im
+warning - screens\admin\point_manager_tab.dart:4:8 - Unused import: '../../widgets/glass_card.dart'. Try removing the import directive. - unused_impor
+warning - screens\auth\onboarding_screen.dart:6:8 - Unused import: '../../widgets/glass_card.dart'. Try removing the import directive. - unused_import
+warning - screens\auth\signup_screen.dart:23:13 - The value of the field '_selectedDate' isn't used. Try removing the field, or using it. - unused_fie
+warning - screens\client\client_home.dart:10:8 - Unused import: 'track_records_screen.dart'. Try removing the import directive. - unused_import
+warning - screens\client\client_home.dart:11:8 - Unused import: 'badge_screen.dart'. Try removing the import directive. - unused_import
+warning - screens\client\track_records_screen.dart:8:8 - Unused import: 'package:timeago/timeago.dart'. Try removing the import directive. - unused_im
+warning - screens\client\waste_scanner_screen.dart:4:8 - Unused import: '../../widgets/glass_card.dart'. Try removing the import directive. - unused_i
+warning - widgets\glass_card.dart:3:8 - Unused import: '../theme/app_theme.dart'. Try removing the import directive. - unused_import
+warning - widgets\safe_network_image.dart:1:8 - Unused import: 'package:flutter/foundation.dart'. Try removing the import directive. - unused_import
+info - screens\admin\add_sorting_center_screen.dart:64:9 - 'desiredAccuracy' is deprecated and shouldn't be used. use settings parameter with AndroidS
+info - screens\admin\admin_dashboard.dart:157:27 - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the cons
+info - screens\admin\admin_dashboard.dart:159:31 - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the cons
+info - screens\admin\admin_dashboard.dart:159:54 - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the cons
+info - screens\admin\admin_dashboard.dart:160:30 - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the cons
+info - screens\admin\admin_dashboard.dart:160:53 - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the cons
+info - screens\admin\admin_dashboard.dart:161:32 - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the cons
+info - screens\admin\admin_dashboard.dart:161:55 - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the cons
+info - screens\admin\admin_dashboard.dart:185:30 - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the cons
+info - screens\admin\admin_dashboard.dart:237:30 - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the cons
+info - screens\admin\admin_dashboard.dart:298:13 - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the cons
+info - screens\admin\admin_dashboard.dart:299:13 - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the cons
+info - screens\admin\admin_dashboard.dart:303:13 - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the cons
+info - screens\admin\admin_dashboard.dart:304:13 - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the cons
+info - screens\admin\admin_dashboard.dart:310:13 - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the cons
+info - screens\admin\admin_dashboard.dart:311:13 - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the cons
+info - screens\admin\admin_dashboard.dart:539:10 - The declaration '_buildValidationTab' isn't referenced. Try removing the declaration of '_buildVali
+info - screens\admin\collector_tab.dart:112:11 - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constr
+info - screens\admin\collector_tab.dart:114:23 - Use 'const' literals as arguments to constructors of '@immutable' classes. Try adding 'const' before 
+info - screens\admin\collector_tab.dart:115:15 - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constr
+info - screens\admin\collector_tab.dart:116:15 - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constr
+info - screens\admin\collector_tab.dart:117:15 - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constr
+info - screens\admin\collector_tab.dart:142:24 - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constr
+info - screens\admin\collector_tab.dart:142:47 - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constr
+info - screens\admin\collector_tab.dart:196:34 - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constr
+info - screens\admin\educator_tab.dart:356:29 - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constru
+info - screens\admin\point_manager_tab.dart:30:11 - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the con
+info - screens\admin\point_manager_tab.dart:31:11 - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the con
+info - screens\admin\point_manager_tab.dart:32:11 - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the con
+info - screens\admin\point_manager_tab.dart:70:146 - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the co
+info - screens\auth\marketing_landing_screen.dart:70:8 - The declaration '_showAuthDialog' isn't referenced. Try removing the declaration of '_showAut
+info - screens\auth\marketing_landing_screen.dart:589:10 - The declaration '_buildTrustedBy' isn't referenced. Try removing the declaration of '_build
+info - screens\auth\onboarding_screen.dart:148:32 - Use 'const' literals as arguments to constructors of '@immutable' classes. Try adding 'const' befo
+info - screens\auth\onboarding_screen.dart:148:33 - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the con
+info - screens\auth\onboarding_screen.dart:148:47 - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the con
+info - screens\auth\onboarding_screen.dart:162:60 - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the con
+info - screens\auth\signup_screen.dart:81:30 - Use 'const' literals as arguments to constructors of '@immutable' classes. Try adding 'const' before th
+info - screens\auth\signup_screen.dart:81:31 - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the construc
+info - screens\auth\signup_screen.dart:81:45 - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the construc
+info - screens\auth\signup_screen.dart:93:58 - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the construc
+info - screens\auth\signup_screen.dart:107:58 - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constru
+info - screens\client\badge_screen.dart:79:25 - 'foregroundColor' is deprecated and shouldn't be used. use colors in eyeStyle and dataModuleStyle inst
+info - screens\client\client_home.dart:127:31 - 'MaterialStateProperty' is deprecated and shouldn't be used. Use WidgetStateProperty instead. Moved to
+info - screens\client\client_home.dart:128:37 - 'MaterialState' is deprecated and shouldn't be used. Use WidgetState instead. Moved to the Widgets lay
+info - screens\client\client_home.dart:133:26 - 'MaterialStateProperty' is deprecated and shouldn't be used. Use WidgetStateProperty instead. Moved to
+info - screens\client\client_home.dart:134:37 - 'MaterialState' is deprecated and shouldn't be used. Use WidgetState instead. Moved to the Widgets lay
+info - screens\client\client_home.dart:135:26 - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constru
+info - screens\client\client_home.dart:137:24 - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constru
+info - screens\client\feed_tab.dart:139:35 - Don't use 'BuildContext's across async gaps. Try rewriting the code to not use the 'BuildContext', or gua
+info - screens\client\feed_tab.dart:142:44 - Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check. Guard a 'State.cont
+info - screens\client\feed_tab.dart:149:44 - Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check. Guard a 'State.cont
+info - screens\client\feed_tab.dart:186:24 - Use 'const' literals as arguments to constructors of '@immutable' classes. Try adding 'const' before the 
+info - screens\client\feed_tab.dart:186:25 - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructo
+info - screens\client\feed_tab.dart:186:39 - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructo
+info - screens\client\feed_tab.dart:245:23 - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructo
+info - screens\client\map_tab.dart:18:22 - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor 
+info - screens\client\map_tab.dart:65:19 - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor 
+info - screens\client\map_tab.dart:67:28 - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor 
+info - screens\client\map_tab.dart:68:33 - Use 'const' literals as arguments to constructors of '@immutable' classes. Try adding 'const' before the li
+info - screens\client\map_tab.dart:71:25 - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor 
+info - screens\client\map_tab.dart:72:34 - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor 
+info - screens\client\map_tab.dart:73:41 - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor 
+info - screens\client\map_tab.dart:75:42 - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor 
+info - screens\client\multimedia_tab.dart:122:28 - Don't use 'BuildContext's across async gaps. Try rewriting the code to not use the 'BuildContext', 
+info - screens\client\multimedia_tab.dart:257:30 - Use 'const' literals as arguments to constructors of '@immutable' classes. Try adding 'const' befor
+info - screens\client\multimedia_tab.dart:257:31 - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the cons
+info - screens\client\multimedia_tab.dart:257:45 - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the cons
+info - screens\client\multimedia_tab.dart:269:24 - Use 'const' literals as arguments to constructors of '@immutable' classes. Try adding 'const' befor
+info - screens\client\multimedia_tab.dart:269:25 - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the cons
+info - screens\client\multimedia_tab.dart:269:39 - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the cons
+info - screens\client\multimedia_tab.dart:305:30 - Use 'const' literals as arguments to constructors of '@immutable' classes. Try adding 'const' befor
+info - screens\client\multimedia_tab.dart:305:31 - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the cons
+info - screens\client\multimedia_tab.dart:305:45 - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the cons
+info - screens\client\sorting_guide_screen.dart:47:30 - Use 'const' literals as arguments to constructors of '@immutable' classes. Try adding 'const' 
+info - screens\client\sorting_guide_screen.dart:47:31 - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the
+info - screens\client\sorting_guide_screen.dart:47:45 - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the
+info - screens\client\sorting_guide_screen.dart:117:30 - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to th
+info - screens\client\sorting_guide_screen.dart:118:32 - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to th
+info - screens\client\sorting_guide_screen.dart:124:19 - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to th
+info - screens\client\sorting_guide_screen.dart:126:28 - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to th
+info - screens\client\sorting_guide_screen.dart:127:33 - Use 'const' literals as arguments to constructors of '@immutable' classes. Try adding 'const'
+info - screens\client\waste_prediction_result_screen.dart:259:23 - Use 'const' with the constructor to improve performance. Try adding the 'const' key
+info - screens\client\waste_prediction_result_screen.dart:334:21 - Don't use 'BuildContext's across async gaps. Try rewriting the code to not use the 
+info - screens\client\waste_scanner_screen.dart:33:7 - Use 'const' for final variables initialized to a constant value. Try replacing 'final' with 'co
+info - widgets\glass_card.dart:12:9 - Constructors for public widgets should have a named 'key' parameter. Try adding a named parameter to the constru
+100 issues found.

@@ -1,0 +1,27 @@
+﻿Analyzing 2 items...                                            
+
+   info - Don't use 'BuildContext's across async gaps - lib\screens\client\feed_tab.dart:139:35 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check - lib\screens\client\feed_tab.dart:142:44 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check - lib\screens\client\feed_tab.dart:149:44 - use_build_context_synchronously
+   info - Use 'const' literals as arguments to constructors of '@immutable' classes - lib\screens\client\feed_tab.dart:186:24 - prefer_const_literals_to_create_immutables
+   info - Use 'const' with the constructor to improve performance - lib\screens\client\feed_tab.dart:186:25 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\screens\client\feed_tab.dart:186:39 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\screens\client\feed_tab.dart:245:23 - prefer_const_constructors
+
+flutter : 7 issues found. 
+(ran in 2.7s)
+Au caractère Ligne:1 : 1
++ flutter analyze lib\screens
+\client\feed_tab.dart 
+lib\screens\client\p ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~
+    + CategoryInfo           
+   : NotSpecified: (7 issue  
+  s found. (ran in 2.7s):S   
+ tring) [], RemoteExcepti    
+on
+    + FullyQualifiedErrorId  
+   : NativeCommandError
+ 

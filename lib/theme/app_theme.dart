@@ -3,19 +3,28 @@ import 'package:google_fonts/google_fonts.dart';
 
 class AppTheme {
   // --- Elegant & Professional Color Palette ---
-  static const Color primaryGreen = Color(0xFF00B894); 
+  static const Color primaryGreen = Color(0xFF00B894);
   static const Color accentMint = Color(0xFF55E6C1);
-  static const Color deepSlate = Color(0xFF0F172A); 
+  static const Color deepSlate = Color(0xFF0F172A);
   static const Color backgroundLight = Color(0xFFF8FAFC);
   static const Color surfaceWhite = Color(0xFFFFFFFF);
   static const Color textMain = Color(0xFF1E293B);
   static const Color textMuted = Color(0xFF64748B);
   static const Color errorRed = Color(0xFFFF4D4F);
-  
+
+  // Extended color palette used across the app
+  static const Color deepNavy = Color(0xFF0F172A); // Deep dark blue for headings/emphasis
+  static const Color accentTeal = Color(0xFF00D2A8); // Teal accent for gradients
+  static const Color backgroundSoft = Color(0xFFF1F5F9); // Soft grey background
+  static const Color secondaryGold = Color(0xFFF59E0B); // Gold/amber secondary color
+  static const Color gradientStart = Color(0xFF00B894); // Gradient start (matches primaryGreen)
+  static const Color gradientEnd = Color(0xFF00D2A8); // Gradient end (matches accentTeal)
+  static const Color successLeaf = Color(0xFF10B981); // Success green for positive indicators
+
   // Custom Design Tokens
   static const double borderRadiusLarge = 32.0;
   static const double borderRadiusMedium = 20.0;
-  
+
   static List<BoxShadow> premiumShadow = [
     BoxShadow(
       color: deepSlate.withOpacity(0.04),
@@ -56,7 +65,6 @@ class AppTheme {
         surface: surfaceWhite,
         error: errorRed,
       ),
-      
       textTheme: TextTheme(
         displayLarge: GoogleFonts.outfit(
           fontSize: 48,
@@ -85,7 +93,6 @@ class AppTheme {
           color: textMuted,
         ),
       ),
-
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
           backgroundColor: primaryGreen,
@@ -96,7 +103,6 @@ class AppTheme {
           textStyle: GoogleFonts.outfit(fontWeight: FontWeight.w700, fontSize: 16),
         ),
       ),
-      
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: Colors.grey.shade50,

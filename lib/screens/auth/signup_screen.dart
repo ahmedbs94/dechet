@@ -133,7 +133,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                                 onChanged: (v) => setState(() => _acceptTerms = v!),
                               ),
                               Expanded(
-                                child: Text('J\'accepte les conditions de TriDéchet Tunisie.', style: GoogleFonts.inter(fontSize: 12, color: AppTheme.textMuted)),
+                                child: Text('J\'accepte les conditions de EcoRewind Tunisie.', style: GoogleFonts.inter(fontSize: 12, color: AppTheme.textMuted)),
                               ),
                             ],
                           ),

@@ -1,0 +1,320 @@
+﻿Analyzing TriD├®chet...                                          
+
+   info - The imported package 'flutter_map_cancellable_tile_provider' isn't a dependency of the importing package - lib\screens\admin\add_sorting_center_screen.dart:4:8 - depend_on_referenced_packages
+  error - Target of URI doesn't exist: 'package:flutter_map_cancellable_tile_provider/flutter_map_cancellable_tile_provider.dart' - lib\screens\admin\add_sorting_center_screen.dart:4:8 - uri_does_not_exist
+   info - The imported package 'geolocator' isn't a dependency of the importing package - lib\screens\admin\add_sorting_center_screen.dart:7:8 - depend_on_referenced_packages
+  error - Target of URI doesn't exist: 'package:geolocator/geolocator.dart' - lib\screens\admin\add_sorting_center_screen.dart:7:8 - uri_does_not_exist
+   info - The imported package 'http' isn't a dependency of the importing package - lib\screens\admin\add_sorting_center_screen.dart:8:8 - depend_on_referenced_packages
+  error - Undefined name 'Geolocator' - lib\screens\admin\add_sorting_center_screen.dart:50:35 - undefined_identifier
+  error - Undefined class 'LocationPermission' - lib\screens\admin\add_sorting_center_screen.dart:55:7 - undefined_class
+  error - Undefined name 'Geolocator' - lib\screens\admin\add_sorting_center_screen.dart:55:45 - undefined_identifier
+  error - Undefined name 'LocationPermission' - lib\screens\admin\add_sorting_center_screen.dart:56:25 - undefined_identifier
+  error - Undefined name 'Geolocator' - lib\screens\admin\add_sorting_center_screen.dart:57:28 - undefined_identifier
+  error - Undefined name 'LocationPermission' - lib\screens\admin\add_sorting_center_screen.dart:58:27 - undefined_identifier
+  error - Undefined name 'Geolocator' - lib\screens\admin\add_sorting_center_screen.dart:63:30 - undefined_identifier
+  error - Undefined name 'LocationAccuracy' - lib\screens\admin\add_sorting_center_screen.dart:64:26 - undefined_identifier
+  error - Invalid constant value - lib\screens\admin\add_sorting_center_screen.dart:175:72 - invalid_constant
+  error - The getter 'deepNavy' isn't defined for the type 'AppTheme' - lib\screens\admin\add_sorting_center_screen.dart:175:81 - undefined_getter
+  error - The getter 'deepNavy' isn't defined for the type 'AppTheme' - lib\screens\admin\add_sorting_center_screen.dart:182:29 - undefined_getter
+  error - The method 'CancellableNetworkTileProvider' isn't defined for the type '_AddSortingCenterScreenState' - lib\screens\admin\add_sorting_center_screen.dart:215:31 - undefined_method
+warning - Unused import: '../../widgets/glass_card.dart' - lib\screens\admin\admin_dashboard.dart:6:8 - unused_import
+warning - Unused import: 'educator_tab.dart' - lib\screens\admin\admin_dashboard.dart:9:8 - unused_import
+   info - Use 'const' with the constructor to improve performance - lib\screens\admin\admin_dashboard.dart:157:27 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\screens\admin\admin_dashboard.dart:159:31 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\screens\admin\admin_dashboard.dart:159:54 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\screens\admin\admin_dashboard.dart:160:30 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\screens\admin\admin_dashboard.dart:160:53 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\screens\admin\admin_dashboard.dart:161:32 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\screens\admin\admin_dashboard.dart:161:55 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\screens\admin\admin_dashboard.dart:185:30 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\screens\admin\admin_dashboard.dart:237:30 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\screens\admin\admin_dashboard.dart:298:13 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\screens\admin\admin_dashboard.dart:299:13 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\screens\admin\admin_dashboard.dart:303:13 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\screens\admin\admin_dashboard.dart:304:13 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\screens\admin\admin_dashboard.dart:310:13 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\screens\admin\admin_dashboard.dart:311:13 - prefer_const_constructors
+   info - The declaration '_buildValidationTab' isn't referenced - lib\screens\admin\admin_dashboard.dart:539:10 - unused_element
+warning - Unused import: '../../widgets/glass_card.dart' - lib\screens\admin\collector_tab.dart:5:8 - unused_import
+   info - Use 'const' with the constructor to improve performance - lib\screens\admin\collector_tab.dart:112:11 - prefer_const_constructors
+   info - Use 'const' literals as arguments to constructors of '@immutable' classes - lib\screens\admin\collector_tab.dart:114:23 - prefer_const_literals_to_create_immutables
+   info - Use 'const' with the constructor to improve performance - lib\screens\admin\collector_tab.dart:115:15 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\screens\admin\collector_tab.dart:116:15 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\screens\admin\collector_tab.dart:117:15 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\screens\admin\collector_tab.dart:142:24 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\screens\admin\collector_tab.dart:142:47 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\screens\admin\collector_tab.dart:196:34 - prefer_const_constructors
+warning - Unused import: 'package:font_awesome_flutter/font_awesome_flutter.dart' - lib\screens\admin\educator_tab.dart:3:8 - unused_import
+warning - Unused import: '../../widgets/glass_card.dart' - lib\screens\admin\educator_tab.dart:6:8 - unused_import
+   info - Use 'const' with the constructor to improve performance - lib\screens\admin\educator_tab.dart:356:29 - prefer_const_constructors
+warning - Unused import: '../../widgets/glass_card.dart' - lib\screens\admin\intercommunality_tab.dart:4:8 - unused_import
+warning - Unused import: '../../widgets/glass_card.dart' - lib\screens\admin\point_manager_tab.dart:4:8 - unused_import
+   info - Use 'const' with the constructor to improve performance - lib\screens\admin\point_manager_tab.dart:30:11 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\screens\admin\point_manager_tab.dart:31:11 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\screens\admin\point_manager_tab.dart:32:11 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\screens\admin\point_manager_tab.dart:70:146 - prefer_const_constructors
+  error - The getter 'backgroundSoft' isn't defined for the type 'AppTheme' - lib\screens\admin\user_management_screen.dart:218:33 - undefined_getter
+  error - The getter 'backgroundSoft' isn't defined for the type 'AppTheme' - lib\screens\auth\forgot_password_screen.dart:135:33 - undefined_getter
+  error - Invalid constant value - lib\screens\auth\forgot_password_screen.dart:156:94 - invalid_constant
+  error - The getter 'deepNavy' isn't defined for the type 'AppTheme' - lib\screens\auth\forgot_password_screen.dart:156:103 - undefined_getter
+  error - The getter 'deepNavy' isn't defined for the type 'AppTheme' - lib\screens\auth\forgot_password_screen.dart:204:29 - undefined_getter
+  error - Invalid constant value - lib\screens\auth\forgot_password_screen.dart:241:66 - invalid_constant
+  error - The getter 'accentTeal' isn't defined for the type 'AppTheme' - lib\screens\auth\forgot_password_screen.dart:241:75 - undefined_getter
+  error - The getter 'deepNavy' isn't defined for the type 'AppTheme' - lib\screens\auth\forgot_password_screen.dart:251:29 - undefined_getter
+  error - The getter 'deepNavy' isn't defined for the type 'AppTheme' - lib\screens\auth\forgot_password_screen.dart:304:35 - undefined_getter
+  error - The getter 'accentTeal' isn't defined for the type 'AppTheme' - lib\screens\auth\forgot_password_screen.dart:315:56 - undefined_getter
+  error - The getter 'deepNavy' isn't defined for the type 'AppTheme' - lib\screens\auth\forgot_password_screen.dart:325:26 - undefined_getter
+  error - The getter 'deepNavy' isn't defined for the type 'AppTheme' - lib\screens\auth\forgot_password_screen.dart:326:26 - undefined_getter
+warning - Unused import: '../../widgets/glass_card.dart' - lib\screens\auth\login_screen.dart:7:8 - unused_import
+   info - Use 'const' with the constructor to improve performance - lib\screens\auth\login_screen.dart:104:63 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\screens\auth\login_screen.dart:123:60 - prefer_const_constructors
+  error - Invalid constant value - lib\screens\auth\marketing_landing_screen.dart:105:53 - invalid_constant
+  error - The values in a const list literal must be constants - lib\screens\auth\marketing_landing_screen.dart:105:53 - non_constant_list_element
+  error - The getter 'accentTeal' isn't defined for the type 'AppTheme' - lib\screens\auth\marketing_landing_screen.dart:105:62 - undefined_getter
+  error - Invalid constant value - lib\screens\auth\marketing_landing_screen.dart:130:61 - invalid_constant
+  error - The values in a const list literal must be constants - lib\screens\auth\marketing_landing_screen.dart:130:61 - non_constant_list_element
+  error - The getter 'accentTeal' isn't defined for the type 'AppTheme' - lib\screens\auth\marketing_landing_screen.dart:130:70 - undefined_getter
+  error - The getter 'deepNavy' isn't defined for the type 'AppTheme' - lib\screens\auth\marketing_landing_screen.dart:157:41 - undefined_getter
+  error - The getter 'deepNavy' isn't defined for the type 'AppTheme' - lib\screens\auth\marketing_landing_screen.dart:180:45 - undefined_getter
+  error - Invalid constant value - lib\screens\auth\marketing_landing_screen.dart:302:51 - invalid_constant
+  error - The values in a const list literal must be constants - lib\screens\auth\marketing_landing_screen.dart:302:51 - non_constant_list_element
+  error - The getter 'accentTeal' isn't defined for the type 'AppTheme' - lib\screens\auth\marketing_landing_screen.dart:302:60 - undefined_getter
+  error - The getter 'deepNavy' isn't defined for the type 'AppTheme' - lib\screens\auth\marketing_landing_screen.dart:314:46 - undefined_getter
+  error - Invalid constant value - lib\screens\auth\marketing_landing_screen.dart:346:53 - invalid_constant
+  error - The values in a const list literal must be constants - lib\screens\auth\marketing_landing_screen.dart:346:53 - non_constant_list_element
+  error - The getter 'accentTeal' isn't defined for the type 'AppTheme' - lib\screens\auth\marketing_landing_screen.dart:346:62 - undefined_getter
+  error - The getter 'accentTeal' isn't defined for the type 'AppTheme' - lib\screens\auth\marketing_landing_screen.dart:402:60 - undefined_getter
+  error - The getter 'secondaryGold' isn't defined for the type 'AppTheme' - lib\screens\auth\marketing_landing_screen.dart:402:81 - undefined_getter
+   info - The declaration '_buildTrustedBy' isn't referenced - lib\screens\auth\marketing_landing_screen.dart:574:10 - unused_element
+  error - The getter 'backgroundSoft' isn't defined for the type 'AppTheme' - lib\screens\auth\marketing_landing_screen.dart:607:29 - undefined_getter
+  error - The getter 'deepNavy' isn't defined for the type 'AppTheme' - lib\screens\auth\marketing_landing_screen.dart:639:31 - undefined_getter
+  error - The getter 'deepNavy' isn't defined for the type 'AppTheme' - lib\screens\auth\marketing_landing_screen.dart:744:37 - undefined_getter
+  error - The getter 'deepNavy' isn't defined for the type 'AppTheme' - lib\screens\auth\marketing_landing_screen.dart:808:31 - undefined_getter
+  error - The getter 'deepNavy' isn't defined for the type 'AppTheme' - lib\screens\auth\marketing_landing_screen.dart:924:47 - undefined_getter
+  error - The getter 'deepNavy' isn't defined for the type 'AppTheme' - lib\screens\auth\marketing_landing_screen.dart:986:29 - undefined_getter
+  error - The getter 'accentTeal' isn't defined for the type 'AppTheme' - lib\screens\auth\marketing_landing_screen.dart:997:31 - undefined_getter
+  error - The getter 'deepNavy' isn't defined for the type 'AppTheme' - lib\screens\auth\marketing_landing_screen.dart:1105:37 - undefined_getter
+  error - The getter 'deepNavy' isn't defined for the type 'AppTheme' - lib\screens\auth\marketing_landing_screen.dart:1165:45 - undefined_getter
+  error - The getter 'deepNavy' isn't defined for the type 'AppTheme' - lib\screens\auth\marketing_landing_screen.dart:1185:51 - undefined_getter
+  error - The getter 'deepNavy' isn't defined for the type 'AppTheme' - lib\screens\auth\marketing_landing_screen.dart:1231:31 - undefined_getter
+  error - The getter 'deepNavy' isn't defined for the type 'AppTheme' - lib\screens\auth\marketing_landing_screen.dart:1270:41 - undefined_getter
+warning - Unused import: '../../widgets/glass_card.dart' - lib\screens\auth\onboarding_screen.dart:6:8 - unused_import
+   info - Use 'const' literals as arguments to constructors of '@immutable' classes - lib\screens\auth\onboarding_screen.dart:148:32 - prefer_const_literals_to_create_immutables
+   info - Use 'const' with the constructor to improve performance - lib\screens\auth\onboarding_screen.dart:148:33 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\screens\auth\onboarding_screen.dart:148:47 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\screens\auth\onboarding_screen.dart:162:60 - prefer_const_constructors
+warning - The value of the field '_selectedDate' isn't used - lib\screens\auth\signup_screen.dart:23:13 - unused_field
+   info - Use 'const' literals as arguments to constructors of '@immutable' classes - lib\screens\auth\signup_screen.dart:81:30 - prefer_const_literals_to_create_immutables
+   info - Use 'const' with the constructor to improve performance - lib\screens\auth\signup_screen.dart:81:31 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\screens\auth\signup_screen.dart:81:45 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\screens\auth\signup_screen.dart:93:58 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\screens\auth\signup_screen.dart:107:58 - prefer_const_constructors
+   info - 'foregroundColor' is deprecated and shouldn't be used. use colors in eyeStyle and dataModuleStyle instead - lib\screens\client\badge_screen.dart:79:25 - deprecated_member_use
+  error - The getter 'deepNavy' isn't defined for the type 'AppTheme' - lib\screens\client\change_password_screen.dart:101:29 - undefined_getter
+  error - Invalid constant value - lib\screens\client\change_password_screen.dart:109:69 - invalid_constant
+  error - The getter 'deepNavy' isn't defined for the type 'AppTheme' - lib\screens\client\change_password_screen.dart:109:78 - undefined_getter
+  error - The getter 'deepNavy' isn't defined for the type 'AppTheme' - lib\screens\client\change_password_screen.dart:145:29 - undefined_getter
+warning - Unused import: 'track_records_screen.dart' - lib\screens\client\client_home.dart:10:8 - unused_import
+warning - Unused import: 'badge_screen.dart' - lib\screens\client\client_home.dart:11:8 - unused_import
+   info - 'MaterialStateProperty' is deprecated and shouldn't be used. Use WidgetStateProperty instead. Moved to the Widgets layer to make code available outside of Material. This feature was deprecated after v3.19.0-0.3.pre - lib\screens\client\client_home.dart:101:31 - deprecated_member_use
+   info - 'MaterialState' is deprecated and shouldn't be used. Use WidgetState instead. Moved to the Widgets layer to make code available outside of Material. This feature was deprecated after v3.19.0-0.3.pre - lib\screens\client\client_home.dart:102:37 - deprecated_member_use
+   info - 'MaterialStateProperty' is deprecated and shouldn't be used. Use WidgetStateProperty instead. Moved to the Widgets layer to make code available outside of Material. This feature was deprecated after v3.19.0-0.3.pre - lib\screens\client\client_home.dart:107:26 - deprecated_member_use
+   info - 'MaterialState' is deprecated and shouldn't be used. Use WidgetState instead. Moved to the Widgets layer to make code available outside of Material. This feature was deprecated after v3.19.0-0.3.pre - lib\screens\client\client_home.dart:108:37 - deprecated_member_use
+   info - Use 'const' with the constructor to improve performance - lib\screens\client\client_home.dart:109:26 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\screens\client\client_home.dart:111:24 - prefer_const_constructors
+warning - Unused import: 'package:font_awesome_flutter/font_awesome_flutter.dart' - lib\screens\client\feed_tab.dart:3:8 - unused_import
+warning - Unused import: '../../widgets/glass_card.dart' - lib\screens\client\feed_tab.dart:7:8 - unused_import
+   info - Use 'const' literals as arguments to constructors of '@immutable' classes - lib\screens\client\feed_tab.dart:151:24 - prefer_const_literals_to_create_immutables
+   info - Use 'const' with the constructor to improve performance - lib\screens\client\feed_tab.dart:151:25 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\screens\client\feed_tab.dart:151:39 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\screens\client\feed_tab.dart:172:21 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\screens\client\feed_tab.dart:394:53 - prefer_const_constructors
+   info - The imported package 'image_picker' isn't a dependency of the importing package - lib\screens\client\feed_tab_new.dart:9:8 - depend_on_referenced_packages
+  error - Target of URI doesn't exist: 'package:image_picker/image_picker.dart' - lib\screens\client\feed_tab_new.dart:9:8 - uri_does_not_exist
+  error - Undefined name 'PostRegistry' - lib\screens\client\feed_tab_new.dart:31:14 - undefined_identifier
+  error - Undefined name 'PostRegistry' - lib\screens\client\feed_tab_new.dart:32:5 - undefined_identifier
+  error - Undefined name 'PostRegistry' - lib\screens\client\feed_tab_new.dart:33:5 - undefined_identifier
+  error - Undefined name 'PostRegistry' - lib\screens\client\feed_tab_new.dart:38:20 - undefined_identifier
+  error - Undefined name 'PostRegistry' - lib\screens\client\feed_tab_new.dart:61:18 - undefined_identifier
+  error - Undefined name 'PostRegistry' - lib\screens\client\feed_tab_new.dart:68:5 - undefined_identifier
+  error - Undefined name 'PostRegistry' - lib\screens\client\feed_tab_new.dart:69:5 - undefined_identifier
+  error - Undefined name 'PostRegistry' - lib\screens\client\feed_tab_new.dart:77:11 - undefined_identifier
+  error - Undefined name 'PostRegistry' - lib\screens\client\feed_tab_new.dart:83:11 - undefined_identifier
+  error - Undefined name 'PostRegistry' - lib\screens\client\feed_tab_new.dart:119:11 - undefined_identifier
+  error - The getter 'deepNavy' isn't defined for the type 'AppTheme' - lib\screens\client\feed_tab_new.dart:150:31 - undefined_getter
+  error - The getter 'backgroundSoft' isn't defined for the type 'AppTheme' - lib\screens\client\feed_tab_new.dart:170:23 - undefined_getter
+  error - Undefined name 'PostRegistry' - lib\screens\client\feed_tab_new.dart:406:48 - undefined_identifier
+  error - Invalid constant value - lib\screens\client\feed_tab_new.dart:443:26 - invalid_constant
+  error - The getter 'deepNavy' isn't defined for the type 'AppTheme' - lib\screens\client\feed_tab_new.dart:443:35 - undefined_getter
+  error - The getter 'deepNavy' isn't defined for the type 'AppTheme' - lib\screens\client\feed_tab_new.dart:498:38 - undefined_getter
+  error - The getter 'deepNavy' isn't defined for the type 'AppTheme' - lib\screens\client\feed_tab_new.dart:504:55 - undefined_getter
+  error - The method 'copyWith' isn't defined for the type 'Post' - lib\screens\client\feed_tab_new.dart:519:30 - undefined_method
+  error - The getter 'isLiked' isn't defined for the type 'Post' - lib\screens\client\feed_tab_new.dart:520:22 - undefined_getter
+  error - The getter 'isLiked' isn't defined for the type 'Post' - lib\screens\client\feed_tab_new.dart:521:19 - undefined_getter
+  error - Undefined name 'PostRegistry' - lib\screens\client\feed_tab_new.dart:523:5 - undefined_identifier
+  error - The getter 'userId' isn't defined for the type 'String' - lib\screens\client\feed_tab_new.dart:587:45 - undefined_getter
+  error - The getter 'id' isn't defined for the type 'String' - lib\screens\client\feed_tab_new.dart:587:80 - undefined_getter
+  error - Undefined name 'PostRegistry' - lib\screens\client\feed_tab_new.dart:622:47 - undefined_identifier
+  error - The getter 'id' isn't defined for the type 'String' - lib\screens\client\feed_tab_new.dart:622:91 - undefined_getter
+  error - The getter 'userAvatar' isn't defined for the type 'String' - lib\screens\client\feed_tab_new.dart:637:43 - undefined_getter
+  error - The getter 'userAvatar' isn't defined for the type 'String' - lib\screens\client\feed_tab_new.dart:646:77 - undefined_getter
+  error - The getter 'userName' isn't defined for the type 'String' - lib\screens\client\feed_tab_new.dart:667:53 - undefined_getter
+  error - The getter 'content' isn't defined for the type 'String' - lib\screens\client\feed_tab_new.dart:672:53 - undefined_getter
+  error - The method 'PostComment' isn't defined for the type '_FeedTabState' - lib\screens\client\feed_tab_new.dart:712:48 - undefined_method
+  error - Undefined name 'PostRegistry' - lib\screens\client\feed_tab_new.dart:717:29 - undefined_identifier
+  error - Undefined class 'PostComment' - lib\screens\client\feed_tab_new.dart:735:68 - undefined_class
+  error - Undefined name 'PostRegistry' - lib\screens\client\feed_tab_new.dart:757:17 - undefined_identifier
+  error - The method 'copyWith' isn't defined for the type 'Post' - lib\screens\client\feed_tab_new.dart:780:30 - undefined_method
+  error - Undefined name 'PostRegistry' - lib\screens\client\feed_tab_new.dart:781:5 - undefined_identifier
+  error - The getter 'deepNavy' isn't defined for the type 'AppTheme' - lib\screens\client\feed_tab_new.dart:787:83 - undefined_getter
+  error - The method 'copyWith' isn't defined for the type 'Post' - lib\screens\client\feed_tab_new.dart:808:51 - undefined_method
+  error - Undefined name 'PostRegistry' - lib\screens\client\feed_tab_new.dart:811:17 - undefined_identifier
+  error - Undefined name 'PostRegistry' - lib\screens\client\feed_tab_new.dart:836:17 - undefined_identifier
+  error - Undefined class 'XFile' - lib\screens\client\feed_tab_new.dart:872:3 - undefined_class
+  error - Undefined class 'ImagePicker' - lib\screens\client\feed_tab_new.dart:873:9 - undefined_class
+  error - The method 'ImagePicker' isn't defined for the type '_PremiumCreatePostModalState' - lib\screens\client\feed_tab_new.dart:873:31 - undefined_method
+  error - Undefined class 'XFile' - lib\screens\client\feed_tab_new.dart:877:13 - undefined_class
+  error - Undefined name 'ImageSource' - lib\screens\client\feed_tab_new.dart:877:60 - undefined_identifier
+  error - The getter 'deepNavy' isn't defined for the type 'AppTheme' - lib\screens\client\feed_tab_new.dart:910:102 - undefined_getter
+  error - The getter 'backgroundSoft' isn't defined for the type 'AppTheme' - lib\screens\client\home_dashboard_tab.dart:25:33 - undefined_getter
+  error - Invalid constant value - lib\screens\client\home_dashboard_tab.dart:58:49 - invalid_constant
+  error - The values in a const list literal must be constants - lib\screens\client\home_dashboard_tab.dart:58:49 - non_constant_list_element
+  error - The getter 'accentTeal' isn't defined for the type 'AppTheme' - lib\screens\client\home_dashboard_tab.dart:58:58 - undefined_getter
+  error - Invalid constant value - lib\screens\client\home_dashboard_tab.dart:87:68 - invalid_constant
+  error - The getter 'deepNavy' isn't defined for the type 'AppTheme' - lib\screens\client\home_dashboard_tab.dart:87:77 - undefined_getter
+  error - Invalid constant value - lib\screens\client\home_dashboard_tab.dart:129:39 - invalid_constant
+  error - The values in a const list literal must be constants - lib\screens\client\home_dashboard_tab.dart:129:39 - non_constant_list_element
+  error - The getter 'deepNavy' isn't defined for the type 'AppTheme' - lib\screens\client\home_dashboard_tab.dart:129:48 - undefined_getter
+  error - The getter 'deepNavy' isn't defined for the type 'AppTheme' - lib\screens\client\home_dashboard_tab.dart:135:29 - undefined_getter
+  error - The getter 'accentTeal' isn't defined for the type 'AppTheme' - lib\screens\client\home_dashboard_tab.dart:164:33 - undefined_getter
+  error - Invalid constant value - lib\screens\client\home_dashboard_tab.dart:204:59 - invalid_constant
+  error - The values in a const list literal must be constants - lib\screens\client\home_dashboard_tab.dart:204:59 - non_constant_list_element
+  error - The getter 'accentTeal' isn't defined for the type 'AppTheme' - lib\screens\client\home_dashboard_tab.dart:204:68 - undefined_getter
+  error - The getter 'accentTeal' isn't defined for the type 'AppTheme' - lib\screens\client\home_dashboard_tab.dart:239:47 - undefined_getter
+  error - Invalid constant value - lib\screens\client\home_dashboard_tab.dart:279:63 - invalid_constant
+  error - The values in a const list literal must be constants - lib\screens\client\home_dashboard_tab.dart:279:63 - non_constant_list_element
+  error - The getter 'accentTeal' isn't defined for the type 'AppTheme' - lib\screens\client\home_dashboard_tab.dart:279:72 - undefined_getter
+  error - The getter 'deepNavy' isn't defined for the type 'AppTheme' - lib\screens\client\home_dashboard_tab.dart:383:31 - undefined_getter
+  error - The getter 'deepNavy' isn't defined for the type 'AppTheme' - lib\screens\client\home_dashboard_tab.dart:475:33 - undefined_getter
+  error - The getter 'deepNavy' isn't defined for the type 'AppTheme' - lib\screens\client\home_dashboard_tab.dart:498:35 - undefined_getter
+  error - The getter 'deepNavy' isn't defined for the type 'AppTheme' - lib\screens\client\home_dashboard_tab.dart:643:29 - undefined_getter
+  error - The getter 'accentTeal' isn't defined for the type 'AppTheme' - lib\screens\client\home_dashboard_tab.dart:700:36 - undefined_getter
+  error - The getter 'deepNavy' isn't defined for the type 'AppTheme' - lib\screens\client\home_dashboard_tab.dart:738:35 - undefined_getter
+  error - Undefined name 'PostRegistry' - lib\screens\client\home_dashboard_tab.dart:756:28 - undefined_identifier
+  error - The getter 'deepNavy' isn't defined for the type 'AppTheme' - lib\screens\client\home_dashboard_tab.dart:838:104 - undefined_getter
+   info - Use 'const' with the constructor to improve performance - lib\screens\client\map_tab.dart:18:22 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\screens\client\map_tab.dart:65:19 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\screens\client\map_tab.dart:67:28 - prefer_const_constructors
+   info - Use 'const' literals as arguments to constructors of '@immutable' classes - lib\screens\client\map_tab.dart:68:33 - prefer_const_literals_to_create_immutables
+   info - Use 'const' with the constructor to improve performance - lib\screens\client\map_tab.dart:71:25 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\screens\client\map_tab.dart:72:34 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\screens\client\map_tab.dart:73:41 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\screens\client\map_tab.dart:75:42 - prefer_const_constructors
+   info - Don't use 'BuildContext's across async gaps - lib\screens\client\multimedia_tab.dart:122:28 - use_build_context_synchronously
+   info - Use 'const' literals as arguments to constructors of '@immutable' classes - lib\screens\client\multimedia_tab.dart:257:30 - prefer_const_literals_to_create_immutables
+   info - Use 'const' with the constructor to improve performance - lib\screens\client\multimedia_tab.dart:257:31 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\screens\client\multimedia_tab.dart:257:45 - prefer_const_constructors
+   info - Use 'const' literals as arguments to constructors of '@immutable' classes - lib\screens\client\multimedia_tab.dart:269:24 - prefer_const_literals_to_create_immutables
+   info - Use 'const' with the constructor to improve performance - lib\screens\client\multimedia_tab.dart:269:25 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\screens\client\multimedia_tab.dart:269:39 - prefer_const_constructors
+   info - Use 'const' literals as arguments to constructors of '@immutable' classes - lib\screens\client\multimedia_tab.dart:305:30 - prefer_const_literals_to_create_immutables
+   info - Use 'const' with the constructor to improve performance - lib\screens\client\multimedia_tab.dart:305:31 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\screens\client\multimedia_tab.dart:305:45 - prefer_const_constructors
+  error - The getter 'deepNavy' isn't defined for the type 'AppTheme' - lib\screens\client\personal_info_screen.dart:27:29 - undefined_getter
+  error - Invalid constant value - lib\screens\client\personal_info_screen.dart:35:69 - invalid_constant
+  error - The getter 'deepNavy' isn't defined for the type 'AppTheme' - lib\screens\client\personal_info_screen.dart:35:78 - undefined_getter
+  error - The getter 'deepNavy' isn't defined for the type 'AppTheme' - lib\screens\client\personal_info_screen.dart:76:29 - undefined_getter
+   info - Use 'const' with the constructor to improve performance - lib\screens\client\profile_tab.dart:69:18 - prefer_const_constructors
+   info - Use 'const' literals as arguments to constructors of '@immutable' classes - lib\screens\client\profile_tab.dart:71:21 - prefer_const_literals_to_create_immutables
+   info - Use 'const' with the constructor to improve performance - lib\screens\client\profile_tab.dart:180:54 - prefer_const_constructors
+  error - Undefined name 'WasteRecordService' - lib\screens\client\profile_tab.dart:378:25 - undefined_identifier
+  error - Undefined name 'WasteRecordService' - lib\screens\client\profile_tab.dart:379:22 - undefined_identifier
+  error - Undefined name 'WasteRecordService' - lib\screens\client\profile_tab.dart:380:26 - undefined_identifier
+warning - Unused import: 'package:lottie/lottie.dart' - lib\screens\client\rewards_tab.dart:4:8 - unused_import
+   info - Use 'const' literals as arguments to constructors of '@immutable' classes - lib\screens\client\rewards_tab.dart:24:22 - prefer_const_literals_to_create_immutables
+   info - Use 'const' with the constructor to improve performance - lib\screens\client\rewards_tab.dart:24:23 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\screens\client\rewards_tab.dart:24:37 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\screens\client\rewards_tab.dart:39:21 - prefer_const_constructors
+   info - Use 'const' literals as arguments to constructors of '@immutable' classes - lib\screens\client\rewards_tab.dart:223:16 - prefer_const_literals_to_create_immutables
+   info - Use 'const' with the constructor to improve performance - lib\screens\client\rewards_tab.dart:223:17 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\screens\client\rewards_tab.dart:223:31 - prefer_const_constructors
+   info - Use 'const' literals as arguments to constructors of '@immutable' classes - lib\screens\client\sorting_guide_screen.dart:47:30 - prefer_const_literals_to_create_immutables
+   info - Use 'const' with the constructor to improve performance - lib\screens\client\sorting_guide_screen.dart:47:31 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\screens\client\sorting_guide_screen.dart:47:45 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\screens\client\sorting_guide_screen.dart:117:30 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\screens\client\sorting_guide_screen.dart:118:32 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\screens\client\sorting_guide_screen.dart:124:19 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\screens\client\sorting_guide_screen.dart:126:28 - prefer_const_constructors
+   info - Use 'const' literals as arguments to constructors of '@immutable' classes - lib\screens\client\sorting_guide_screen.dart:127:33 - prefer_const_literals_to_create_immutables
+warning - Unused import: 'package:timeago/timeago.dart' - lib\screens\client\track_records_screen.dart:8:8 - unused_import
+   info - Use 'const' with the constructor to improve performance - lib\screens\client\waste_prediction_result_screen.dart:259:23 - prefer_const_constructors
+   info - Don't use 'BuildContext's across async gaps - lib\screens\client\waste_prediction_result_screen.dart:334:21 - use_build_context_synchronously
+warning - Unused import: '../../widgets/glass_card.dart' - lib\screens\client\waste_scanner_screen.dart:4:8 - unused_import
+   info - Use 'const' for final variables initialized to a constant value - lib\screens\client\waste_scanner_screen.dart:33:7 - prefer_const_declarations
+   info - The imported package 'http' isn't a dependency of the importing package - lib\services\auth_service.dart:4:8 - depend_on_referenced_packages
+   info - The imported package 'shared_preferences' isn't a dependency of the importing package - lib\services\auth_service.dart:5:8 - depend_on_referenced_packages
+  error - Target of URI doesn't exist: 'package:shared_preferences/shared_preferences.dart' - lib\services\auth_service.dart:5:8 - uri_does_not_exist
+   info - The imported package 'google_sign_in' isn't a dependency of the importing package - lib\services\auth_service.dart:6:8 - depend_on_referenced_packages
+  error - Target of URI doesn't exist: 'package:google_sign_in/google_sign_in.dart' - lib\services\auth_service.dart:6:8 - uri_does_not_exist
+   info - The imported package 'flutter_facebook_auth' isn't a dependency of the importing package - lib\services\auth_service.dart:7:8 - depend_on_referenced_packages
+  error - Target of URI doesn't exist: 'package:flutter_facebook_auth/flutter_facebook_auth.dart' - lib\services\auth_service.dart:7:8 - uri_does_not_exist
+  error - Undefined class 'GoogleSignIn' - lib\services\auth_service.dart:20:9 - undefined_class
+  error - The method 'GoogleSignIn' isn't defined for the type 'AuthService' - lib\services\auth_service.dart:20:38 - undefined_method
+  error - Undefined class 'GoogleSignInAccount' - lib\services\auth_service.dart:93:13 - undefined_class
+  error - Undefined class 'GoogleSignInAuthentication' - lib\services\auth_service.dart:98:13 - undefined_class
+  error - Undefined name 'FacebookAuth' - lib\services\auth_service.dart:148:15 - undefined_identifier
+  error - Undefined class 'LoginResult' - lib\services\auth_service.dart:156:13 - undefined_class
+  error - Undefined name 'FacebookAuth' - lib\services\auth_service.dart:156:45 - undefined_identifier
+  error - Undefined name 'LoginStatus' - lib\services\auth_service.dart:163:33 - undefined_identifier
+  error - Undefined name 'LoginStatus' - lib\services\auth_service.dart:169:33 - undefined_identifier
+  error - Undefined name 'LoginStatus' - lib\services\auth_service.dart:180:33 - undefined_identifier
+  error - Undefined class 'AccessToken' - lib\services\auth_service.dart:188:13 - undefined_class
+  error - Undefined name 'SharedPreferences' - lib\services\auth_service.dart:346:25 - undefined_identifier
+  error - Undefined name 'SharedPreferences' - lib\services\auth_service.dart:352:25 - undefined_identifier
+  error - Undefined name 'SharedPreferences' - lib\services\auth_service.dart:382:29 - undefined_identifier
+  error - Undefined name 'SharedPreferences' - lib\services\auth_service.dart:724:25 - undefined_identifier
+  error - Undefined name 'FacebookAuth' - lib\services\auth_service.dart:732:13 - undefined_identifier
+  error - Invalid constant value - lib\widgets\auth_guard_dialog.dart:38:51 - invalid_constant
+  error - The values in a const list literal must be constants - lib\widgets\auth_guard_dialog.dart:38:51 - non_constant_list_element
+  error - The getter 'accentTeal' isn't defined for the type 'AppTheme' - lib\widgets\auth_guard_dialog.dart:38:60 - undefined_getter
+  error - The values in a const list literal must be constants - lib\widgets\auth_guard_dialog.dart:38:72 - non_constant_list_element
+  error - The getter 'secondaryGold' isn't defined for the type 'AppTheme' - lib\widgets\auth_guard_dialog.dart:38:81 - undefined_getter
+  error - Invalid constant value - lib\widgets\auth_guard_dialog.dart:62:59 - invalid_constant
+  error - The values in a const list literal must be constants - lib\widgets\auth_guard_dialog.dart:62:59 - non_constant_list_element
+  error - The getter 'accentTeal' isn't defined for the type 'AppTheme' - lib\widgets\auth_guard_dialog.dart:62:68 - undefined_getter
+  error - The getter 'deepNavy' isn't defined for the type 'AppTheme' - lib\widgets\auth_guard_dialog.dart:91:39 - undefined_getter
+  error - The getter 'deepNavy' isn't defined for the type 'AppTheme' - lib\widgets\auth_guard_dialog.dart:185:29 - undefined_getter
+warning - Unused import: '../theme/app_theme.dart' - lib\widgets\glass_card.dart:3:8 - unused_import
+   info - Constructors for public widgets should have a named 'key' parameter - lib\widgets\glass_card.dart:12:9 - use_key_in_widget_constructors
+  error - The getter 'deepNavy' isn't defined for the type 'AppTheme' - lib\widgets\premium_widgets.dart:84:69 - undefined_getter
+  error - The getter 'isLiked' isn't defined for the type 'Post' - lib\widgets\premium_widgets.dart:103:30 - undefined_getter
+  error - The getter 'isLiked' isn't defined for the type 'Post' - lib\widgets\premium_widgets.dart:104:37 - undefined_getter
+  error - The getter 'deepNavy' isn't defined for the type 'AppTheme' - lib\widgets\premium_widgets.dart:154:35 - undefined_getter
+  error - The getter 'personalNote' isn't defined for the type 'Post' - lib\widgets\premium_widgets.dart:198:40 - undefined_getter
+  error - The getter 'personalNote' isn't defined for the type 'Post' - lib\widgets\premium_widgets.dart:213:32 - undefined_getter
+  error - The getter 'deepNavy' isn't defined for the type 'AppTheme' - lib\widgets\premium_widgets.dart:216:45 - undefined_getter
+  error - The getter 'gradientStart' isn't defined for the type 'AppTheme' - lib\widgets\premium_widgets.dart:456:49 - undefined_getter
+  error - The getter 'gradientEnd' isn't defined for the type 'AppTheme' - lib\widgets\premium_widgets.dart:456:73 - undefined_getter
+  error - The getter 'deepNavy' isn't defined for the type 'AppTheme' - lib\widgets\premium_widgets.dart:525:27 - undefined_getter
+  error - The getter 'successLeaf' isn't defined for the type 'AppTheme' - lib\widgets\premium_widgets.dart:609:37 - undefined_getter
+  error - The getter 'deepNavy' isn't defined for the type 'AppTheme' - lib\widgets\premium_widgets.dart:621:31 - undefined_getter
+warning - Unused import: 'package:flutter/foundation.dart' - lib\widgets\safe_network_image.dart:1:8 - unused_import
+warning - Unused import: 'package:tri_dechet/main.dart' - test\widget_test.dart:11:8 - unused_import
+  error - The name 'MyApp' isn't a class - test\widget_test.dart:16:35 - creation_with_non_type
+
+flutter : 301 issues found. 
+(ran in 3.1s)
+Au caractère Ligne:1 : 1
++ flutter analyze 2>&1 | 
+Out-File -FilePath 
+C:\Users\lenovo\Desktop\Tri 
+...
++ ~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo           
+   : NotSpecified: (301 iss  
+  ues found. (ran in 3.1s)   
+ :String) [], RemoteExcep    
+tion
+    + FullyQualifiedErrorId  
+   : NativeCommandError
+ 

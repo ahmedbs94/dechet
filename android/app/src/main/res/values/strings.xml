@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 
+        IMPORTANT: Remplacez ces valeurs par vos vraies clés Facebook depuis:
+        https://developers.facebook.com/apps/
+        
+        1. facebook_app_id  : l'App ID de votre application Facebook
+        2. fb_login_protocol_scheme : "fb" suivi de l'App ID (ex: fb1234567890)
+        3. facebook_client_token : le client token dans Paramètres > Avancé
+    -->
+    <string name="app_name">EcoRewind</string>
+    <string name="facebook_app_id">1420513346522756</string>
+    <string name="fb_login_protocol_scheme">fb1420513346522756</string>
+    <string name="facebook_client_token">72618330c33063cb695c295262430265</string>
+</resources>

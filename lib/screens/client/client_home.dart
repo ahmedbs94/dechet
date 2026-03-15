@@ -17,24 +17,39 @@ import '../../theme/app_theme.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class MainNavigationShell extends StatefulWidget {
-  const MainNavigationShell({Key? key}) : super(key: key);
+  final int initialTab;
+  const MainNavigationShell({Key? key, this.initialTab = 0}) : super(key: key);
 
   @override
   State<MainNavigationShell> createState() => _MainNavigationShellState();
 }
 
 class _MainNavigationShellState extends State<MainNavigationShell> {
-  int _currentIndex = 0;
+  late int _currentIndex;
   late final List<Widget> _pages;
+  late final bool _isLoggedIn;
 
   @override
   void initState() {
     super.initState();
+    _isLoggedIn = AuthState.currentUser != null;
     final role = AuthState.currentUser?.role ?? UserRole.user;
     _pages = _initializePages(role);
+    // Clamp initialTab to valid range
+    _currentIndex = widget.initialTab.clamp(0, _pages.length - 1);
   }
 
   List<Widget> _initializePages(UserRole role) {
+    // If user is not logged in, show pages without Profile
+    if (!_isLoggedIn) {
+      return [
+        const FeedTab(key: ValueKey('feed')),
+        const MultimediaTab(key: ValueKey('multimedia')),
+        const RewardsTab(key: ValueKey('rewards')),
+        const MapTab(key: ValueKey('map')),
+      ];
+    }
+
     switch (role) {
       case UserRole.user:
         return [
@@ -47,7 +62,10 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
       case UserRole.collector:
         return [const CollectorTab(key: ValueKey('collector')), const ProfileTab(key: ValueKey('profile'))];
       case UserRole.intercommunality:
-        return [const IntercommunalityTab(key: ValueKey('intercommunality')), const ProfileTab(key: ValueKey('profile'))];
+        return [
+          const IntercommunalityTab(key: ValueKey('intercommunality')),
+          const ProfileTab(key: ValueKey('profile'))
+        ];
       case UserRole.educator:
         return [const EducatorTab(key: ValueKey('educator')), const ProfileTab(key: ValueKey('profile'))];
       case UserRole.pointManager:
@@ -58,6 +76,16 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
   }
 
   List<NavigationDestination> _getDestinations(UserRole role) {
+    // Visitor (not logged in) — no Profile tab
+    if (!_isLoggedIn) {
+      return const [
+        NavigationDestination(icon: FaIcon(FontAwesomeIcons.house, size: 20), label: 'Fil'),
+        NavigationDestination(icon: FaIcon(FontAwesomeIcons.graduationCap, size: 20), label: 'Formation'),
+        NavigationDestination(icon: FaIcon(FontAwesomeIcons.chartLine, size: 20), label: 'Impact'),
+        NavigationDestination(icon: FaIcon(FontAwesomeIcons.mapLocationDot, size: 20), label: 'Carte'),
+      ];
+    }
+
     if (role == UserRole.user) {
       return const [
         NavigationDestination(icon: FaIcon(FontAwesomeIcons.house, size: 20), label: 'Fil'),
@@ -90,9 +118,7 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
           color: Colors.white,
-          boxShadow: [
-            BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 20, offset: const Offset(0, -5))
-          ],
+          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 20, offset: const Offset(0, -5))],
         ),
         child: SafeArea(
           child: NavigationBarTheme(

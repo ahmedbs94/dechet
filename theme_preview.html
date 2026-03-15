@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TriDéchet - Nouveau Thème 2.0</title>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;700;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #8B5CF6, #6366F1, #06B6D4);
+            min-height: 100vh;
+            padding: 40px 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 64px;
+            font-weight: 900;
+            color: white;
+            text-align: center;
+            margin-bottom: 20px;
+            letter-spacing: -1.5px;
+            text-shadow: 0 20px 40px rgba(0,0,0,0.2);
+        }
+
+        .subtitle {
+            text-align: center;
+            color: rgba(255,255,255,0.9);
+            font-size: 24px;
+            margin-bottom: 60px;
+            font-weight: 500;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            margin-bottom: 60px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 32px;
+            padding: 40px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.15);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 30px 60px rgba(0,0,0,0.25);
+        }
+
+        .card-title {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 28px;
+            font-weight: 700;
+            color: #0F172A;
+            margin-bottom: 20px;
+        }
+
+        .color-swatch {
+            display: flex;
+            align-items: center;
+            margin: 15px 0;
+            padding: 15px;
+            border-radius: 12px;
+            background: #F8FAFC;
+        }
+
+        .color-box {
+            width: 60px;
+            height: 60px;
+            border-radius: 12px;
+            margin-right: 15px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        .color-info {
+            flex: 1;
+        }
+
+        .color-name {
+            font-weight: 700;
+            color: #1E293B;
+            margin-bottom: 5px;
+        }
+
+        .color-code {
+            font-family: 'Monaco', monospace;
+            font-size: 13px;
+            color: #64748B;
+        }
+
+        .gradient-preview {
+            height: 120px;
+            border-radius: 20px;
+            margin: 15px 0;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .gradient-1 {
+            background: linear-gradient(135deg, #8B5CF6, #6366F1, #06B6D4);
+        }
+
+        .gradient-2 {
+            background: linear-gradient(135deg, #1E293B, #0F172A);
+        }
+
+        .gradient-3 {
+            background: linear-gradient(135deg, #EC4899, #F97316);
+        }
+
+        .gradient-label {
+            position: absolute;
+            bottom: 15px;
+            left: 15px;
+            color: white;
+            font-family: 'Space Grotesk', sans-serif;
+            font-weight: 700;
+            font-size: 16px;
+            text-shadow: 0 2px 8px rgba(0,0,0,0.3);
+        }
+
+        .icon-demo {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 30px 0;
+        }
+
+        .icon-circle {
+            width: 180px;
+            height: 180px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #8B5CF6, #06B6D4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 30px 60px rgba(99, 102, 241, 0.4);
+            animation: float 3s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+        }
+
+        .icon-circle svg {
+            width: 90px;
+            height: 90px;
+            fill: white;
+        }
+
+        .features {
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(20px);
+            border-radius: 32px;
+            padding: 40px;
+            border: 2px solid rgba(255,255,255,0.2);
+        }
+
+        .features h2 {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 36px;
+            font-weight: 900;
+            color: white;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 25px;
+        }
+
+        .feature {
+            background: rgba(255,255,255,0.15);
+            padding: 30px;
+            border-radius: 20px;
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+
+        .feature-icon {
+            font-size: 40px;
+            margin-bottom: 15px;
+        }
+
+        .feature h3 {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 20px;
+            font-weight: 700;
+            color: white;
+            margin-bottom: 10px;
+        }
+
+        .feature p {
+            color: rgba(255,255,255,0.9);
+            line-height: 1.6;
+        }
+
+        .cta {
+            text-align: center;
+            margin-top: 60px;
+        }
+
+        .cta-button {
+            display: inline-block;
+            background: white;
+            color: #6366F1;
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 20px;
+            font-weight: 700;
+            padding: 20px 50px;
+            border-radius: 50px;
+            text-decoration: none;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+            transition: all 0.3s ease;
+        }
+
+        .cta-button:hover {
+            transform: translateY(-5px) scale(1.05);
+            box-shadow: 0 30px 60px rgba(0,0,0,0.3);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>TriDéchet 2.0</h1>
+        <p class="subtitle">Nouveau Thème Premium - L'avenir du Recyclage</p>
+
+        <div class="grid">
+            <!-- Palette de Couleurs -->
+            <div class="card">
+                <h2 class="card-title">🎨 Palette Principale</h2>
+                <div class="color-swatch">
+                    <div class="color-box" style="background: #6366F1;"></div>
+                    <div class="color-info">
+                        <div class="color-name">Purple Primaire</div>
+                        <div class="color-code">#6366F1</div>
+                    </div>
+                </div>
+                <div class="color-swatch">
+                    <div class="color-box" style="background: #06B6D4;"></div>
+                    <div class="color-info">
+                        <div class="color-name">Cyan Secondaire</div>
+                        <div class="color-code">#06B6D4</div>
+                    </div>
+                </div>
+                <div class="color-swatch">
+                    <div class="color-box" style="background: #EC4899;"></div>
+                    <div class="color-info">
+                        <div class="color-name">Rose Accent</div>
+                        <div class="color-code">#EC4899</div>
+                    </div>
+                </div>
+                <div class="color-swatch">
+                    <div class="color-box" style="background: #0F172A;"></div>
+                    <div class="color-info">
+                        <div class="color-name">Navy Profond</div>
+                        <div class="color-code">#0F172A</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Dégradés -->
+            <div class="card">
+                <h2 class="card-title">🌈 Dégradés Modernes</h2>
+                <div class="gradient-preview gradient-1">
+                    <div class="gradient-label">Premium Gradient</div>
+                </div>
+                <div class="gradient-preview gradient-2">
+                    <div class="gradient-label">Dark Gradient</div>
+                </div>
+                <div class="gradient-preview gradient-3">
+                    <div class="gradient-label">Accent Gradient</div>
+                </div>
+            </div>
+
+            <!-- Typographie -->
+            <div class="card">
+                <h2 class="card-title">📝 Typographie</h2>
+                <div style="margin: 20px 0;">
+                    <div style="font-family: 'Space Grotesk', sans-serif; font-size: 32px; font-weight: 900; color: #0F172A; margin-bottom: 10px;">
+                        Space Grotesk
+                    </div>
+                    <div style="color: #64748B; margin-bottom: 20px;">
+                        Titres et éléments de marque
+                    </div>
+                    
+                    <div style="font-family: 'Inter', sans-serif; font-size: 16px; color: #1E293B; line-height: 1.6;">
+                        Inter Regular - Corps de texte avec une excellente lisibilité et une hauteur de ligne optimale pour le confort de lecture mobile.
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Icône Démo -->
+        <div class="card" style="margin-bottom: 60px;">
+            <h2 class="card-title" style="text-align: center;">✨ Icône Principale</h2>
+            <div class="icon-demo">
+                <div class="icon-circle">
+                    <svg viewBox="0 0 24 24">
+                        <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm0 22C6.486 22 2 17.514 2 12S6.486 2 12 2s10 4.486 10 10-4.486 10-10 10z"/>
+                        <path d="M16.243 7.757L12 11.999 7.757 7.757 6.343 9.171 10.586 13.414 6.343 17.657 7.757 19.071 12 14.828 16.243 19.071 17.657 17.657 13.414 13.414 17.657 9.171z"/>
+                    </svg>
+                </div>
+            </div>
+            <p style="text-align: center; color: #64748B; margin-top: 20px;">
+                Effet de floating animé avec glow cyan
+            </p>
+        </div>
+
+        <!-- Fonctionnalités -->
+        <div class="features">
+            <h2>🚀 Nouvelles Fonctionnalités Visuelles</h2>
+            <div class="feature-grid">
+                <div class="feature">
+                    <div class="feature-icon">🎭</div>
+                    <h3>Animations Fluides</h3>
+                    <p>Transitions douces de 300-600ms avec courbes élastiques pour une expérience premium.</p>
+                </div>
+                <div class="feature">
+                    <div class="feature-icon">✨</div>
+                    <h3>Effets de Glow</h3>
+                    <p>Halos lumineux cyan et violet pour mettre en valeur les éléments importants.</p>
+                </div>
+                <div class="feature">
+                    <div class="feature-icon">🌊</div>
+                    <h3>Shimmer Effects</h3>
+                    <p>Reflets animés pour donner vie aux surfaces et créer de la profondeur.</p>
+                </div>
+                <div class="feature">
+                    <div class="feature-icon">🎨</div>
+                    <h3>Gradients Uniques</h3>
+                    <p>Chaque écran d'onboarding possède son propre dégradé de couleurs.</p>
+                </div>
+                <div class="feature">
+                    <div class="feature-icon">📱</div>
+                    <h3>Mobile-First</h3>
+                    <p>Design pensé spécifiquement pour l'expérience mobile tactile.</p>
+                </div>
+                <div class="feature">
+                    <div class="feature-icon">🎯</div>
+                    <h3>Hiérarchie Claire</h3>
+                    <p>Utilisation des dégradés pour guider l'œil vers les actions importantes.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="cta">
+            <a href="#" class="cta-button">LANCER L'APPLICATION ▶</a>
+        </div>
+    </div>
+</body>
+</html>

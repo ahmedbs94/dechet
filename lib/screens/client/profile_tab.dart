@@ -2,10 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:qr_flutter/qr_flutter.dart';
 import '../../theme/app_theme.dart';
 import '../../models/user_model.dart';
-import '../../models/post_model.dart'; // Added import for post_model.dart
+import '../../models/post_model.dart';
+import '../../models/waste_record_model.dart';
 import '../../widgets/glass_card.dart';
+import '../../widgets/premium_widgets.dart';
+import '../../widgets/safe_network_image.dart';
+import '../../services/auth_service.dart';
 
 class ProfileTab extends StatefulWidget {
   const ProfileTab({Key? key}) : super(key: key);
@@ -15,16 +20,15 @@ class ProfileTab extends StatefulWidget {
 }
 
 class _ProfileTabState extends State<ProfileTab> {
-  // Mise à jour pour une image plus professionnelle type "Directeur"
   String _profileImage = 'https://images.unsplash.com/photo-1560250097-0b93528c311a?w=400&q=80';
   bool _pushNotifications = true;
   bool _mfaEnabled = false;
+  final AuthService _authService = AuthService();
 
   void _changeProfileImage() {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Sélecteur d\'image ouvert...')),
     );
-     // Simulation de cycle vers une autre image professionnelle
     setState(() {
       _profileImage = 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&q=80';
     });
@@ -46,10 +50,13 @@ class _ProfileTabState extends State<ProfileTab> {
             ListTile(
               title: const Text('Utiliser l\'application'),
               subtitle: const Text('Google Authenticator / Authy'),
-              trailing: Switch(value: _mfaEnabled, onChanged: (v) {
-                setState(() => _mfaEnabled = v);
-                Navigator.pop(context);
-              }, activeColor: AppTheme.primaryGreen),
+              trailing: Switch(
+                  value: _mfaEnabled,
+                  onChanged: (v) {
+                    setState(() => _mfaEnabled = v);
+                    Navigator.pop(context);
+                  },
+                  activeColor: AppTheme.primaryGreen),
             ),
           ],
         ),
@@ -63,89 +70,94 @@ class _ProfileTabState extends State<ProfileTab> {
   void _showPasswordDialog() {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        title: Text('Changer le mot de passe', style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const TextField(obscureText: true, decoration: InputDecoration(labelText: 'Mot de passe actuel')),
-            const SizedBox(height: 12),
-            const TextField(obscureText: true, decoration: InputDecoration(labelText: 'Nouveau mot de passe')),
-            const SizedBox(height: 12),
-            const TextField(obscureText: true, decoration: InputDecoration(labelText: 'Confirmer')),
-          ],
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('ANNULER')),
-          ElevatedButton(onPressed: () => Navigator.pop(context), child: const Text('METTRE À JOUR')),
-        ],
-      ),
+      builder: (context) => _ChangePasswordDialog(authService: _authService),
     );
   }
 
   void _viewSavedPosts(BuildContext context) {
-    final savedPosts = mockPosts.where((post) => post.isSaved).toList();
-
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) {
-        return GlassCard(
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
-          child: Container(
-            height: MediaQuery.of(context).size.height * 0.75,
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Center(
-                  child: Container(
-                    width: 40, height: 5,
-                    decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(10)),
-                  ),
-                ),
-                const SizedBox(height: 20),
-                Text('Publications enregistrées', style: GoogleFonts.outfit(fontSize: 24, fontWeight: FontWeight.bold, color: AppTheme.deepSlate)),
-                const SizedBox(height: 16),
-                Expanded(
-                  child: savedPosts.isEmpty
-                      ? Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(FontAwesomeIcons.bookmark, size: 60, color: AppTheme.textMuted.withOpacity(0.5)),
-                              const SizedBox(height: 20),
-                              Text('Aucune publication enregistrée pour le moment.', textAlign: TextAlign.center, style: GoogleFonts.inter(color: AppTheme.textMuted, fontSize: 16)),
-                            ],
-                          ),
-                        )
-                      : ListView.builder(
-                          itemCount: savedPosts.length,
-                          itemBuilder: (context, index) {
-                            final post = savedPosts[index];
-                            return Card(
-                              margin: const EdgeInsets.symmetric(vertical: 8),
-                              elevation: 2,
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                              child: ListTile(
-                                leading: ClipRRect(
-                                  borderRadius: BorderRadius.circular(8),
-                                  child: Image.network(post.imageUrl, width: 48, height: 48, fit: BoxFit.cover),
-                                ),
-                                title: Text(post.userName, style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
-                                subtitle: Text(post.description, maxLines: 2, overflow: TextOverflow.ellipsis),
-                                trailing: const Icon(FontAwesomeIcons.solidBookmark, color: AppTheme.primaryGreen, size: 16),
-                                onTap: () => Navigator.pop(context),
+      builder: (sheetContext) {
+        return ValueListenableBuilder<List<Post>>(
+          valueListenable: PostRegistry.postsNotifier,
+          builder: (context, allPosts, child) {
+            final savedPosts = allPosts.where((post) => post.isSaved).toList();
+            return GlassCard(
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
+              child: Container(
+                height: MediaQuery.of(context).size.height * 0.75,
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Center(
+                      child: Container(
+                        width: 40,
+                        height: 5,
+                        decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(10)),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    Text('Publications enregistr\u00e9es',
+                        style:
+                            GoogleFonts.outfit(fontSize: 24, fontWeight: FontWeight.bold, color: AppTheme.deepSlate)),
+                    const SizedBox(height: 16),
+                    Expanded(
+                      child: savedPosts.isEmpty
+                          ? Center(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(FontAwesomeIcons.bookmark, size: 60, color: AppTheme.textMuted.withOpacity(0.5)),
+                                  const SizedBox(height: 20),
+                                  Text('Aucune publication enregistr\u00e9e pour le moment.',
+                                      textAlign: TextAlign.center,
+                                      style: GoogleFonts.inter(color: AppTheme.textMuted, fontSize: 16)),
+                                ],
                               ),
-                            );
-                          },
-                        ),
+                            )
+                          : ListView.builder(
+                              itemCount: savedPosts.length,
+                              itemBuilder: (context, index) {
+                                final post = savedPosts[index];
+                                return Card(
+                                  margin: const EdgeInsets.symmetric(vertical: 8),
+                                  elevation: 2,
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                  child: ListTile(
+                                    leading: ClipRRect(
+                                      borderRadius: BorderRadius.circular(8),
+                                      child: SizedBox(
+                                        width: 48,
+                                        height: 48,
+                                        child: SafeNetworkImage(
+                                          post.imageUrl,
+                                          width: 48,
+                                          height: 48,
+                                          fit: BoxFit.cover,
+                                        ),
+                                      ),
+                                    ),
+                                    title: Text(post.userName, style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
+                                    subtitle: Text(post.description, maxLines: 2, overflow: TextOverflow.ellipsis),
+                                    trailing: const Icon(FontAwesomeIcons.solidBookmark,
+                                        color: AppTheme.primaryGreen, size: 16),
+                                    onTap: () {
+                                      Navigator.pop(sheetContext);
+                                      PostRegistry.navigateToPost(post.id);
+                                    },
+                                  ),
+                                );
+                              },
+                            ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
-          ),
+              ),
+            );
+          },
         );
       },
     );
@@ -155,7 +167,7 @@ class _ProfileTabState extends State<ProfileTab> {
   Widget build(BuildContext context) {
     final user = AuthState.currentUser;
     // Masquer les statistiques de gamification pour les rôles Admin/Directeur
-    final showStats = user?.role == UserRole.user; 
+    final showStats = user?.role == UserRole.user;
 
     return Scaffold(
       backgroundColor: Colors.transparent, // Fond géré par le parent ou par défaut
@@ -166,44 +178,54 @@ class _ProfileTabState extends State<ProfileTab> {
         child: Column(
           children: [
             const SizedBox(height: 40),
-            
+
             Animate(
               effects: const [FadeEffect(), ScaleEffect()],
               child: _buildProfileHeader(user),
             ),
-            
+
             const SizedBox(height: 32),
 
             // Afficher les statistiques de gamification uniquement pour un utilisateur standard
             if (showStats)
               Animate(
-                effects: [FadeEffect(delay: 300.ms), SlideEffect(begin: const Offset(0, 0.1))],
+                effects: [FadeEffect(delay: 300.ms), const SlideEffect(begin: Offset(0, 0.1))],
                 child: _buildStatsGrid(),
               ),
 
-             if (!showStats) ...[
-               _buildProfessionalBadge(),
-               const SizedBox(height: 32),
-             ],
+            if (!showStats) ...[
+              _buildProfessionalBadge(),
+              const SizedBox(height: 32),
+            ],
+
+            // Section QR Code Eco-Badge (citoyens uniquement)
+            if (showStats) ...[
+              const SizedBox(height: 24),
+              Animate(
+                effects: [FadeEffect(delay: 400.ms), const SlideEffect(begin: Offset(0, 0.1))],
+                child: _buildQrBadgeButton(),
+              ),
+            ],
 
             const SizedBox(height: 40),
 
             _buildMenuSection('SÉCURITÉ ET DONNÉES', [
               _MenuAction(
-                icon: FontAwesomeIcons.userShield, 
-                title: 'Authentification forte', 
+                icon: FontAwesomeIcons.userShield,
+                title: 'Authentification forte',
                 subtitle: _mfaEnabled ? 'Activée' : 'Désactivée',
                 onTap: _showMfaDialog,
               ),
               _MenuAction(
-                icon: FontAwesomeIcons.key, 
-                title: 'Changer le mot de passe', 
+                icon: FontAwesomeIcons.key,
+                title: 'Changer le mot de passe',
                 subtitle: 'Mis à jour il y a 3 mois',
                 onTap: _showPasswordDialog,
               ),
-              _MenuAction( // New menu item for saved posts
-                icon: FontAwesomeIcons.bookmark, 
-                title: 'Publications enregistrées', 
+              _MenuAction(
+                // New menu item for saved posts
+                icon: FontAwesomeIcons.bookmark,
+                title: 'Publications enregistrées',
                 subtitle: 'Accédez à votre bibliothèque éco',
                 onTap: () => _viewSavedPosts(context),
               ),
@@ -212,7 +234,7 @@ class _ProfileTabState extends State<ProfileTab> {
                 title: 'Exporter mes données', // Changed title from 'Export des données'
                 subtitle: 'Format PDF ou JSON', // Changed subtitle from 'Format JSON/PDF'
                 onTap: () {
-                   ScaffoldMessenger.of(context).showSnackBar(
+                  ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(content: Text('Export en cours... Veuillez patienter.')),
                   );
                 },
@@ -223,20 +245,19 @@ class _ProfileTabState extends State<ProfileTab> {
 
             _buildMenuSection('PRÉFÉRENCES', [
               _MenuAction(
-                icon: FontAwesomeIcons.bell, 
-                title: 'Notifications push', 
+                icon: FontAwesomeIcons.bell,
+                title: 'Notifications push',
                 trailing: Switch(
-                  value: _pushNotifications, 
-                  onChanged: (v) => setState(() => _pushNotifications = v), 
-                  activeColor: AppTheme.primaryGreen
-                ),
+                    value: _pushNotifications,
+                    onChanged: (v) => setState(() => _pushNotifications = v),
+                    activeColor: AppTheme.primaryGreen),
               ),
               _MenuAction(
-                icon: FontAwesomeIcons.moon, 
-                title: 'Mode Sombre', 
+                icon: FontAwesomeIcons.moon,
+                title: 'Mode Sombre',
                 subtitle: 'Système par défaut',
                 onTap: () {
-                   ScaffoldMessenger.of(context).showSnackBar(
+                  ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(content: Text('Thème : Basculement en cours...')),
                   );
                 },
@@ -260,7 +281,7 @@ class _ProfileTabState extends State<ProfileTab> {
                 child: const Text('DÉCONNEXION'),
               ),
             ),
-            
+
             const SizedBox(height: 120),
           ],
         ),
@@ -293,9 +314,11 @@ class _ProfileTabState extends State<ProfileTab> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Espace Professionnel', style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+                Text('Espace Professionnel',
+                    style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
                 const SizedBox(height: 4),
-                const Text('Vous avez accès aux outils d\'administration avancés.', style: TextStyle(color: Colors.white70, fontSize: 12)),
+                const Text('Vous avez accès aux outils d\'administration avancés.',
+                    style: TextStyle(color: Colors.white70, fontSize: 12)),
               ],
             ),
           ),
@@ -341,7 +364,7 @@ class _ProfileTabState extends State<ProfileTab> {
                 child: Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: AppTheme.deepSlate, 
+                    color: AppTheme.deepSlate,
                     shape: BoxShape.circle,
                     border: Border.all(color: Colors.white, width: 2),
                   ),
@@ -352,22 +375,23 @@ class _ProfileTabState extends State<ProfileTab> {
           ),
         ),
         const SizedBox(height: 24),
-        Text(user?.name ?? 'Admin', style: GoogleFonts.outfit(fontSize: 28, fontWeight: FontWeight.bold, color: AppTheme.deepSlate)),
-        Text(user?.email ?? 'admin@tridechet.com', style: GoogleFonts.inter(color: AppTheme.textMuted, fontWeight: FontWeight.w500)),
+        Text(user?.name ?? 'Admin',
+            style: GoogleFonts.outfit(fontSize: 28, fontWeight: FontWeight.bold, color: AppTheme.deepSlate)),
+        Text(user?.email ?? 'admin@tridechet.com',
+            style: GoogleFonts.inter(color: AppTheme.textMuted, fontWeight: FontWeight.w500)),
         const SizedBox(height: 20),
-        
+
         // Suppression du badge de rang générique pour l'admin, conservé uniquement pour les utilisateurs si nécessaire ou remplacé par un tag professionnel
-         Container(
+        Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
           decoration: BoxDecoration(
             color: AppTheme.primaryGreen.withOpacity(0.1),
             borderRadius: BorderRadius.circular(30),
             border: Border.all(color: AppTheme.primaryGreen.withOpacity(0.2)),
           ),
-          child: Text(
-             user?.role == UserRole.admin ? 'DIRECTEUR TECHNIQUE' : 'USER ENGAGÉ',
-             style: GoogleFonts.outfit(color: AppTheme.primaryGreen, fontWeight: FontWeight.w900, fontSize: 10, letterSpacing: 1.5)
-          ),
+          child: Text(user?.role == UserRole.admin ? 'DIRECTEUR TECHNIQUE' : 'USER ENGAGÉ',
+              style: GoogleFonts.outfit(
+                  color: AppTheme.primaryGreen, fontWeight: FontWeight.w900, fontSize: 10, letterSpacing: 1.5)),
         ),
       ],
     );
@@ -407,8 +431,143 @@ class _ProfileTabState extends State<ProfileTab> {
         Icon(icon, color: AppTheme.primaryGreen.withOpacity(0.5), size: 20),
         const SizedBox(height: 8),
         Text(value, style: GoogleFonts.outfit(fontSize: 22, fontWeight: FontWeight.bold, color: AppTheme.deepSlate)),
-        Text(label, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: AppTheme.textMuted, letterSpacing: 1)),
+        Text(label,
+            style: const TextStyle(
+                fontSize: 10, fontWeight: FontWeight.w900, color: AppTheme.textMuted, letterSpacing: 1)),
       ],
+    );
+  }
+
+  Widget _buildQrBadgeButton() {
+    return GestureDetector(
+      onTap: _showQrBadge,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [AppTheme.deepSlate, Color(0xFF1E293B)],
+          ),
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: [
+            BoxShadow(
+              color: AppTheme.deepSlate.withOpacity(0.3),
+              blurRadius: 20,
+              offset: const Offset(0, 10),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: const Icon(Icons.qr_code_2_rounded, color: Colors.white, size: 32),
+            ),
+            const SizedBox(width: 20),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Mon Eco-Badge',
+                    style: GoogleFonts.outfit(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w800,
+                      color: Colors.white,
+                    ),
+                  ),
+                  Text(
+                    'Scannez pour ouvrir une borne de tri',
+                    style: GoogleFonts.inter(
+                      fontSize: 13,
+                      color: Colors.white.withOpacity(0.7),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(Icons.arrow_forward_ios_rounded, color: Colors.white, size: 16),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showQrBadge() {
+    showDialog(
+      context: context,
+      useRootNavigator: true,
+      builder: (context) => Dialog(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        insetPadding: const EdgeInsets.symmetric(horizontal: 20),
+        child: Material(
+          color: Colors.transparent,
+          child: PremiumGlassCard(
+            padding: const EdgeInsets.all(32),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'Mon Eco-Badge',
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.outfit(
+                    fontSize: 24,
+                    fontWeight: FontWeight.w900,
+                    color: AppTheme.deepSlate,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Scannez ce code sur une borne pour ouvrir la trappe.',
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.inter(
+                    fontSize: 14,
+                    color: AppTheme.textMuted,
+                  ),
+                ),
+                const SizedBox(height: 32),
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppTheme.primaryGreen.withOpacity(0.1),
+                        blurRadius: 20,
+                      ),
+                    ],
+                  ),
+                  child: SizedBox(
+                    width: 200,
+                    height: 200,
+                    child: QrImageView(
+                      data: "USER_TRIDECHET_${AuthState.currentUser?.id ?? '123'}",
+                      version: QrVersions.auto,
+                      size: 200.0,
+                      eyeStyle: const QrEyeStyle(eyeShape: QrEyeShape.square, color: AppTheme.deepSlate),
+                      dataModuleStyle: const QrDataModuleStyle(
+                        dataModuleShape: QrDataModuleShape.square,
+                        color: AppTheme.primaryGreen,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 32),
+                PremiumButton(
+                  text: 'FERMER',
+                  onPressed: () => Navigator.pop(context),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 
@@ -418,15 +577,15 @@ class _ProfileTabState extends State<ProfileTab> {
       children: [
         Padding(
           padding: const EdgeInsets.only(left: 8.0),
-          child: Text(title, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: AppTheme.textMuted, letterSpacing: 1.5)),
+          child: Text(title,
+              style: const TextStyle(
+                  fontSize: 11, fontWeight: FontWeight.w900, color: AppTheme.textMuted, letterSpacing: 1.5)),
         ),
         const SizedBox(height: 16),
         Container(
-          decoration: BoxDecoration(
-            color: Colors.white, 
-            borderRadius: BorderRadius.circular(24), 
-            boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 20, offset: const Offset(0, 8))]
-          ),
+          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(24), boxShadow: [
+            BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 20, offset: const Offset(0, 8))
+          ]),
           child: Column(children: children),
         ),
       ],
@@ -454,8 +613,242 @@ class _MenuAction extends StatelessWidget {
         child: FaIcon(icon, size: 16, color: AppTheme.primaryGreen),
       ),
       title: Text(title, style: GoogleFonts.inter(fontWeight: FontWeight.w600, fontSize: 15)),
-      subtitle: subtitle != null ? Text(subtitle!, style: const TextStyle(fontSize: 12, color: AppTheme.textMuted)) : null,
+      subtitle:
+          subtitle != null ? Text(subtitle!, style: const TextStyle(fontSize: 12, color: AppTheme.textMuted)) : null,
       trailing: trailing ?? const Icon(Icons.chevron_right, size: 16, color: AppTheme.textMuted),
+    );
+  }
+}
+
+// ============================================
+// Dialog de changement de mot de passe (réel)
+// ============================================
+class _ChangePasswordDialog extends StatefulWidget {
+  final AuthService authService;
+  const _ChangePasswordDialog({required this.authService});
+
+  @override
+  State<_ChangePasswordDialog> createState() => _ChangePasswordDialogState();
+}
+
+class _ChangePasswordDialogState extends State<_ChangePasswordDialog> {
+  final _oldPassController = TextEditingController();
+  final _newPassController = TextEditingController();
+  final _confirmPassController = TextEditingController();
+  bool _isLoading = false;
+  String? _errorMessage;
+  String? _successMessage;
+  bool _obscureOld = true;
+  bool _obscureNew = true;
+  bool _obscureConfirm = true;
+
+  Future<void> _handleChangePassword() async {
+    final oldPass = _oldPassController.text.trim();
+    final newPass = _newPassController.text.trim();
+    final confirmPass = _confirmPassController.text.trim();
+
+    // Validation
+    if (oldPass.isEmpty || newPass.isEmpty || confirmPass.isEmpty) {
+      setState(() => _errorMessage = 'Veuillez remplir tous les champs');
+      return;
+    }
+
+    if (newPass != confirmPass) {
+      setState(() => _errorMessage = 'Les mots de passe ne correspondent pas');
+      return;
+    }
+
+    if (newPass.length < 6) {
+      setState(() => _errorMessage = 'Le mot de passe doit contenir au moins 6 caractères');
+      return;
+    }
+
+    if (oldPass == newPass) {
+      setState(() => _errorMessage = 'Le nouveau mot de passe doit être différent');
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+      _successMessage = null;
+    });
+
+    try {
+      final result = await widget.authService.changePassword(oldPass, newPass);
+
+      if (!mounted) return;
+
+      if (result['success'] == true) {
+        setState(() {
+          _successMessage = result['message'] ?? 'Mot de passe modifié avec succès';
+          _isLoading = false;
+        });
+        // Fermer le dialog après 1.5 secondes
+        Future.delayed(const Duration(milliseconds: 1500), () {
+          if (mounted) Navigator.pop(context);
+        });
+      } else {
+        String msg = result['message'] ?? 'Erreur lors du changement';
+        // Traduction des erreurs techniques
+        if (msg.contains('Ancien mot de passe incorrect') || msg.contains('incorrect')) {
+          msg = 'Le mot de passe actuel est incorrect';
+        } else if (msg.contains('validate credentials') || msg.contains('401')) {
+          msg = 'Session expirée. Veuillez vous reconnecter.';
+        }
+        setState(() {
+          _errorMessage = msg;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _errorMessage = 'Erreur réseau. Vérifiez votre connexion.';
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _oldPassController.dispose();
+    _newPassController.dispose();
+    _confirmPassController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+      title: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: AppTheme.primaryGreen.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: const Icon(Icons.lock_outline_rounded, color: AppTheme.primaryGreen, size: 20),
+          ),
+          const SizedBox(width: 12),
+          Text('Changer le mot de passe', style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 18)),
+        ],
+      ),
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Message de succès
+            if (_successMessage != null)
+              Container(
+                padding: const EdgeInsets.all(12),
+                margin: const EdgeInsets.only(bottom: 16),
+                decoration: BoxDecoration(
+                  color: AppTheme.primaryGreen.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppTheme.primaryGreen.withOpacity(0.3)),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.check_circle_rounded, color: AppTheme.primaryGreen, size: 20),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(_successMessage!,
+                          style: GoogleFonts.inter(
+                              color: AppTheme.primaryGreen, fontSize: 13, fontWeight: FontWeight.w600)),
+                    ),
+                  ],
+                ),
+              ),
+
+            // Message d'erreur
+            if (_errorMessage != null)
+              Container(
+                padding: const EdgeInsets.all(12),
+                margin: const EdgeInsets.only(bottom: 16),
+                decoration: BoxDecoration(
+                  color: Colors.red.shade50,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.red.shade200),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.error_outline, color: Colors.red.shade400, size: 20),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(_errorMessage!, style: GoogleFonts.inter(color: Colors.red.shade700, fontSize: 13)),
+                    ),
+                  ],
+                ),
+              ),
+
+            // Champs
+            _buildPasswordField('Mot de passe actuel', _oldPassController, _obscureOld,
+                () => setState(() => _obscureOld = !_obscureOld)),
+            const SizedBox(height: 16),
+            _buildPasswordField('Nouveau mot de passe', _newPassController, _obscureNew,
+                () => setState(() => _obscureNew = !_obscureNew)),
+            const SizedBox(height: 16),
+            _buildPasswordField('Confirmer', _confirmPassController, _obscureConfirm,
+                () => setState(() => _obscureConfirm = !_obscureConfirm)),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: _isLoading ? null : () => Navigator.pop(context),
+          child: Text('ANNULER', style: GoogleFonts.outfit(color: AppTheme.textMuted, fontWeight: FontWeight.w700)),
+        ),
+        ElevatedButton(
+          onPressed: _isLoading || _successMessage != null ? null : _handleChangePassword,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: AppTheme.primaryGreen,
+            disabledBackgroundColor: AppTheme.primaryGreen.withOpacity(0.5),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+          ),
+          child: _isLoading
+              ? const SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                )
+              : Text('METTRE À JOUR', style: GoogleFonts.outfit(fontWeight: FontWeight.w800, letterSpacing: 0.5)),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPasswordField(
+      String label, TextEditingController controller, bool obscure, VoidCallback toggleVisibility) {
+    return TextField(
+      controller: controller,
+      obscureText: obscure,
+      style: GoogleFonts.inter(fontWeight: FontWeight.w600),
+      decoration: InputDecoration(
+        labelText: label,
+        labelStyle: GoogleFonts.inter(fontSize: 13, color: AppTheme.textMuted),
+        prefixIcon: const Icon(Icons.lock_outline, size: 18, color: AppTheme.primaryGreen),
+        suffixIcon: IconButton(
+          icon: Icon(
+            obscure ? Icons.visibility_off_rounded : Icons.visibility_rounded,
+            size: 18,
+            color: AppTheme.textMuted,
+          ),
+          onPressed: toggleVisibility,
+        ),
+        filled: true,
+        fillColor: Colors.grey.shade50,
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: AppTheme.primaryGreen, width: 2),
+        ),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      ),
     );
   }
 }

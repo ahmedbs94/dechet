@@ -187,7 +187,7 @@ Extensions recommandées:
 - [ ] Tester la connexion/inscription
 - [ ] Tester le fil d'actualité
 - [ ] Tester le scanner de déchets
-- [ ] Tester la carte interactive
+- [ ] Tester la carte interactive![alt text](image.png)
 - [ ] Tester le badge QR
 - [ ] Tester les différents rôles (admin, éducateur, etc.)
 

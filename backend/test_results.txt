@@ -1,0 +1,28 @@
+﻿
+============================================================
+   DIAGNOSTIC COMPLET - BACKEND TRIDECHET
+============================================================
+  [+] GET /                               200  Welcome to TriDÚchet Backend API with SQLite
+  [X] POST /register                      400  deja existant
+  [+] POST /token (login)                 200  
+  [+] GET /users/me                       200  test_diag@test.com
+  [+] POST /change-password               200  Mot de passe modifiÚ avec succÞs
+  [+] GET /posts                          200  4 posts
+  [+] POST /posts (creer)                 200  
+  [+] POST /like                          200  liked=True
+  [+] POST /save                          200  saved=True
+  [+] POST /comment                       200  
+  [+] PUT /comment (modifier)             200  
+  [+] DEL /comment (supprimer)            200  
+  [+] GET /saved-posts                    200  1 enregistres
+  [+] POST /unsave (toggle)               200  
+  [+] DEL /post (supprimer)               200  
+  [+] POST /forgot-password               200  
+  [+] GET /users (admin)                  200  20 utilisateurs
+  [+] POST /admin/users (creer)           200  
+  [+] PUT /admin/users (modifier)         200  
+  [+] DEL /admin/users (supprimer)        200  
+============================================================
+   Resultats: 19 PASS / 1 FAIL sur 20 tests
+   >>> 1 PROBLEME(S) DETECTE(S) <<<
+============================================================

@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Guide Facebook Auth - TriDéchet</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #0f1923;
+            color: #e2e8f0;
+            min-height: 100vh;
+            padding: 40px 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            font-size: 2.2rem;
+            background: linear-gradient(135deg, #1877F2, #42a5f5);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 8px;
+        }
+
+        .subtitle {
+            color: #94a3b8;
+            font-size: 1.1rem;
+            margin-bottom: 40px;
+        }
+
+        .step {
+            background: #1e2d3d;
+            border-radius: 16px;
+            padding: 28px;
+            margin-bottom: 24px;
+            border-left: 4px solid #1877F2;
+            position: relative;
+        }
+
+        .step-number {
+            position: absolute;
+            top: -14px;
+            left: 20px;
+            background: #1877F2;
+            color: white;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 0.9rem;
+        }
+
+        .step h3 {
+            font-size: 1.2rem;
+            color: #60a5fa;
+            margin-bottom: 12px;
+            margin-top: 8px;
+        }
+
+        .step p {
+            color: #94a3b8;
+            line-height: 1.7;
+            margin-bottom: 10px;
+        }
+
+        .key-hash-box {
+            background: #0d1b2a;
+            border: 2px solid #1877F2;
+            border-radius: 12px;
+            padding: 24px;
+            margin: 20px 0;
+            text-align: center;
+        }
+
+        .key-hash-box .label {
+            font-size: 0.85rem;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 10px;
+        }
+
+        .key-hash-value {
+            font-family: 'Courier New', monospace;
+            font-size: 1.6rem;
+            font-weight: bold;
+            color: #60FF8F;
+            letter-spacing: 2px;
+            background: #0a1628;
+            padding: 16px 24px;
+            border-radius: 8px;
+            display: inline-block;
+            margin: 8px 0;
+        }
+
+        .copy-btn {
+            background: #1877F2;
+            color: white;
+            border: none;
+            padding: 10px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.95rem;
+            margin-top: 12px;
+            transition: background 0.2s;
+        }
+
+        .copy-btn:hover {
+            background: #1565C0;
+        }
+
+        .copy-btn.copied {
+            background: #16a34a;
+        }
+
+        .warning {
+            background: #1a1a00;
+            border: 1px solid #ca8a04;
+            border-radius: 10px;
+            padding: 16px;
+            margin: 16px 0;
+            color: #fbbf24;
+            display: flex;
+            gap: 12px;
+            align-items: flex-start;
+        }
+
+        .warning-icon {
+            font-size: 1.4rem;
+            flex-shrink: 0;
+        }
+
+        .link-btn {
+            display: inline-block;
+            background: #1877F2;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 10px;
+            text-decoration: none;
+            font-weight: 600;
+            margin: 10px 0;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .link-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(24, 119, 242, 0.4);
+        }
+
+        .checklist {
+            list-style: none;
+            margin: 12px 0;
+        }
+
+        .checklist li {
+            padding: 8px 0;
+            color: #94a3b8;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .checklist li::before {
+            content: "☐";
+            font-size: 1.2rem;
+            color: #475569;
+        }
+
+        .checklist li.done::before {
+            content: "✅";
+        }
+
+        .tip {
+            background: #0d2137;
+            border: 1px solid #1e40af;
+            border-radius: 10px;
+            padding: 14px;
+            margin: 12px 0;
+            font-size: 0.9rem;
+            color: #93c5fd;
+        }
+
+        .tip strong {
+            color: #60a5fa;
+        }
+
+        code {
+            background: #1a2d3e;
+            padding: 3px 8px;
+            border-radius: 5px;
+            font-family: monospace;
+            color: #60FF8F;
+            font-size: 0.9rem;
+        }
+
+        .status-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: #052e16;
+            color: #4ade80;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        .status-pill.warning-pill {
+            background: #1c1400;
+            color: #fbbf24;
+        }
+
+        .section-title {
+            font-size: 1.4rem;
+            color: #e2e8f0;
+            margin: 36px 0 16px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #1e3a5f;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>🔐 Guide Facebook Auth</h1>
+        <p class="subtitle">Configuration complète pour faire fonctionner l'authentification Facebook dans TriDéchet</p>
+
+        <!-- KEY HASH SECTION -->
+        <div class="key-hash-box">
+            <div class="label">🔑 Votre Key Hash Debug Android (à ajouter sur Facebook)</div>
+            <div class="key-hash-value" id="keyHash">uCWfYSjWNPi+Q7I258CCTn5zSBU=</div>
+            <br>
+            <button class="copy-btn" onclick="copyKeyHash()" id="copyBtn">📋 Copier le Key Hash</button>
+            <p style="color: #64748b; font-size: 0.85rem; margin-top: 8px;">Ce hash est unique à votre machine. Ne le
+                partagez pas en public.</p>
+        </div>
+
+        <!-- ÉTAPES -->
+        <h2 class="section-title">Étapes de configuration</h2>
+
+        <div class="step">
+            <div class="step-number">1</div>
+            <h3>Allez sur Facebook Developer Console</h3>
+            <p>Connectez-vous avec votre compte Facebook et accédez à votre application TriDéchet.</p>
+            <a href="https://developers.facebook.com/apps/1420513346522756/settings/basic/" target="_blank"
+                class="link-btn">
+                🔗 Ouvrir Facebook Developer Console
+            </a>
+            <div class="tip">
+                <strong>App ID :</strong> <code>1420513346522756</code> —
+                <strong>Client Token :</strong> <code>72618330c33063cb695c295262430265</code>
+            </div>
+        </div>
+
+        <div class="step">
+            <div class="step-number">2</div>
+            <h3>Ajouter le Key Hash Android</h3>
+            <p>Dans la section des paramètres basiques, trouvez la plateforme <strong>Android</strong> et ajoutez le Key
+                Hash :</p>
+            <ol style="color: #94a3b8; margin-left: 20px; line-height: 2;">
+                <li>Faites défiler vers <strong>"Ajouter une plateforme"</strong> → choisissez <strong>Android</strong>
+                </li>
+                <li>Nom du package : <code>com.example.tri_dechet</code></li>
+                <li>Classe d'activité par défaut : <code>com.example.tri_dechet.MainActivity</code></li>
+                <li>Dans le champ <strong>"Key Hashes"</strong>, collez : <code
+                        id="keyHashInline">uCWfYSjWNPi+Q7I258CCTn5zSBU=</code></li>
+                <li>Cliquez sur <strong>Enregistrer</strong></li>
+            </ol>
+            <div class="warning">
+                <span class="warning-icon">⚠️</span>
+                <div>
+                    <strong>CRITIQUE :</strong> Sans ce Key Hash, Facebook bloquera toutes les tentatives de connexion
+                    avec l'erreur
+                    <em>"Invalid key hash"</em>. C'est la cause #1 d'échec de l'auth Facebook sur Android.
+                </div>
+            </div>
+        </div>
+
+        <div class="step">
+            <div class="step-number">3</div>
+            <h3>Activer le Login Facebook</h3>
+            <p>Allez dans <strong>Produits → Facebook Login → Paramètres</strong> et vérifiez :</p>
+            <ul class="checklist">
+                <li class="done">Client OAuth Login activé</li>
+                <li class="done">Web OAuth Login activé</li>
+                <li>OAuth Login Android natif → Activé</li>
+                <li>Forcer le HTTPS → Activé</li>
+            </ul>
+            <a href="https://developers.facebook.com/apps/1420513346522756/fb-login/settings/" target="_blank"
+                class="link-btn">
+                🔗 Paramètres Facebook Login
+            </a>
+        </div>
+
+        <div class="step">
+            <div class="step-number">4</div>
+            <h3>Vérifier les testeurs de l'application</h3>
+            <p>Si votre application est en mode <strong>développement</strong> (non publiée), seuls les comptes Facebook
+                listés comme Testeurs peuvent se connecter.</p>
+            <a href="https://developers.facebook.com/apps/1420513346522756/roles/test-users/" target="_blank"
+                class="link-btn">
+                🔗 Gérer les testeurs
+            </a>
+            <div class="tip">
+                <strong>Alternative rapide :</strong> Allez dans <strong>Paramètres → Avancés → Mode
+                    développement</strong>
+                et basculez en mode "Live" pour permettre à n'importe quel compte Facebook de se connecter.
+                Mais assurez-vous que votre app est conforme aux directives Facebook avant de faire ça.
+            </div>
+        </div>
+
+        <div class="step">
+            <div class="step-number">5</div>
+            <h3>Backend : Démarrer le serveur</h3>
+            <p>Le backend FastAPI doit être actif pour valider les tokens Facebook :</p>
+            <div
+                style="background: #0a1628; border-radius: 8px; padding: 16px; font-family: monospace; color: #60FF8F; margin: 12px 0;">
+                cd backend<br>
+                venv\Scripts\activate<br>
+                python -m uvicorn main:app --reload --host 0.0.0.0 --port 8000
+            </div>
+            <p>Ou plus simplement, double-cliquez sur : <code>scripts\dev.bat</code></p>
+            <div class="tip">
+                <strong>Sur appareil physique Android :</strong> Le serveur doit écouter sur <code>0.0.0.0</code> (pas
+                seulement localhost)
+                et votre téléphone doit être sur le même réseau Wi-Fi que votre PC.
+                <br><br>
+                L'IP locale de votre PC est : <code>192.168.1.13</code>
+                (configurée automatiquement dans <code>constants.dart</code>)
+            </div>
+        </div>
+
+        <!-- VÉRIFICATION RAPIDE -->
+        <h2 class="section-title">✅ Checklist finale</h2>
+        <div class="step" style="border-left-color: #16a34a;">
+            <ul class="checklist">
+                <li>Key Hash <code>uCWfYSjWNPi+Q7I258CCTn5zSBU=</code> ajouté sur Facebook Developer</li>
+                <li>Package Android <code>com.example.tri_dechet</code> configuré</li>
+                <li>Facebook Login activé</li>
+                <li>Compte Facebook dans la liste des testeurs (si app pas publiée)</li>
+                <li>Backend démarré (http://127.0.0.1:8000/)</li>
+                <li>Téléphone sur le même Wi-Fi que le PC (si appareil physique)</li>
+            </ul>
+        </div>
+
+        <!-- ERREURS COMMUNES -->
+        <h2 class="section-title">🔧 Erreurs courantes et solutions</h2>
+
+        <div class="step" style="border-left-color: #dc2626;">
+            <h3 style="color: #f87171;">❌ "Invalid key hash"</h3>
+            <p>Le Key Hash n'est pas configuré ou est incorrect. Recommencez l'étape 2.</p>
+        </div>
+
+        <div class="step" style="border-left-color: #dc2626;">
+            <h3 style="color: #f87171;">❌ "Connexion annulée" immédiatement</h3>
+            <p>Ça arrive si le dialog Facebook s'ouvre puis se ferme aussitôt. Causes possibles :</p>
+            <ul style="color: #94a3b8; margin-left: 20px; margin-top: 8px; line-height: 2;">
+                <li>La permission <code>email</code> n'est pas disponible (compte Facebook sans email)</li>
+                <li>L'App ID ou le Client Token est incorrect dans strings.xml</li>
+                <li>Le Key Hash est invalide</li>
+            </ul>
+        </div>
+
+        <div class="step" style="border-left-color: #dc2626;">
+            <h3 style="color: #f87171;">❌ "Serveur inaccessible"</h3>
+            <p>Le backend Python n'est pas démarré. Lancez <code>scripts\dev.bat</code>.</p>
+            <p style="margin-top: 8px;">Sur appareil physique : vérifiez que vous êtes sur le même Wi-Fi et que le
+                firewall autorise le port 8000.</p>
+        </div>
+
+        <div class="step" style="border-left-color: #dc2626;">
+            <h3 style="color: #f87171;">❌ "User not authorized" ou "Access denied"</h3>
+            <p>L'application Facebook est en mode développement et votre compte n'est pas dans la liste des testeurs
+                (étape 4).</p>
+        </div>
+
+    </div>
+
+    <script>
+        function copyKeyHash() {
+            const hash = document.getElementById('keyHash').textContent;
+            navigator.clipboard.writeText(hash).then(() => {
+                const btn = document.getElementById('copyBtn');
+                btn.textContent = '✅ Copié !';
+                btn.classList.add('copied');
+                setTimeout(() => {
+                    btn.textContent = '📋 Copier le Key Hash';
+                    btn.classList.remove('copied');
+                }, 3000);
+            }).catch(() => {
+                // Fallback
+                const el = document.createElement('textarea');
+                el.value = hash;
+                document.body.appendChild(el);
+                el.select();
+                document.execCommand('copy');
+                document.body.removeChild(el);
+                const btn = document.getElementById('copyBtn');
+                btn.textContent = '✅ Copié !';
+                btn.classList.add('copied');
+                setTimeout(() => {
+                    btn.textContent = '📋 Copier le Key Hash';
+                    btn.classList.remove('copied');
+                }, 3000);
+            });
+        }
+    </script>
+</body>
+
+</html>

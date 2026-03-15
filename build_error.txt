@@ -1,0 +1,45 @@
+﻿> Task :gradle:compileJava NO-SOURCE
+> Task :gradle:compileGroovy FAILED
+.\gradlew : 
+Au caractère Ligne:1 : 13
++ cd android; .\gradlew 
+assembleDebug 2>&1 | 
+Out-File -FilePath "..\bui 
+...
++             
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          
+    : NotSpecified: (:Stri  
+  ng) [], RemoteException
+    + FullyQualifiedErrorId 
+    : NativeCommandError
+ 
+FAILURE: Build failed with 
+an exception.
+
+* What went wrong:
+Execution failed for task 
+':gradle:compileGroovy'.
+> BUG! exception in phase 
+'semantic analysis' in 
+source unit 'C:\flutter\pack
+ages\flutter_tools\gradle\sr
+c\main\groovy\app_plugin_loa
+der.groovy' Unsupported 
+class file major version 65
+
+* Try:
+> Run with --stacktrace 
+option to get the stack 
+trace.
+> Run with --info or 
+--debug option to get more 
+log output.
+> Run with --scan to get 
+full insights.
+
+* Get more help at 
+https://help.gradle.org
+
+BUILD FAILED in 5s
+1 actionable task: 1 executed

@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>✨ Nouveau Design Onboarding - TriDéchet</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700;800;900&family=Inter:wght@400;500;600;700&family=Outfit:wght@400;500;600;700;800;900&display=swap"
+        rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            width: 100%;
+            background: white;
+            border-radius: 32px;
+            padding: 60px;
+            box-shadow: 0 40px 100px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 48px;
+            font-weight: 900;
+            text-align: center;
+            background: linear-gradient(135deg, #06B6D4 0%, #10B981 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 20px;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #64748b;
+            font-size: 20px;
+            margin-bottom: 60px;
+            font-weight: 500;
+        }
+
+        .comparison {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
+            margin-bottom: 60px;
+        }
+
+        .section {
+            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+            padding: 40px;
+            border-radius: 24px;
+            border: 2px solid #e2e8f0;
+        }
+
+        .section-title {
+            font-family: 'Outfit', sans-serif;
+            font-size: 24px;
+            font-weight: 800;
+            margin-bottom: 30px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .badge-old {
+            background: #fecaca;
+            color: #991b1b;
+        }
+
+        .badge-new {
+            background: linear-gradient(135deg, #10B981 0%, #059669 100%);
+            color: white;
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+        }
+
+        .feature-list {
+            list-style: none;
+        }
+
+        .feature-list li {
+            padding: 16px;
+            margin-bottom: 12px;
+            background: white;
+            border-radius: 12px;
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            border-left: 4px solid transparent;
+            transition: all 0.3s ease;
+        }
+
+        .feature-list li:hover {
+            transform: translateX(8px);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+        }
+
+        .old-features li {
+            border-left-color: #f87171;
+        }
+
+        .new-features li {
+            border-left-color: #10B981;
+        }
+
+        .icon {
+            font-size: 24px;
+            min-width: 32px;
+            text-align: center;
+        }
+
+        .feature-text {
+            flex: 1;
+        }
+
+        .feature-title {
+            font-weight: 700;
+            color: #1e293b;
+            margin-bottom: 4px;
+            font-family: 'Outfit', sans-serif;
+        }
+
+        .feature-desc {
+            font-size: 14px;
+            color: #64748b;
+            line-height: 1.6;
+        }
+
+        .highlights {
+            background: linear-gradient(135deg, #06B6D4 0%, #10B981 100%);
+            padding: 50px;
+            border-radius: 24px;
+            color: white;
+        }
+
+        .highlights h2 {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 36px;
+            font-weight: 900;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        .highlight-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 24px;
+        }
+
+        .highlight-card {
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(10px);
+            padding: 28px;
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            transition: all 0.3s ease;
+        }
+
+        .highlight-card:hover {
+            background: rgba(255, 255, 255, 0.25);
+            transform: translateY(-8px);
+        }
+
+        .highlight-icon {
+            font-size: 40px;
+            margin-bottom: 16px;
+        }
+
+        .highlight-title {
+            font-family: 'Outfit', sans-serif;
+            font-size: 20px;
+            font-weight: 800;
+            margin-bottom: 8px;
+        }
+
+        .highlight-text {
+            font-size: 15px;
+            opacity: 0.95;
+            line-height: 1.6;
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 50px;
+            padding-top: 30px;
+            border-top: 2px dashed #e2e8f0;
+        }
+
+        .footer-text {
+            font-size: 16px;
+            color: #64748b;
+            font-weight: 500;
+        }
+
+        .emoji {
+            font-size: 28px;
+            margin: 0 8px;
+            display: inline-block;
+            animation: bounce 2s infinite;
+        }
+
+        @keyframes bounce {
+
+            0%,
+            100% {
+                transform: translateY(0);
+            }
+
+            50% {
+                transform: translateY(-10px);
+            }
+        }
+
+        .gradient-text {
+            background: linear-gradient(135deg, #EC4899 0%, #F97316 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            font-weight: 800;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>✨ Transformation Complète de l'Onboarding</h1>
+        <p class="subtitle">Design d'Excellence Premium pour TriDéchet</p>
+
+        <div class="comparison">
+            <!-- Ancien Design -->
+            <div class="section">
+                <div class="section-title">
+                    <span class="badge badge-old">Avant</span>
+                    Ancien Design
+                </div>
+                <ul class="feature-list old-features">
+                    <li>
+                        <div class="icon">📱</div>
+                        <div class="feature-text">
+                            <div class="feature-title">Icônes Statiques</div>
+                            <div class="feature-desc">Simples icônes Material Design sans personnalisation</div>
+                        </div>
+                    </li>
+                    <li>
+                        <div class="icon">🎨</div>
+                        <div class="feature-text">
+                            <div class="feature-title">Design Basique</div>
+                            <div class="feature-desc">Fond blanc simple, animations limitées</div>
+                        </div>
+                    </li>
+                    <li>
+                        <div class="icon">📝</div>
+                        <div class="feature-text">
+                            <div class="feature-title">Contenu Standard</div>
+                            <div class="feature-desc">Messages courts et génériques</div>
+                        </div>
+                    </li>
+                    <li>
+                        <div class="icon">🔘</div>
+                        <div class="feature-text">
+                            <div class="feature-title">Boutons Simples</div>
+                            <div class="feature-desc">Boutons plats avec gradients basiques</div>
+                        </div>
+                    </li>
+                </ul>
+            </div>
+
+            <!-- Nouveau Design -->
+            <div class="section">
+                <div class="section-title">
+                    <span class="badge badge-new">Nouveau</span>
+                    Design Premium
+                </div>
+                <ul class="feature-list new-features">
+                    <li>
+                        <div class="icon">🎨</div>
+                        <div class="feature-text">
+                            <div class="feature-title">Images Personnalisées AI</div>
+                            <div class="feature-desc">4 illustrations uniques créées spécialement pour TriDéchet</div>
+                        </div>
+                    </li>
+                    <li>
+                        <div class="icon">✨</div>
+                        <div class="feature-text">
+                            <div class="feature-title">Glassmorphism Premium</div>
+                            <div class="feature-desc">Effets de verre moderne avec BackdropFilter et overlays
+                                sophistiqués</div>
+                        </div>
+                    </li>
+                    <li>
+                        <div class="icon">🌟</div>
+                        <div class="feature-text">
+                            <div class="feature-title">Animations 3D</div>
+                            <div class="feature-desc">Effet parallaxe, particules flottantes et transitions fluides
+                            </div>
+                        </div>
+                    </li>
+                    <li>
+                        <div class="icon">💎</div>
+                        <div class="feature-text">
+                            <div class="feature-title">Gradient Text & Shadows</div>
+                            <div class="feature-desc">Titres avec ShaderMask et ombres dynamiques</div>
+                        </div>
+                    </li>
+                    <li>
+                        <div class="icon">🎯</div>
+                        <div class="feature-text">
+                            <div class="feature-title">Contenu Percutant</div>
+                            <div class="feature-desc">Messages inspirants et engageants avec sous-titres émojis</div>
+                        </div>
+                    </li>
+                    <li>
+                        <div class="icon">🚀</div>
+                        <div class="feature-text">
+                            <div class="feature-title">CTA Premium</div>
+                            <div class="feature-desc">Bouton "COMMENCER L'AVENTURE" avec icône fusée</div>
+                        </div>
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Highlights -->
+        <div class="highlights">
+            <h2>🎉 Nouveautés d'Excellence</h2>
+            <div class="highlight-grid">
+                <div class="highlight-card">
+                    <div class="highlight-icon">🖼️</div>
+                    <div class="highlight-title">Images Hero</div>
+                    <div class="highlight-text">Illustrations personnalisées de haute qualité avec conteneurs arrondis
+                        et ombres dynamiques</div>
+                </div>
+                <div class="highlight-card">
+                    <div class="highlight-icon">🌊</div>
+                    <div class="highlight-title">Particules Animées</div>
+                    <div class="highlight-text">15 particules flottantes qui changent de couleur selon la page active
+                    </div>
+                </div>
+                <div class="highlight-card">
+                    <div class="highlight-icon">🎭</div>
+                    <div class="highlight-title">Backgrounds Dynamiques</div>
+                    <div class="highlight-text">Fond dégradé qui s'anime lors du changement de page</div>
+                </div>
+                <div class="highlight-card">
+                    <div class="highlight-icon">🔄</div>
+                    <div class="highlight-title">Transitions 3D</div>
+                    <div class="highlight-text">Effet de rotation 3D lors du swipe entre les pages</div>
+                </div>
+                <div class="highlight-card">
+                    <div class="highlight-icon">💫</div>
+                    <div class="highlight-title">Micro-interactions</div>
+                    <div class="highlight-text">Animations elastiques sur le logo et boutons avec timing parfait</div>
+                </div>
+                <div class="highlight-card">
+                    <div class="highlight-icon">📊</div>
+                    <div class="highlight-title">Indicateurs Premium</div>
+                    <div class="highlight-text">Points de navigation avec ombres colorées et animations fluides</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="footer">
+            <p class="footer-text">
+                <span class="emoji">✅</span>
+                Design <span class="gradient-text">d'Excellence</span> créé avec passion pour TriDéchet
+                <span class="emoji">🌱</span>
+            </p>
+        </div>
+    </div>
+</body>
+
+</html>

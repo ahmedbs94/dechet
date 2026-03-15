@@ -1,0 +1,17 @@
+[
+    "warning - screens\\admin\\admin_dashboard.dart:6:8 - Unused import: \u0027../../widgets/glass_card.dart\u0027. Try removing the import directive. - unused_import\r",
+    "warning - screens\\admin\\admin_dashboard.dart:9:8 - Unused import: \u0027educator_tab.dart\u0027. Try removing the import directive. - unused_import\r",
+    "warning - screens\\admin\\collector_tab.dart:5:8 - Unused import: \u0027../../widgets/glass_card.dart\u0027. Try removing the import directive. - unused_import\r",
+    "warning - screens\\admin\\educator_tab.dart:3:8 - Unused import: \u0027package:font_awesome_flutter/font_awesome_flutter.dart\u0027. Try removing the import directive. - unused_import\r",
+    "warning - screens\\admin\\educator_tab.dart:6:8 - Unused import: \u0027../../widgets/glass_card.dart\u0027. Try removing the import directive. - unused_import\r",
+    "warning - screens\\admin\\intercommunality_tab.dart:4:8 - Unused import: \u0027../../widgets/glass_card.dart\u0027. Try removing the import directive. - unused_import\r",
+    "warning - screens\\admin\\point_manager_tab.dart:4:8 - Unused import: \u0027../../widgets/glass_card.dart\u0027. Try removing the import directive. - unused_import\r",
+    "warning - screens\\auth\\onboarding_screen.dart:6:8 - Unused import: \u0027../../widgets/glass_card.dart\u0027. Try removing the import directive. - unused_import\r",
+    "warning - screens\\auth\\signup_screen.dart:23:13 - The value of the field \u0027_selectedDate\u0027 isn\u0027t used. Try removing the field, or using it. - unused_field\r",
+    "warning - screens\\client\\client_home.dart:10:8 - Unused import: \u0027track_records_screen.dart\u0027. Try removing the import directive. - unused_import\r",
+    "warning - screens\\client\\client_home.dart:11:8 - Unused import: \u0027badge_screen.dart\u0027. Try removing the import directive. - unused_import\r",
+    "warning - screens\\client\\track_records_screen.dart:8:8 - Unused import: \u0027package:timeago/timeago.dart\u0027. Try removing the import directive. - unused_import\r",
+    "warning - screens\\client\\waste_scanner_screen.dart:4:8 - Unused import: \u0027../../widgets/glass_card.dart\u0027. Try removing the import directive. - unused_import\r",
+    "warning - widgets\\glass_card.dart:3:8 - Unused import: \u0027../theme/app_theme.dart\u0027. Try removing the import directive. - unused_import\r",
+    "warning - widgets\\safe_network_image.dart:1:8 - Unused import: \u0027package:flutter/foundation.dart\u0027. Try removing the import directive. - unused_import\r"
+]
