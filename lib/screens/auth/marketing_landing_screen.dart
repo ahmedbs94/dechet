@@ -5,6 +5,14 @@ import '../../widgets/safe_network_image.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/premium_widgets.dart';
+import '../../widgets/auth_prompt_dialog.dart';
+import 'section_impact.dart';
+import 'section_testimonials.dart';
+import 'section_advantages.dart';
+import '../client/feed_tab.dart';
+import '../client/rewards_tab.dart';
+import '../client/map_tab.dart';
+import '../client/multimedia_tab.dart';
 
 class MarketingLandingScreen extends StatefulWidget {
   const MarketingLandingScreen({Key? key}) : super(key: key);
@@ -18,7 +26,6 @@ class _MarketingLandingScreenState extends State<MarketingLandingScreen> with Ti
   late AnimationController _floatingController;
   late AnimationController _counterController;
   double _scrollOffset = 0;
-  bool _counterStarted = false;
 
   // Animated counters
   int _animCO2 = 0;
@@ -39,9 +46,7 @@ class _MarketingLandingScreenState extends State<MarketingLandingScreen> with Ti
     );
 
     _scrollController.addListener(() {
-      if (mounted) {
-        setState(() => _scrollOffset = _scrollController.offset);
-      }
+      setState(() => _scrollOffset = _scrollController.offset);
     });
   }
 
@@ -65,6 +70,29 @@ class _MarketingLandingScreenState extends State<MarketingLandingScreen> with Ti
         });
       }
     });
+  }
+
+  void _navigateTo(Widget page) {
+    Navigator.push(
+      context,
+      PageRouteBuilder(
+        pageBuilder: (context, animation, secondaryAnimation) =>
+            AuthPromptWrapper(child: page),
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          return FadeTransition(
+            opacity: CurvedAnimation(parent: animation, curve: Curves.easeOut),
+            child: SlideTransition(
+              position: Tween<Offset>(
+                begin: const Offset(0, 0.03),
+                end: Offset.zero,
+              ).animate(CurvedAnimation(parent: animation, curve: Curves.easeOutCubic)),
+              child: child,
+            ),
+          );
+        },
+        transitionDuration: const Duration(milliseconds: 400),
+      ),
+    );
   }
 
   void _showAuthDialog(String feature) {
@@ -243,8 +271,8 @@ class _MarketingLandingScreenState extends State<MarketingLandingScreen> with Ti
               // 1. Immersive Hero Section
               SliverToBoxAdapter(child: _buildHeroSection()),
 
-              // 2. Trusted By Section
-              const SliverToBoxAdapter(child: SizedBox.shrink()),
+              // 2. Section Hub — Explorez (Pinterest cards)
+              SliverToBoxAdapter(child: _buildSectionHub()),
 
               // 3. How It Works — 3 Steps
               SliverToBoxAdapter(child: _buildHowItWorks()),
@@ -255,13 +283,7 @@ class _MarketingLandingScreenState extends State<MarketingLandingScreen> with Ti
               // 5. Impact Counter Banner
               SliverToBoxAdapter(child: _buildImpactCounterBanner()),
 
-              // 6. Testimonials
-              SliverToBoxAdapter(child: _buildTestimonials()),
-
-              // 7. Advantages Grid
-              SliverToBoxAdapter(child: _buildAdvantagesSection()),
-
-              // 8. Final CTA
+              // 6. Final CTA
               SliverToBoxAdapter(child: _buildFinalCTA()),
 
               const SliverToBoxAdapter(child: SizedBox(height: 32)),
@@ -273,6 +295,238 @@ class _MarketingLandingScreenState extends State<MarketingLandingScreen> with Ti
         ],
       ),
     );
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // 2. SECTION HUB — Pinterest-style masonry cards
+  // ═══════════════════════════════════════════════════════════
+  Widget _buildSectionHub() {
+    final sections = [
+      _SectionCard(
+        title: 'Notre Impact',
+        subtitle: '1200 kg CO₂ évités',
+        icon: Icons.public_rounded,
+        color: const Color(0xFF3B82F6),
+        gradient: [const Color(0xFF1E40AF), const Color(0xFF3B82F6)],
+        page: const SectionImpact(),
+        imageUrl: 'https://images.unsplash.com/photo-1532996122724-e3c354a0b15b?w=400&q=80',
+        height: 220.0,
+      ),
+      _SectionCard(
+        title: 'Témoignages',
+        subtitle: 'Ils nous font confiance',
+        icon: Icons.groups_rounded,
+        color: const Color(0xFF8B5CF6),
+        gradient: [const Color(0xFF6D28D9), const Color(0xFF8B5CF6)],
+        page: const SectionTestimonials(),
+        imageUrl: 'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=400&q=80',
+        height: 260.0,
+      ),
+      _SectionCard(
+        title: 'Nos Avantages',
+        subtitle: 'Pourquoi nous choisir',
+        icon: Icons.diamond_rounded,
+        color: const Color(0xFFF59E0B),
+        gradient: [const Color(0xFFB45309), const Color(0xFFF59E0B)],
+        page: const SectionAdvantages(),
+        imageUrl: 'https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?w=400&q=80',
+        height: 200.0,
+      ),
+    ];
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 40, 20, 10),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            child: Row(
+              children: [
+                Container(
+                  width: 4,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFF3B82F6), Color(0xFF8B5CF6)],
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                    ),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                const SizedBox(width: 14),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Explorez',
+                      style: GoogleFonts.spaceGrotesk(
+                        fontSize: 28,
+                        fontWeight: FontWeight.w900,
+                        color: AppTheme.deepNavy,
+                      ),
+                    ),
+                    Text(
+                      'Découvrez tout ce que TriDéchet peut vous offrir',
+                      style: GoogleFonts.inter(fontSize: 13, color: AppTheme.textMuted),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ).animate().fadeIn(duration: 500.ms).slideX(begin: -0.05, end: 0),
+          const SizedBox(height: 24),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Column(
+                  children: [
+                    _buildPinterestCard(sections[0], 0),
+                    const SizedBox(height: 14),
+                    _buildPinterestCard(sections[2], 2),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  children: [
+                    const SizedBox(height: 36),
+                    _buildPinterestCard(sections[1], 1),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPinterestCard(_SectionCard s, int index) {
+    return GestureDetector(
+      onTap: () => _navigateTo(s.page),
+      child: Container(
+        height: s.height,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: [
+            BoxShadow(
+              color: s.color.withOpacity(0.2),
+              blurRadius: 20,
+              offset: const Offset(0, 8),
+            ),
+          ],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(24),
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              Image.network(
+                s.imageUrl,
+                fit: BoxFit.cover,
+                errorBuilder: (c, e, st) => Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: s.gradient,
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                  ),
+                  child: Center(
+                    child: Icon(s.icon, color: Colors.white.withOpacity(0.3), size: 48),
+                  ),
+                ),
+              ),
+              Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Colors.black.withOpacity(0.05),
+                      Colors.black.withOpacity(0.15),
+                      Colors.black.withOpacity(0.65),
+                    ],
+                    stops: const [0.0, 0.4, 1.0],
+                  ),
+                ),
+              ),
+              Positioned(
+                right: -20, top: -20,
+                child: Container(
+                  width: 70, height: 70,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: s.color.withOpacity(0.25),
+                  ),
+                ),
+              ),
+              Positioned(
+                left: 16, right: 16, bottom: 16,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: Colors.white.withOpacity(0.25)),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(s.icon, color: Colors.white, size: 14),
+                          const SizedBox(width: 6),
+                          Text(s.subtitle, style: GoogleFonts.inter(
+                            color: Colors.white.withOpacity(0.9), fontSize: 10, fontWeight: FontWeight.w600,
+                          )),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(s.title, style: GoogleFonts.spaceGrotesk(
+                      fontSize: 18, fontWeight: FontWeight.w900, color: Colors.white, height: 1.1,
+                    )),
+                    const SizedBox(height: 6),
+                    Row(children: [
+                      Text('Découvrir', style: GoogleFonts.inter(
+                        color: Colors.white.withOpacity(0.8), fontSize: 12, fontWeight: FontWeight.w600,
+                      )),
+                      const SizedBox(width: 4),
+                      Icon(Icons.arrow_forward_rounded, color: Colors.white.withOpacity(0.8), size: 14),
+                    ]),
+                  ],
+                ),
+              ),
+              Positioned(
+                top: 12, right: 12,
+                child: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.9),
+                    shape: BoxShape.circle,
+                    boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 8)],
+                  ),
+                  child: Icon(Icons.bookmark_outline_rounded, size: 16, color: s.color),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    )
+        .animate()
+        .fadeIn(delay: (150 + index * 150).ms, duration: 600.ms)
+        .scale(
+          begin: const Offset(0.92, 0.92), end: const Offset(1, 1),
+          delay: (150 + index * 150).ms, duration: 700.ms, curve: Curves.easeOutBack,
+        );
   }
 
   // ===========================================================
@@ -310,7 +564,7 @@ class _MarketingLandingScreenState extends State<MarketingLandingScreen> with Ti
             ),
             const SizedBox(width: 10),
             Text(
-              'EcoRewind',
+              'TriDéchet',
               style: GoogleFonts.spaceGrotesk(
                 fontSize: 20,
                 fontWeight: FontWeight.w900,
@@ -374,43 +628,35 @@ class _MarketingLandingScreenState extends State<MarketingLandingScreen> with Ti
       height: 680,
       width: double.infinity,
       child: Stack(
-        clipBehavior: Clip.none,
         children: [
           // Background gradient
-          Positioned.fill(
-            child: Container(
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [Color(0xFF0A3D2E), Color(0xFF0F172A)],
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                ),
+          Container(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                colors: [Color(0xFF0A3D2E), Color(0xFF0F172A)],
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
               ),
             ),
           ),
 
-          // Animated orbs — each wrapped in Positioned so Stack can lay them out
+          // Animated orbs
           ...List.generate(3, (index) {
-            final double orbSize = 200.0 + (index * 60);
-            final double baseRight = -60.0 + (index * 80);
-            final double baseTop = 80.0 + (index * 120);
-            final Color orbColor = [AppTheme.primaryGreen, AppTheme.accentTeal, AppTheme.secondaryGold][index];
             return AnimatedBuilder(
               animation: _floatingController,
               builder: (context, child) {
                 final offset = _floatingController.value * 30;
-                final double top = baseTop + (index.isEven ? offset : -offset);
                 return Positioned(
-                  right: baseRight,
-                  top: top,
-                  width: orbSize,
-                  height: orbSize,
+                  right: -60 + (index * 80),
+                  top: 80 + (index * 120) + (index.isEven ? offset : -offset),
                   child: Container(
+                    width: 200 + (index * 60),
+                    height: 200 + (index * 60),
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       gradient: RadialGradient(
                         colors: [
-                          orbColor.withOpacity(0.15),
+                          [AppTheme.primaryGreen, AppTheme.accentTeal, AppTheme.secondaryGold][index].withOpacity(0.15),
                           Colors.transparent,
                         ],
                       ),
@@ -422,148 +668,145 @@ class _MarketingLandingScreenState extends State<MarketingLandingScreen> with Ti
           }),
 
           // Content
-          Positioned.fill(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(28, 120, 28, 60),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  const SizedBox.shrink(),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(28, 120, 28, 60),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                const SizedBox.shrink(),
 
-                  const SizedBox(height: 24),
+                const SizedBox(height: 24),
 
-                  // Main Title
-                  Text(
-                    'Triez. Gagnez.\nChangez le monde.',
-                    style: GoogleFonts.spaceGrotesk(
-                      color: Colors.white,
-                      fontSize: 44,
-                      fontWeight: FontWeight.w900,
-                      height: 1.05,
-                      letterSpacing: -1.5,
+                // Main Title
+                Text(
+                  'Triez. Gagnez.\nChangez le monde.',
+                  style: GoogleFonts.spaceGrotesk(
+                    color: Colors.white,
+                    fontSize: 44,
+                    fontWeight: FontWeight.w900,
+                    height: 1.05,
+                    letterSpacing: -1.5,
+                  ),
+                ).animate().fadeIn(delay: 200.ms, duration: 700.ms).slideY(begin: 0.2, end: 0),
+
+                const SizedBox(height: 20),
+
+                // Subtitle
+                Text(
+                  'La première application tunisienne qui transforme chaque geste de tri en récompenses réelles. Scanner IA, points fidélité et impact mesurable.',
+                  style: GoogleFonts.inter(
+                    color: Colors.white.withOpacity(0.75),
+                    fontSize: 16,
+                    height: 1.6,
+                  ),
+                ).animate().fadeIn(delay: 400.ms, duration: 600.ms),
+
+                const SizedBox(height: 36),
+
+                // CTA Buttons
+                Row(
+                  children: [
+                    Expanded(
+                      flex: 3,
+                      child: PremiumButton(
+                        text: 'COMMENCER GRATUITEMENT',
+                        icon: Icons.arrow_forward_rounded,
+                        onPressed: () => Navigator.pushNamed(context, '/signup'),
+                        height: 56,
+                        borderRadius: 16,
+                      ),
                     ),
-                  ).animate().fadeIn(delay: 200.ms, duration: 700.ms).slideY(begin: 0.2, end: 0),
-
-                  const SizedBox(height: 20),
-
-                  // Subtitle
-                  Text(
-                    'La première application tunisienne qui transforme chaque geste de tri en récompenses réelles. Scanner IA, points fidélité et impact mesurable.',
-                    style: GoogleFonts.inter(
-                      color: Colors.white.withOpacity(0.75),
-                      fontSize: 16,
-                      height: 1.6,
-                    ),
-                  ).animate().fadeIn(delay: 400.ms, duration: 600.ms),
-
-                  const SizedBox(height: 36),
-
-                  // CTA Buttons
-                  Row(
-                    children: [
-                      Expanded(
-                        flex: 3,
-                        child: PremiumButton(
-                          text: 'COMMENCER GRATUITEMENT',
-                          icon: Icons.arrow_forward_rounded,
-                          onPressed: () => Navigator.pushNamed(context, '/signup'),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      flex: 2,
+                      child: GestureDetector(
+                        onTap: () {
+                          _scrollController.animateTo(
+                            700,
+                            duration: const Duration(milliseconds: 800),
+                            curve: Curves.easeInOut,
+                          );
+                        },
+                        child: Container(
                           height: 56,
-                          borderRadius: 16,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        flex: 2,
-                        child: GestureDetector(
-                          onTap: () {
-                            _scrollController.animateTo(
-                              700,
-                              duration: const Duration(milliseconds: 800),
-                              curve: Curves.easeInOut,
-                            );
-                          },
-                          child: Container(
-                            height: 56,
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(16),
-                              border: Border.all(
-                                color: Colors.white.withOpacity(0.3),
-                                width: 1.5,
-                              ),
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                              color: Colors.white.withOpacity(0.3),
+                              width: 1.5,
                             ),
-                            child: Center(
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(Icons.play_circle_outline_rounded,
-                                      color: Colors.white.withOpacity(0.9), size: 20),
-                                  const SizedBox(width: 6),
-                                  Text(
-                                    'Découvrir',
-                                    style: GoogleFonts.inter(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.w700,
-                                      fontSize: 14,
-                                    ),
+                          ),
+                          child: Center(
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.play_circle_outline_rounded, color: Colors.white.withOpacity(0.9), size: 20),
+                                const SizedBox(width: 6),
+                                Text(
+                                  'Découvrir',
+                                  style: GoogleFonts.inter(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 14,
                                   ),
-                                ],
-                              ),
+                                ),
+                              ],
                             ),
                           ),
                         ),
                       ),
-                    ],
-                  ).animate().fadeIn(delay: 600.ms).slideY(begin: 0.2, end: 0),
+                    ),
+                  ],
+                ).animate().fadeIn(delay: 600.ms).slideY(begin: 0.2, end: 0),
 
-                  const SizedBox(height: 28),
+                const SizedBox(height: 28),
 
-                  // Social proof
-                  Row(
-                    children: [
-                      // Avatars stack
-                      SizedBox(
-                        width: 80,
-                        height: 32,
-                        child: Stack(
-                          children: List.generate(3, (index) {
-                            return Positioned(
-                              left: index * 22.0,
-                              child: Container(
-                                width: 32,
-                                height: 32,
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  border: Border.all(color: Colors.white, width: 2),
-                                ),
-                                child: ClipOval(
-                                  child: SizedBox(
-                                    width: 32,
-                                    height: 32,
-                                    child: SafeNetworkImage('https://i.pravatar.cc/150?u=user${index + 10}',
-                                        fit: BoxFit.cover, placeholder: Container(color: Colors.grey.shade200)),
-                                  ),
+                // Social proof
+                Row(
+                  children: [
+                    // Avatars stack
+                    SizedBox(
+                      width: 80,
+                      height: 32,
+                      child: Stack(
+                        children: List.generate(3, (index) {
+                          return Positioned(
+                            left: index * 22.0,
+                            child: Container(
+                              width: 32,
+                              height: 32,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                border: Border.all(color: Colors.white, width: 2),
+                              ),
+                              child: ClipOval(
+                                child: SizedBox(
+                                  width: 32,
+                                  height: 32,
+                                  child: SafeNetworkImage('https://i.pravatar.cc/150?u=user${index + 10}',
+                                      fit: BoxFit.cover, placeholder: Container(color: Colors.grey.shade200)),
                                 ),
                               ),
-                            );
-                          }),
+                            ),
+                          );
+                        }),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        '+850 citoyens nous ont déjà rejoints',
+                        style: GoogleFonts.inter(
+                          color: Colors.white.withOpacity(0.6),
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Text(
-                          '+850 citoyens nous ont déjà rejoints',
-                          style: GoogleFonts.inter(
-                            color: Colors.white.withOpacity(0.6),
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ).animate().fadeIn(delay: 800.ms),
-                ],
-              ),
+                    ),
+                  ],
+                ).animate().fadeIn(delay: 800.ms),
+              ],
             ),
           ),
 
@@ -572,7 +815,6 @@ class _MarketingLandingScreenState extends State<MarketingLandingScreen> with Ti
             bottom: -2,
             left: 0,
             right: 0,
-            height: 40,
             child: CustomPaint(
               size: Size(MediaQuery.of(context).size.width, 40),
               painter: _WavePainter(),
@@ -657,7 +899,7 @@ class _MarketingLandingScreenState extends State<MarketingLandingScreen> with Ti
           ),
           const SizedBox(height: 8),
           Text(
-            '2 étapes simples pour devenir éco-citoyen',
+            '3 étapes simples pour devenir éco-citoyen',
             style: GoogleFonts.inter(
               fontSize: 14,
               color: AppTheme.textMuted,
@@ -666,22 +908,30 @@ class _MarketingLandingScreenState extends State<MarketingLandingScreen> with Ti
           const SizedBox(height: 40),
           _buildStep(
             number: '01',
-            title: 'Déposez aux bornes',
-            description:
-                'Utilisez votre badge QR pour ouvrir les bornes de tri intelligentes. La borne mesure automatiquement vos points.',
-            icon: Icons.qr_code_2_rounded,
-            color: AppTheme.primaryGreen,
+            title: 'Scannez vos déchets',
+            description: 'Notre IA identifie automatiquement le type de déchet grâce à la caméra de votre téléphone.',
+            icon: Icons.document_scanner_rounded,
+            color: const Color(0xFF6366F1),
             delay: 0,
           ),
           const SizedBox(height: 20),
           _buildStep(
             number: '02',
+            title: 'Déposez aux bornes',
+            description: 'Utilisez votre badge QR pour ouvrir les bornes de tri intelligentes près de chez vous.',
+            icon: Icons.qr_code_2_rounded,
+            color: AppTheme.primaryGreen,
+            delay: 100,
+          ),
+          const SizedBox(height: 20),
+          _buildStep(
+            number: '03',
             title: 'Gagnez des points',
             description:
                 'Accumulez des éco-points et échangez-les contre des réductions et cadeaux chez nos partenaires.',
             icon: Icons.card_giftcard_rounded,
             color: const Color(0xFFF59E0B),
-            delay: 100,
+            delay: 200,
           ),
         ],
       ),
@@ -774,20 +1024,18 @@ class _MarketingLandingScreenState extends State<MarketingLandingScreen> with Ti
   Widget _buildFeatureShowcase() {
     final features = [
       _FeatureData(
+        'Scanner IA',
+        'Identification instantanée des déchets par intelligence artificielle',
+        FontAwesomeIcons.camera,
+        const Color(0xFF8B5CF6),
+        'https://images.unsplash.com/photo-1611532736597-de2d4265fba3?w=400&q=80',
+      ),
+      _FeatureData(
         'Fil Communautaire',
         'Partagez vos actions éco et inspirez votre entourage',
         FontAwesomeIcons.users,
         const Color(0xFF3B82F6),
         'https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?w=400&q=80',
-        initialTab: 0,
-      ),
-      _FeatureData(
-        'Formation Éco',
-        'Vidéos, quiz et articles pour apprendre les bonnes pratiques du tri',
-        FontAwesomeIcons.graduationCap,
-        const Color(0xFF8B5CF6),
-        'https://images.unsplash.com/photo-1532094349884-543bc11b234d?w=400&q=80',
-        initialTab: 1,
       ),
       _FeatureData(
         'Récompenses',
@@ -795,7 +1043,6 @@ class _MarketingLandingScreenState extends State<MarketingLandingScreen> with Ti
         FontAwesomeIcons.trophy,
         const Color(0xFFF59E0B),
         'https://images.unsplash.com/photo-1532996122724-e3c354a0b15b?w=400&q=80',
-        initialTab: 2,
       ),
       _FeatureData(
         'Carte Interactive',
@@ -803,7 +1050,6 @@ class _MarketingLandingScreenState extends State<MarketingLandingScreen> with Ti
         FontAwesomeIcons.mapLocationDot,
         const Color(0xFF10B981),
         'https://images.unsplash.com/photo-1595278069441-2cf29f8005a4?w=400&q=80',
-        initialTab: 3,
       ),
     ];
 
@@ -821,7 +1067,7 @@ class _MarketingLandingScreenState extends State<MarketingLandingScreen> with Ti
           ),
           const SizedBox(height: 8),
           Text(
-            'Découvrez nos services',
+            'Tout ce dont vous avez besoin',
             style: GoogleFonts.inter(
               fontSize: 14,
               color: AppTheme.textMuted,
@@ -843,10 +1089,7 @@ class _MarketingLandingScreenState extends State<MarketingLandingScreen> with Ti
 
   Widget _buildFeatureCard(_FeatureData f, int index) {
     return GestureDetector(
-      onTap: () {
-        // Navigate directly to the feature's tab
-        Navigator.pushNamed(context, '/home', arguments: {'initialTab': f.initialTab});
-      },
+      onTap: () => _navigateTo(_buildFeaturePage(f)),
       child: Container(
         height: 140,
         decoration: BoxDecoration(
@@ -891,6 +1134,19 @@ class _MarketingLandingScreenState extends State<MarketingLandingScreen> with Ti
                             Colors.white.withOpacity(0.8),
                           ],
                         ),
+                      ),
+                    ),
+                    // Lock badge
+                    Positioned(
+                      top: 10,
+                      left: 10,
+                      child: Container(
+                        padding: const EdgeInsets.all(6),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.9),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(Icons.lock_rounded, size: 12, color: f.color),
                       ),
                     ),
                   ],
@@ -961,17 +1217,89 @@ class _MarketingLandingScreenState extends State<MarketingLandingScreen> with Ti
     ).animate().fadeIn(delay: (index * 80).ms, duration: 500.ms).slideX(begin: 0.05, end: 0);
   }
 
+  Widget _buildFeaturePage(_FeatureData f) {
+    Widget content;
+    switch (f.title) {
+      case 'Fil Communautaire':
+        content = const FeedTab();
+        break;
+      case 'Récompenses':
+        content = const RewardsTab();
+        break;
+      case 'Carte Interactive':
+        content = const MapTab();
+        break;
+      case 'Éducation':
+        content = const MultimediaTab();
+        break;
+      default:
+        content = const FeedTab();
+    }
+
+    return Scaffold(
+      backgroundColor: Colors.grey.shade50,
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        surfaceTintColor: Colors.transparent,
+        leading: GestureDetector(
+          onTap: () => Navigator.pop(context),
+          child: Container(
+            margin: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: f.color.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(Icons.arrow_back_rounded, color: f.color, size: 22),
+          ),
+        ),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: f.color.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(f.icon, color: f.color, size: 16),
+            ),
+            const SizedBox(width: 12),
+            Text(
+              f.title,
+              style: GoogleFonts.spaceGrotesk(
+                fontSize: 18,
+                fontWeight: FontWeight.w800,
+                color: AppTheme.deepNavy,
+              ),
+            ),
+          ],
+        ),
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(1),
+          child: Container(
+            height: 1,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [f.color.withOpacity(0.3), Colors.transparent],
+              ),
+            ),
+          ),
+        ),
+      ),
+      body: content,
+    );
+  }
+
   // ===========================================================
   // 5. IMPACT COUNTER BANNER
   // ===========================================================
   Widget _buildImpactCounterBanner() {
-    // Start counter animation when this becomes visible (only once)
-    if (!_counterStarted && _scrollOffset > 800) {
-      _counterStarted = true;
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) _startCounterAnimation();
-      });
-    }
+    // Start counter animation when this becomes visible
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_scrollOffset > 800) {
+        _startCounterAnimation();
+      }
+    });
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
@@ -1074,7 +1402,7 @@ class _MarketingLandingScreenState extends State<MarketingLandingScreen> with Ti
       _Testimonial(
         'Samir B.',
         'Citoyen, Tunis',
-        'J\'ai accumulé 2000 points en 2 semaines ! EcoRewind a changé ma façon de voir le recyclage.',
+        'J\'ai accumulé 2000 points en 2 semaines ! TriDéchet a changé ma façon de voir le recyclage.',
         'https://i.pravatar.cc/150?u=samir',
       ),
       _Testimonial(
@@ -1226,7 +1554,7 @@ class _MarketingLandingScreenState extends State<MarketingLandingScreen> with Ti
       child: Column(
         children: [
           Text(
-            'Pourquoi EcoRewind ?',
+            'Pourquoi TriDéchet ?',
             style: GoogleFonts.spaceGrotesk(
               fontSize: 28,
               fontWeight: FontWeight.w900,
@@ -1399,9 +1727,30 @@ class _FeatureData {
   final IconData icon;
   final Color color;
   final String imageUrl;
-  final int initialTab;
 
-  _FeatureData(this.title, this.description, this.icon, this.color, this.imageUrl, {this.initialTab = 0});
+  _FeatureData(this.title, this.description, this.icon, this.color, this.imageUrl);
+}
+
+class _SectionCard {
+  final String title;
+  final String subtitle;
+  final IconData icon;
+  final Color color;
+  final List<Color> gradient;
+  final Widget page;
+  final String imageUrl;
+  final double height;
+
+  const _SectionCard({
+    required this.title,
+    required this.subtitle,
+    required this.icon,
+    required this.color,
+    required this.gradient,
+    required this.page,
+    this.imageUrl = '',
+    this.height = 200.0,
+  });
 }
 
 class _Testimonial {

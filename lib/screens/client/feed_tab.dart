@@ -5,6 +5,7 @@ import 'package:timeago/timeago.dart' as timeago;
 import '../../theme/app_theme.dart';
 import '../../models/user_model.dart';
 import '../../services/auth_service.dart';
+import '../../widgets/auth_prompt_dialog.dart';
 
 class FeedTab extends StatefulWidget {
   const FeedTab({Key? key}) : super(key: key);
@@ -63,9 +64,7 @@ class _FeedTabState extends State<FeedTab> {
 
   void _createNewPost() {
     if (!AuthState.isLoggedIn) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Connectez-vous pour publier'), backgroundColor: Colors.orange),
-      );
+      AuthPromptDialog.show(context: context);
       return;
     }
 
@@ -137,7 +136,7 @@ class _FeedTabState extends State<FeedTab> {
                   if (result['success'] == true) {
                     _postController.clear();
                     Navigator.pop(context);
-                    _loadPosts(); // Recharger depuis le backend
+                    _loadPosts();
                     if (mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
@@ -204,15 +203,32 @@ class _FeedTabState extends State<FeedTab> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(Icons.cloud_off_rounded, size: 64, color: AppTheme.textMuted),
-                    const SizedBox(height: 16),
+                    Container(
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: Colors.red.withOpacity(0.08),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.cloud_off_rounded, size: 48, color: Colors.red),
+                    ),
+                    const SizedBox(height: 20),
                     Text(_error!, style: GoogleFonts.inter(color: AppTheme.textMuted, fontSize: 16)),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Vérifiez que le serveur backend est démarré',
+                      style: GoogleFonts.inter(color: AppTheme.textMuted.withOpacity(0.6), fontSize: 12),
+                    ),
+                    const SizedBox(height: 20),
                     ElevatedButton.icon(
                       onPressed: _loadPosts,
-                      icon: const Icon(Icons.refresh),
+                      icon: const Icon(Icons.refresh_rounded),
                       label: const Text('Réessayer'),
-                      style: ElevatedButton.styleFrom(backgroundColor: AppTheme.primaryGreen),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppTheme.primaryGreen,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                       ),
                     ),
                   ],
                 ),
@@ -299,9 +315,7 @@ class _RealPostCardState extends State<_RealPostCard> {
 
   Future<void> _handleLike() async {
     if (!AuthState.isLoggedIn) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Connectez-vous pour liker'), behavior: SnackBarBehavior.floating),
-      );
+      _showAuthSnackBar('Connectez-vous pour liker');
       return;
     }
 
@@ -320,7 +334,10 @@ class _RealPostCardState extends State<_RealPostCard> {
   }
 
   Future<void> _handleSave() async {
-    if (!AuthState.isLoggedIn) return;
+    if (!AuthState.isLoggedIn) {
+      _showAuthSnackBar('Connectez-vous pour enregistrer');
+      return;
+    }
 
     setState(() => _isSaved = !_isSaved);
 
@@ -608,6 +625,28 @@ class _RealPostCardState extends State<_RealPostCard> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  void _showAuthSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            const Icon(Icons.lock_outline_rounded, color: Colors.white, size: 18),
+            const SizedBox(width: 10),
+            Expanded(child: Text(message)),
+          ],
+        ),
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: AppTheme.deepNavy,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        action: SnackBarAction(
+          label: 'CONNEXION',
+          textColor: AppTheme.primaryGreen,
+          onPressed: () => Navigator.pushNamed(context, '/login'),
+        ),
       ),
     );
   }

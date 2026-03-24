@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../widgets/auth_prompt_dialog.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../../models/user_model.dart';
@@ -7,8 +8,7 @@ import 'map_tab.dart';
 import 'rewards_tab.dart';
 import 'profile_tab.dart';
 import 'multimedia_tab.dart';
-import 'track_records_screen.dart';
-import 'badge_screen.dart';
+
 import '../admin/collector_tab.dart';
 import '../admin/intercommunality_tab.dart';
 import '../admin/point_manager_tab.dart';
@@ -28,6 +28,7 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
   late int _currentIndex;
   late final List<Widget> _pages;
   late final bool _isLoggedIn;
+  bool _hasShownAuthPrompt = false;
 
   @override
   void initState() {
@@ -37,6 +38,16 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
     _pages = _initializePages(role);
     // Clamp initialTab to valid range
     _currentIndex = widget.initialTab.clamp(0, _pages.length - 1);
+
+    // Afficher le dialogue auth après l'ouverture de la page
+    if (!_isLoggedIn) {
+      _hasShownAuthPrompt = true;
+      Future.delayed(const Duration(milliseconds: 600), () {
+        if (mounted) {
+          AuthPromptDialog.show(context: context);
+        }
+      });
+    }
   }
 
   List<Widget> _initializePages(UserRole role) {
@@ -139,7 +150,19 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
             ),
             child: NavigationBar(
               selectedIndex: _currentIndex,
-              onDestinationSelected: (index) => setState(() => _currentIndex = index),
+              onDestinationSelected: (index) {
+                // Toujours changer d'onglet d'abord (la page s'ouvre)
+                setState(() => _currentIndex = index);
+                // Puis afficher le dialogue auth si pas connecté (1 seule fois)
+                if (!_isLoggedIn && !_hasShownAuthPrompt) {
+                  _hasShownAuthPrompt = true;
+                  Future.delayed(const Duration(milliseconds: 400), () {
+                    if (mounted) {
+                      AuthPromptDialog.show(context: context);
+                    }
+                  });
+                }
+              },
               backgroundColor: Colors.white,
               elevation: 0,
               height: 70,
