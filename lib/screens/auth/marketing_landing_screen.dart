@@ -1024,18 +1024,18 @@ class _MarketingLandingScreenState extends State<MarketingLandingScreen> with Ti
   Widget _buildFeatureShowcase() {
     final features = [
       _FeatureData(
-        'Scanner IA',
-        'Identification instantanée des déchets par intelligence artificielle',
-        FontAwesomeIcons.camera,
-        const Color(0xFF8B5CF6),
-        'https://images.unsplash.com/photo-1611532736597-de2d4265fba3?w=400&q=80',
-      ),
-      _FeatureData(
         'Fil Communautaire',
         'Partagez vos actions éco et inspirez votre entourage',
         FontAwesomeIcons.users,
         const Color(0xFF3B82F6),
         'https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?w=400&q=80',
+      ),
+      _FeatureData(
+        'Éducation',
+        'Quiz interactifs, vidéos éducatives et articles sur le tri et le recyclage',
+        FontAwesomeIcons.graduationCap,
+        const Color(0xFF8B5CF6),
+        'https://images.unsplash.com/photo-1503676260728-1c00da094a0b?w=400&q=80',
       ),
       _FeatureData(
         'Récompenses',
