@@ -5,11 +5,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import '../../theme/app_theme.dart';
 import '../../models/user_model.dart';
-import '../../models/post_model.dart';
 import '../../models/waste_record_model.dart';
-import '../../widgets/glass_card.dart';
 import '../../widgets/premium_widgets.dart';
-import '../../widgets/safe_network_image.dart';
 import '../../services/auth_service.dart';
 
 class ProfileTab extends StatefulWidget {
@@ -80,88 +77,11 @@ class _ProfileTabState extends State<ProfileTab> {
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (sheetContext) {
-        return ValueListenableBuilder<List<Post>>(
-          valueListenable: PostRegistry.postsNotifier,
-          builder: (context, allPosts, child) {
-            final savedPosts = allPosts.where((post) => post.isSaved).toList();
-            return GlassCard(
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
-              child: Container(
-                height: MediaQuery.of(context).size.height * 0.75,
-                padding: const EdgeInsets.all(24),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Center(
-                      child: Container(
-                        width: 40,
-                        height: 5,
-                        decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(10)),
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-                    Text('Publications enregistr\u00e9es',
-                        style:
-                            GoogleFonts.outfit(fontSize: 24, fontWeight: FontWeight.bold, color: AppTheme.deepSlate)),
-                    const SizedBox(height: 16),
-                    Expanded(
-                      child: savedPosts.isEmpty
-                          ? Center(
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(FontAwesomeIcons.bookmark, size: 60, color: AppTheme.textMuted.withOpacity(0.5)),
-                                  const SizedBox(height: 20),
-                                  Text('Aucune publication enregistr\u00e9e pour le moment.',
-                                      textAlign: TextAlign.center,
-                                      style: GoogleFonts.inter(color: AppTheme.textMuted, fontSize: 16)),
-                                ],
-                              ),
-                            )
-                          : ListView.builder(
-                              itemCount: savedPosts.length,
-                              itemBuilder: (context, index) {
-                                final post = savedPosts[index];
-                                return Card(
-                                  margin: const EdgeInsets.symmetric(vertical: 8),
-                                  elevation: 2,
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                  child: ListTile(
-                                    leading: ClipRRect(
-                                      borderRadius: BorderRadius.circular(8),
-                                      child: SizedBox(
-                                        width: 48,
-                                        height: 48,
-                                        child: SafeNetworkImage(
-                                          post.imageUrl,
-                                          width: 48,
-                                          height: 48,
-                                          fit: BoxFit.cover,
-                                        ),
-                                      ),
-                                    ),
-                                    title: Text(post.userName, style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
-                                    subtitle: Text(post.description, maxLines: 2, overflow: TextOverflow.ellipsis),
-                                    trailing: const Icon(FontAwesomeIcons.solidBookmark,
-                                        color: AppTheme.primaryGreen, size: 16),
-                                    onTap: () {
-                                      Navigator.pop(sheetContext);
-                                      PostRegistry.navigateToPost(post.id);
-                                    },
-                                  ),
-                                );
-                              },
-                            ),
-                    ),
-                  ],
-                ),
-              ),
-            );
-          },
-        );
+        return _SavedPostsSheet(authService: _authService);
       },
     );
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -852,3 +772,151 @@ class _ChangePasswordDialogState extends State<_ChangePasswordDialog> {
     );
   }
 }
+
+// ════════════════════════════════════════════
+// Saved Posts Sheet (connected to backend)
+// ════════════════════════════════════════════
+class _SavedPostsSheet extends StatefulWidget {
+  final AuthService authService;
+  const _SavedPostsSheet({required this.authService});
+
+  @override
+  State<_SavedPostsSheet> createState() => _SavedPostsSheetState();
+}
+
+class _SavedPostsSheetState extends State<_SavedPostsSheet> {
+  List<Map<String, dynamic>> _savedPosts = [];
+  bool _isLoading = true;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSavedPosts();
+  }
+
+  Future<void> _loadSavedPosts() async {
+    setState(() { _isLoading = true; _error = null; });
+    try {
+      final posts = await widget.authService.fetchSavedPosts();
+      if (mounted) {
+        setState(() {
+          _savedPosts = posts?.cast<Map<String, dynamic>>() ?? [];
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) setState(() { _error = 'Impossible de charger les favoris'; _isLoading = false; });
+    }
+  }
+
+  Future<void> _unsavePost(String postId, int index) async {
+    final result = await widget.authService.toggleSavePost(postId);
+    if (result['success'] == true && mounted) {
+      setState(() => _savedPosts.removeAt(index));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Publication retirée des favoris', style: GoogleFonts.inter(fontWeight: FontWeight.w600)),
+          backgroundColor: AppTheme.deepSlate,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        ),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: MediaQuery.of(context).size.height * 0.75,
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
+      ),
+      child: Column(
+        children: [
+          Container(
+            width: 40, height: 5,
+            margin: const EdgeInsets.symmetric(vertical: 12),
+            decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(10)),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(24, 8, 24, 16),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text('Publications sauvegardées', style: GoogleFonts.outfit(fontSize: 22, fontWeight: FontWeight.bold, color: AppTheme.deepSlate)),
+                IconButton(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.close_rounded)),
+              ],
+            ),
+          ),
+          Expanded(
+            child: _isLoading
+                ? const Center(child: CircularProgressIndicator(color: AppTheme.primaryGreen))
+                : _error != null
+                    ? Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
+                        Icon(Icons.cloud_off_rounded, size: 48, color: Colors.grey.shade300),
+                        const SizedBox(height: 12),
+                        Text(_error!, style: GoogleFonts.inter(color: AppTheme.textMuted)),
+                        const SizedBox(height: 12),
+                        TextButton(onPressed: _loadSavedPosts, child: Text('Réessayer', style: GoogleFonts.inter(color: AppTheme.primaryGreen, fontWeight: FontWeight.w600))),
+                      ]))
+                    : _savedPosts.isEmpty
+                        ? Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
+                            Icon(Icons.bookmark_outline_rounded, size: 60, color: AppTheme.textMuted.withOpacity(0.4)),
+                            const SizedBox(height: 16),
+                            Text('Aucune publication sauvegardée', style: GoogleFonts.outfit(fontSize: 16, color: AppTheme.textMuted)),
+                            const SizedBox(height: 6),
+                            Text('Appuyez sur le bookmark pour sauvegarder', style: GoogleFonts.inter(fontSize: 12, color: AppTheme.textMuted.withOpacity(0.6))),
+                          ]))
+                        : ListView.builder(
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            itemCount: _savedPosts.length,
+                            itemBuilder: (context, index) {
+                              final post = _savedPosts[index];
+                              final userName = post['user_name'] ?? 'Anonyme';
+                              final description = post['description'] ?? '';
+                              final postId = post['id']?.toString() ?? '';
+                              return Dismissible(
+                                key: ValueKey(postId),
+                                direction: DismissDirection.endToStart,
+                                background: Container(
+                                  alignment: Alignment.centerRight,
+                                  padding: const EdgeInsets.only(right: 24),
+                                  margin: const EdgeInsets.symmetric(vertical: 6),
+                                  decoration: BoxDecoration(
+                                    color: Colors.red.shade50,
+                                    borderRadius: BorderRadius.circular(16),
+                                  ),
+                                  child: Icon(Icons.delete_outline_rounded, color: Colors.red.shade400),
+                                ),
+                                onDismissed: (_) => _unsavePost(postId, index),
+                                child: Card(
+                                  margin: const EdgeInsets.symmetric(vertical: 6),
+                                  elevation: 0,
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                                  color: AppTheme.backgroundLight,
+                                  child: ListTile(
+                                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                    leading: CircleAvatar(
+                                      backgroundColor: AppTheme.primaryGreen.withOpacity(0.1),
+                                      child: Text(userName.isNotEmpty ? userName[0].toUpperCase() : '?', style: GoogleFonts.outfit(color: AppTheme.primaryGreen, fontWeight: FontWeight.bold)),
+                                    ),
+                                    title: Text(userName, style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 14)),
+                                    subtitle: Text(description, maxLines: 2, overflow: TextOverflow.ellipsis, style: GoogleFonts.inter(fontSize: 12, color: AppTheme.textMuted)),
+                                    trailing: IconButton(
+                                      icon: const Icon(Icons.bookmark_rounded, color: AppTheme.primaryGreen, size: 20),
+                                      onPressed: () => _unsavePost(postId, index),
+                                    ),
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+

@@ -255,11 +255,11 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
                         // ── Title ──
                         ShaderMask(
                           shaderCallback: (bounds) => const LinearGradient(colors: [Colors.white, Color(0xFF86EFAC)]).createShader(bounds),
-                          child: Text('Créer votre\ncompte', style: GoogleFonts.spaceGrotesk(fontSize: 36, fontWeight: FontWeight.w900, color: Colors.white, height: 1.1, letterSpacing: -1)),
+                          child: Text('Rejoignez le\nMouvement', style: GoogleFonts.spaceGrotesk(fontSize: 36, fontWeight: FontWeight.w900, color: Colors.white, height: 1.1, letterSpacing: -1)),
                         ).animate().fadeIn(delay: 100.ms).slideY(begin: 0.1, end: 0),
 
                         const SizedBox(height: 8),
-                        Text('Rejoignez la communauté éco-responsable', style: GoogleFonts.inter(color: Colors.white.withOpacity(0.5), fontSize: 14)).animate().fadeIn(delay: 200.ms),
+                        Text('Créez votre compte et commencez à changer le monde', style: GoogleFonts.inter(color: Colors.white.withOpacity(0.5), fontSize: 14)).animate().fadeIn(delay: 200.ms),
 
                         const SizedBox(height: 32),
 

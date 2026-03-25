@@ -230,12 +230,12 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
 
                     ShaderMask(
                       shaderCallback: (bounds) => const LinearGradient(colors: [Colors.white, Color(0xFF86EFAC)]).createShader(bounds),
-                      child: Text('TriDéchet', style: GoogleFonts.spaceGrotesk(fontSize: 36, fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: -1)),
+                      child: Text('Bon retour !', style: GoogleFonts.spaceGrotesk(fontSize: 36, fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: -1)),
                     ).animate().fadeIn(delay: 200.ms).slideY(begin: 0.1, end: 0),
 
                     const SizedBox(height: 4),
 
-                    Text('Connectez-vous à votre compte', style: GoogleFonts.inter(color: Colors.white.withOpacity(0.5), fontSize: 13)).animate().fadeIn(delay: 300.ms),
+                    Text('Connectez-vous pour continuer votre impact', style: GoogleFonts.inter(color: Colors.white.withOpacity(0.5), fontSize: 13)).animate().fadeIn(delay: 300.ms),
 
                     const SizedBox(height: 40),
 
