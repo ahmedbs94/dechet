@@ -4,6 +4,10 @@ import 'screens/auth/login_screen.dart';
 import 'screens/auth/signup_screen.dart';
 import 'screens/auth/onboarding_screen.dart';
 import 'screens/auth/marketing_landing_screen.dart';
+import 'screens/auth/section_how_it_works.dart';
+import 'screens/auth/section_impact.dart';
+import 'screens/auth/section_testimonials.dart';
+import 'screens/auth/section_advantages.dart';
 import 'screens/client/client_home.dart';
 import 'screens/admin/admin_dashboard.dart';
 import 'screens/client/waste_scanner_screen.dart';
@@ -53,12 +57,17 @@ class EcoRewindApp extends StatelessWidget {
         // Static routes
         final routes = <String, WidgetBuilder>{
           '/': (context) => const MarketingLandingScreen(),
+          '/marketing': (context) => const MarketingLandingScreen(),
           '/onboarding': (context) => const OnboardingScreen(),
           '/login': (context) => const LoginScreen(),
           '/signup': (context) => const SignUpScreen(),
           '/admin': (context) => const AdminDashboardScreen(),
           '/scanner': (context) => const WasteScannerScreen(),
           '/guide': (context) => const SortingGuideScreen(),
+          '/how-it-works': (context) => const SectionHowItWorks(),
+          '/impact': (context) => const SectionImpact(),
+          '/testimonials': (context) => const SectionTestimonials(),
+          '/advantages': (context) => const SectionAdvantages(),
         };
 
         final builder = routes[settings.name];

@@ -63,7 +63,7 @@ class _HomeDashboardTabState extends State<HomeDashboardTab> {
           ),
           const SizedBox(width: 10),
           Text(
-            'EcoRewind',
+            'TriDéchet',
             style: GoogleFonts.spaceGrotesk(
               fontWeight: FontWeight.w900,
               fontSize: 22,
@@ -660,7 +660,7 @@ class _HomeDashboardTabState extends State<HomeDashboardTab> {
               ),
               const SizedBox(width: 12),
               Text(
-                'IMPACT GLOBAL ECOREWIND',
+                'IMPACT GLOBAL TRIDÉCHET',
                 style: GoogleFonts.inter(
                   color: Colors.white,
                   fontSize: 11,

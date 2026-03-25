@@ -1,0 +1,119 @@
+﻿Analyzing TriD├®chet...                                          
+
+   info - 'desiredAccuracy' is deprecated and shouldn't be used. use settings parameter with AndroidSettings, AppleSettings, WebSettings, or LocationSettings - lib\screens\admin\add_sorting_center_screen.dart:64:9 - deprecated_member_use
+warning - Unused import: '../../widgets/glass_card.dart' - lib\screens\admin\admin_dashboard.dart:6:8 - unused_import
+warning - Unused import: 'educator_tab.dart' - lib\screens\admin\admin_dashboard.dart:9:8 - unused_import
+   info - Use 'const' with the constructor to improve performance - lib\screens\admin\admin_dashboard.dart:157:27 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\screens\admin\admin_dashboard.dart:159:31 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\screens\admin\admin_dashboard.dart:159:54 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\screens\admin\admin_dashboard.dart:160:30 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\screens\admin\admin_dashboard.dart:160:53 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\screens\admin\admin_dashboard.dart:161:32 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\screens\admin\admin_dashboard.dart:161:55 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\screens\admin\admin_dashboard.dart:185:30 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\screens\admin\admin_dashboard.dart:237:30 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\screens\admin\admin_dashboard.dart:298:13 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\screens\admin\admin_dashboard.dart:299:13 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\screens\admin\admin_dashboard.dart:303:13 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\screens\admin\admin_dashboard.dart:304:13 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\screens\admin\admin_dashboard.dart:310:13 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\screens\admin\admin_dashboard.dart:311:13 - prefer_const_constructors
+   info - The declaration '_buildValidationTab' isn't referenced - lib\screens\admin\admin_dashboard.dart:539:10 - unused_element
+warning - Unused import: '../../widgets/glass_card.dart' - lib\screens\admin\collector_tab.dart:5:8 - unused_import
+   info - Use 'const' with the constructor to improve performance - lib\screens\admin\collector_tab.dart:112:11 - prefer_const_constructors
+   info - Use 'const' literals as arguments to constructors of '@immutable' classes - lib\screens\admin\collector_tab.dart:114:23 - prefer_const_literals_to_create_immutables
+   info - Use 'const' with the constructor to improve performance - lib\screens\admin\collector_tab.dart:115:15 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\screens\admin\collector_tab.dart:116:15 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\screens\admin\collector_tab.dart:117:15 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\screens\admin\collector_tab.dart:142:24 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\screens\admin\collector_tab.dart:142:47 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\screens\admin\collector_tab.dart:196:34 - prefer_const_constructors
+warning - Unused import: 'package:font_awesome_flutter/font_awesome_flutter.dart' - lib\screens\admin\educator_tab.dart:3:8 - unused_import
+warning - Unused import: '../../widgets/glass_card.dart' - lib\screens\admin\educator_tab.dart:6:8 - unused_import
+   info - Use 'const' with the constructor to improve performance - lib\screens\admin\educator_tab.dart:356:29 - prefer_const_constructors
+warning - Unused import: '../../widgets/glass_card.dart' - lib\screens\admin\intercommunality_tab.dart:4:8 - unused_import
+warning - Unused import: '../../widgets/glass_card.dart' - lib\screens\admin\point_manager_tab.dart:4:8 - unused_import
+   info - Use 'const' with the constructor to improve performance - lib\screens\admin\point_manager_tab.dart:30:11 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\screens\admin\point_manager_tab.dart:31:11 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\screens\admin\point_manager_tab.dart:32:11 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\screens\admin\point_manager_tab.dart:70:146 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\screens\auth\login_screen.dart:788:15 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\screens\auth\login_screen.dart:874:18 - prefer_const_constructors
+warning - Unused import: '../../widgets/glass_card.dart' - lib\screens\auth\onboarding_screen.dart:6:8 - unused_import
+   info - Use 'const' literals as arguments to constructors of '@immutable' classes - lib\screens\auth\onboarding_screen.dart:148:32 - prefer_const_literals_to_create_immutables
+   info - Use 'const' with the constructor to improve performance - lib\screens\auth\onboarding_screen.dart:148:33 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\screens\auth\onboarding_screen.dart:148:47 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\screens\auth\onboarding_screen.dart:162:60 - prefer_const_constructors
+warning - The value of the field '_selectedDate' isn't used - lib\screens\auth\signup_screen.dart:23:13 - unused_field
+   info - Use 'const' literals as arguments to constructors of '@immutable' classes - lib\screens\auth\signup_screen.dart:81:30 - prefer_const_literals_to_create_immutables
+   info - Use 'const' with the constructor to improve performance - lib\screens\auth\signup_screen.dart:81:31 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\screens\auth\signup_screen.dart:81:45 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\screens\auth\signup_screen.dart:93:58 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\screens\auth\signup_screen.dart:107:58 - prefer_const_constructors
+   info - 'foregroundColor' is deprecated and shouldn't be used. use colors in eyeStyle and dataModuleStyle instead - lib\screens\client\badge_screen.dart:79:25 - deprecated_member_use
+warning - Unused import: 'track_records_screen.dart' - lib\screens\client\client_home.dart:10:8 - unused_import
+warning - Unused import: 'badge_screen.dart' - lib\screens\client\client_home.dart:11:8 - unused_import
+   info - 'MaterialStateProperty' is deprecated and shouldn't be used. Use WidgetStateProperty instead. Moved to the Widgets layer to make code available outside of Material. This feature was deprecated after v3.19.0-0.3.pre - lib\screens\client\client_home.dart:127:31 - deprecated_member_use
+   info - 'MaterialState' is deprecated and shouldn't be used. Use WidgetState instead. Moved to the Widgets layer to make code available outside of Material. This feature was deprecated after v3.19.0-0.3.pre - lib\screens\client\client_home.dart:128:37 - deprecated_member_use
+   info - 'MaterialStateProperty' is deprecated and shouldn't be used. Use WidgetStateProperty instead. Moved to the Widgets layer to make code available outside of Material. This feature was deprecated after v3.19.0-0.3.pre - lib\screens\client\client_home.dart:133:26 - deprecated_member_use
+   info - 'MaterialState' is deprecated and shouldn't be used. Use WidgetState instead. Moved to the Widgets layer to make code available outside of Material. This feature was deprecated after v3.19.0-0.3.pre - lib\screens\client\client_home.dart:134:37 - deprecated_member_use
+   info - Use 'const' with the constructor to improve performance - lib\screens\client\client_home.dart:135:26 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\screens\client\client_home.dart:137:24 - prefer_const_constructors
+   info - Don't use 'BuildContext's across async gaps - lib\screens\client\feed_tab.dart:139:35 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check - lib\screens\client\feed_tab.dart:142:44 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check - lib\screens\client\feed_tab.dart:149:44 - use_build_context_synchronously
+   info - Use 'const' literals as arguments to constructors of '@immutable' classes - lib\screens\client\feed_tab.dart:186:24 - prefer_const_literals_to_create_immutables
+   info - Use 'const' with the constructor to improve performance - lib\screens\client\feed_tab.dart:186:25 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\screens\client\feed_tab.dart:186:39 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\screens\client\feed_tab.dart:245:23 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\screens\client\map_tab.dart:18:22 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\screens\client\map_tab.dart:65:19 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\screens\client\map_tab.dart:67:28 - prefer_const_constructors
+   info - Use 'const' literals as arguments to constructors of '@immutable' classes - lib\screens\client\map_tab.dart:68:33 - prefer_const_literals_to_create_immutables
+   info - Use 'const' with the constructor to improve performance - lib\screens\client\map_tab.dart:71:25 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\screens\client\map_tab.dart:72:34 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\screens\client\map_tab.dart:73:41 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\screens\client\map_tab.dart:75:42 - prefer_const_constructors
+   info - Don't use 'BuildContext's across async gaps - lib\screens\client\multimedia_tab.dart:122:28 - use_build_context_synchronously
+   info - Use 'const' literals as arguments to constructors of '@immutable' classes - lib\screens\client\multimedia_tab.dart:257:30 - prefer_const_literals_to_create_immutables
+   info - Use 'const' with the constructor to improve performance - lib\screens\client\multimedia_tab.dart:257:31 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\screens\client\multimedia_tab.dart:257:45 - prefer_const_constructors
+   info - Use 'const' literals as arguments to constructors of '@immutable' classes - lib\screens\client\multimedia_tab.dart:269:24 - prefer_const_literals_to_create_immutables
+   info - Use 'const' with the constructor to improve performance - lib\screens\client\multimedia_tab.dart:269:25 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\screens\client\multimedia_tab.dart:269:39 - prefer_const_constructors
+   info - Use 'const' literals as arguments to constructors of '@immutable' classes - lib\screens\client\multimedia_tab.dart:305:30 - prefer_const_literals_to_create_immutables
+   info - Use 'const' with the constructor to improve performance - lib\screens\client\multimedia_tab.dart:305:31 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\screens\client\multimedia_tab.dart:305:45 - prefer_const_constructors
+   info - Unnecessary use of string interpolation - lib\screens\client\rewards_tab.dart:745:50 - unnecessary_string_interpolations
+   info - Use 'const' literals as arguments to constructors of '@immutable' classes - lib\screens\client\sorting_guide_screen.dart:47:30 - prefer_const_literals_to_create_immutables
+   info - Use 'const' with the constructor to improve performance - lib\screens\client\sorting_guide_screen.dart:47:31 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\screens\client\sorting_guide_screen.dart:47:45 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\screens\client\sorting_guide_screen.dart:117:30 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\screens\client\sorting_guide_screen.dart:118:32 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\screens\client\sorting_guide_screen.dart:124:19 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\screens\client\sorting_guide_screen.dart:126:28 - prefer_const_constructors
+   info - Use 'const' literals as arguments to constructors of '@immutable' classes - lib\screens\client\sorting_guide_screen.dart:127:33 - prefer_const_literals_to_create_immutables
+warning - Unused import: 'package:timeago/timeago.dart' - lib\screens\client\track_records_screen.dart:8:8 - unused_import
+   info - Use 'const' with the constructor to improve performance - lib\screens\client\waste_prediction_result_screen.dart:259:23 - prefer_const_constructors
+   info - Don't use 'BuildContext's across async gaps - lib\screens\client\waste_prediction_result_screen.dart:334:21 - use_build_context_synchronously
+warning - Unused import: '../../widgets/glass_card.dart' - lib\screens\client\waste_scanner_screen.dart:4:8 - unused_import
+   info - Use 'const' for final variables initialized to a constant value - lib\screens\client\waste_scanner_screen.dart:33:7 - prefer_const_declarations
+warning - Unused import: '../theme/app_theme.dart' - lib\widgets\glass_card.dart:3:8 - unused_import
+   info - Constructors for public widgets should have a named 'key' parameter - lib\widgets\glass_card.dart:12:9 - use_key_in_widget_constructors
+warning - Unused import: 'package:flutter/foundation.dart' - lib\widgets\safe_network_image.dart:1:8 - unused_import
+
+flutter : 101 issues found. 
+(ran in 63.1s)
+Au caractère Ligne:1 : 1
++ flutter analyze 2>&1 | 
+Out-File -Encoding utf8 
+analyze_latest4.txt; G ...
++ ~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo           
+   : NotSpecified: (101 iss  
+  ues found. (ran in 63.1s   
+ ):String) [], RemoteExce    
+ption
+    + FullyQualifiedErrorId  
+   : NativeCommandError
+ 

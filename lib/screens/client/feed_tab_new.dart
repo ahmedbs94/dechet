@@ -260,7 +260,7 @@ class _FeedTabState extends State<FeedTab> with TickerProviderStateMixin {
                                       const Icon(Icons.search_rounded, color: AppTheme.textMuted, size: 20),
                                       const SizedBox(width: 12),
                                       Text(
-                                        'Rechercher sur EcoRewind...',
+                                        'Rechercher sur TriDéchet...',
                                         style: GoogleFonts.manrope(
                                           color: AppTheme.textMuted,
                                           fontSize: 14,
@@ -578,65 +578,79 @@ class _FeedTabState extends State<FeedTab> with TickerProviderStateMixin {
                         padding: const EdgeInsets.all(24),
                         itemCount: post.commentList.length,
                         itemBuilder: (context, index) {
-                          final commentText = post.commentList[index];
-                          final commentId = index.toString();
+                          final comment = post.commentList[index];
                           return Padding(
                             padding: const EdgeInsets.only(bottom: 16),
                             child: GestureDetector(
                               onLongPress: () {
-                                showModalBottomSheet(
-                                  context: context,
-                                  backgroundColor: Colors.transparent,
-                                  builder: (context) => Container(
-                                    decoration: const BoxDecoration(
-                                      color: Colors.white,
-                                      borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-                                    ),
-                                    child: Column(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        const SizedBox(height: 8),
-                                        Container(
-                                          width: 40,
-                                          height: 4,
-                                          decoration: BoxDecoration(
-                                            color: Colors.grey.shade300,
-                                            borderRadius: BorderRadius.circular(2),
+                                final currentUserId = int.tryParse(AuthState.currentUser?.id ?? '');
+                                if (comment.userId == currentUserId && comment.id != null) {
+                                  showModalBottomSheet(
+                                    context: context,
+                                    backgroundColor: Colors.transparent,
+                                    builder: (context) => Container(
+                                      decoration: const BoxDecoration(
+                                        color: Colors.white,
+                                        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+                                      ),
+                                      child: Column(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          const SizedBox(height: 8),
+                                          Container(
+                                            width: 40,
+                                            height: 4,
+                                            decoration: BoxDecoration(
+                                              color: Colors.grey.shade300,
+                                              borderRadius: BorderRadius.circular(2),
+                                            ),
                                           ),
-                                        ),
-                                        ListTile(
-                                          leading: const Icon(Icons.edit_rounded, color: AppTheme.primaryGreen),
-                                          title: const Text('Modifier le commentaire'),
-                                          onTap: () {
-                                            Navigator.pop(context);
-                                            _showEditCommentDialogSimple(context, post.id, commentId, commentText, () {
+                                          ListTile(
+                                            leading: const Icon(Icons.edit_rounded, color: AppTheme.primaryGreen),
+                                            title: const Text('Modifier le commentaire'),
+                                            onTap: () {
+                                              Navigator.pop(context);
+                                              _showEditCommentDialog(context, post.id, comment, () {
+                                                setModalState(() {});
+                                              });
+                                            },
+                                          ),
+                                          ListTile(
+                                            leading: const Icon(Icons.delete_outline_rounded, color: Colors.red),
+                                            title: const Text('Supprimer', style: TextStyle(color: Colors.red)),
+                                            onTap: () {
+                                              PostRegistry.deleteComment(post.id, comment.id!);
+                                              Navigator.pop(context);
                                               setModalState(() {});
-                                            });
-                                          },
-                                        ),
-                                        ListTile(
-                                          leading: const Icon(Icons.delete_outline_rounded, color: Colors.red),
-                                          title: const Text('Supprimer', style: TextStyle(color: Colors.red)),
-                                          onTap: () {
-                                            PostRegistry.deleteComment(post.id, commentId);
-                                            Navigator.pop(context);
-                                            setModalState(() {});
-                                          },
-                                        ),
-                                        const SizedBox(height: 24),
-                                      ],
+                                            },
+                                          ),
+                                          const SizedBox(height: 24),
+                                        ],
+                                      ),
                                     ),
-                                  ),
-                                );
+                                  );
+                                }
                               },
                               child: Row(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  CircleAvatar(
-                                    radius: 18,
-                                    backgroundColor: AppTheme.primaryGreen.withOpacity(0.1),
-                                    child: const Icon(Icons.person, size: 20, color: AppTheme.primaryGreen),
-                                  ),
+                                  comment.userAvatar != null
+                                      ? Container(
+                                          width: 36,
+                                          height: 36,
+                                          decoration: BoxDecoration(
+                                            color: AppTheme.primaryGreen.withOpacity(0.1),
+                                            shape: BoxShape.circle,
+                                          ),
+                                          child: ClipOval(
+                                            child: SafeNetworkImage(comment.userAvatar!, fit: BoxFit.cover),
+                                          ),
+                                        )
+                                      : CircleAvatar(
+                                          radius: 18,
+                                          backgroundColor: AppTheme.primaryGreen.withOpacity(0.1),
+                                          child: const Icon(Icons.person, size: 20, color: AppTheme.primaryGreen),
+                                        ),
                                   const SizedBox(width: 12),
                                   Expanded(
                                     child: Container(
@@ -646,9 +660,19 @@ class _FeedTabState extends State<FeedTab> with TickerProviderStateMixin {
                                         borderRadius: BorderRadius.circular(16),
                                         border: Border.all(color: Colors.grey.shade100),
                                       ),
-                                      child: Text(
-                                        commentText,
-                                        style: GoogleFonts.manrope(fontSize: 14),
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            comment.userName,
+                                            style: GoogleFonts.manrope(fontWeight: FontWeight.bold, fontSize: 13),
+                                          ),
+                                          const SizedBox(height: 4),
+                                          Text(
+                                            comment.content,
+                                            style: GoogleFonts.manrope(fontSize: 14),
+                                          ),
+                                        ],
                                       ),
                                     ),
                                   ),
@@ -686,11 +710,9 @@ class _FeedTabState extends State<FeedTab> with TickerProviderStateMixin {
                           if (commentController.text.isNotEmpty) {
                             final user = AuthState.currentUser;
                             final newComment = PostComment(
-                              id: DateTime.now().millisecondsSinceEpoch.toString(),
-                              userId: user?.id ?? '0',
                               userName: user?.name ?? 'Citoyen',
                               content: commentController.text,
-                              userAvatar: user?.avatarUrl ?? '',
+                              userAvatar: user?.avatarUrl,
                             );
                             PostRegistry.addComment(post.id, newComment);
                             setModalState(() {}); // Feedback visuel immédiat dans le modal
@@ -710,9 +732,8 @@ class _FeedTabState extends State<FeedTab> with TickerProviderStateMixin {
     );
   }
 
-  void _showEditCommentDialogSimple(
-      BuildContext context, String postId, String commentId, String commentText, VoidCallback onUpdate) {
-    final controller = TextEditingController(text: commentText);
+  void _showEditCommentDialog(BuildContext context, String postId, PostComment comment, VoidCallback onUpdate) {
+    final controller = TextEditingController(text: comment.content);
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -732,8 +753,8 @@ class _FeedTabState extends State<FeedTab> with TickerProviderStateMixin {
           ),
           ElevatedButton(
             onPressed: () {
-              if (controller.text.isNotEmpty && controller.text != commentText) {
-                PostRegistry.updateComment(postId, commentId, controller.text);
+              if (controller.text.isNotEmpty && controller.text != comment.content) {
+                PostRegistry.updateComment(postId, comment.id!, controller.text);
                 onUpdate();
               }
               Navigator.pop(context);
@@ -935,12 +956,10 @@ class _PremiumCreatePostModalState extends State<_PremiumCreatePostModal> {
                     borderRadius: BorderRadius.circular(16),
                     child: _selectedImage != null
                         ? (kIsWeb
-                            ? SafeNetworkImage(_selectedImage!.path,
-                                fit: BoxFit.cover, placeholder: Container(color: Colors.grey.shade200))
+                            ? SafeNetworkImage(_selectedImage!.path, fit: BoxFit.cover, placeholder: Container(color: Colors.grey.shade200))
                             : Image.file(File(_selectedImage!.path), fit: BoxFit.cover))
                         : (widget.initialImageUrl!.startsWith('http') || widget.initialImageUrl!.startsWith('blob:')
-                            ? SafeNetworkImage(widget.initialImageUrl!,
-                                fit: BoxFit.cover, placeholder: Container(color: Colors.grey.shade200))
+                            ? SafeNetworkImage(widget.initialImageUrl!, fit: BoxFit.cover, placeholder: Container(color: Colors.grey.shade200))
                             : Image.file(File(widget.initialImageUrl!), fit: BoxFit.cover)),
                   ),
                 ),

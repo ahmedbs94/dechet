@@ -257,7 +257,7 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
                       colors: [Colors.white, Colors.white70, Colors.white],
                     ).createShader(bounds),
                     child: Text(
-                      'EcoRewind',
+                      'TriDéchet',
                       style: GoogleFonts.spaceGrotesk(
                         fontSize: 56,
                         fontWeight: FontWeight.w900,

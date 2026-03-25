@@ -625,15 +625,23 @@ class _MarketingLandingScreenState extends State<MarketingLandingScreen> with Ti
   // ===========================================================
   Widget _buildHeroSection() {
     return SizedBox(
-      height: 680,
+      height: 720,
       width: double.infinity,
       child: Stack(
         children: [
-          // Background gradient
+          // Background image
+          Positioned.fill(
+            child: Image.network(
+              'https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?w=800&q=80',
+              fit: BoxFit.cover,
+              errorBuilder: (c, e, s) => Container(color: const Color(0xFF0A3D2E)),
+            ),
+          ),
+          // Dark gradient overlay
           Container(
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               gradient: LinearGradient(
-                colors: [Color(0xFF0A3D2E), Color(0xFF0F172A)],
+                colors: [const Color(0xFF0A3D2E).withOpacity(0.85), const Color(0xFF0F172A).withOpacity(0.92)],
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
               ),
@@ -656,7 +664,7 @@ class _MarketingLandingScreenState extends State<MarketingLandingScreen> with Ti
                       shape: BoxShape.circle,
                       gradient: RadialGradient(
                         colors: [
-                          [AppTheme.primaryGreen, AppTheme.accentTeal, AppTheme.secondaryGold][index].withOpacity(0.15),
+                          [AppTheme.primaryGreen, AppTheme.accentTeal, AppTheme.secondaryGold][index].withOpacity(0.2),
                           Colors.transparent,
                         ],
                       ),
@@ -667,6 +675,16 @@ class _MarketingLandingScreenState extends State<MarketingLandingScreen> with Ti
             );
           }),
 
+          // Subtle texture
+          Positioned.fill(
+            child: Opacity(opacity: 0.04, child: Container(
+              decoration: const BoxDecoration(image: DecorationImage(
+                image: NetworkImage('https://images.unsplash.com/photo-1557683316-973673baf926?w=400&q=20'),
+                fit: BoxFit.cover,
+              )),
+            )),
+          ),
+
           // Content
           Padding(
             padding: const EdgeInsets.fromLTRB(28, 120, 28, 60),
@@ -674,27 +692,45 @@ class _MarketingLandingScreenState extends State<MarketingLandingScreen> with Ti
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
-                const SizedBox.shrink(),
+                // Badge pill
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+                  decoration: BoxDecoration(
+                    color: AppTheme.primaryGreen.withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(30),
+                    border: Border.all(color: AppTheme.primaryGreen.withOpacity(0.3)),
+                  ),
+                  child: Row(mainAxisSize: MainAxisSize.min, children: [
+                    Container(width: 8, height: 8, decoration: const BoxDecoration(color: AppTheme.primaryGreen, shape: BoxShape.circle)),
+                    const SizedBox(width: 8),
+                    Text('Application #1 en Tunisie', style: GoogleFonts.inter(color: AppTheme.primaryGreen, fontSize: 12, fontWeight: FontWeight.w700)),
+                  ]),
+                ).animate().fadeIn(delay: 100.ms).slideX(begin: -0.1, end: 0),
 
                 const SizedBox(height: 24),
 
-                // Main Title
-                Text(
-                  'Triez. Gagnez.\nChangez le monde.',
-                  style: GoogleFonts.spaceGrotesk(
-                    color: Colors.white,
-                    fontSize: 44,
-                    fontWeight: FontWeight.w900,
-                    height: 1.05,
-                    letterSpacing: -1.5,
+                // Gradient title
+                ShaderMask(
+                  shaderCallback: (bounds) => const LinearGradient(
+                    colors: [Colors.white, Color(0xFF86EFAC)],
+                    begin: Alignment.topLeft, end: Alignment.bottomRight,
+                  ).createShader(bounds),
+                  child: Text(
+                    'Triez. Gagnez.\nChangez le monde.',
+                    style: GoogleFonts.spaceGrotesk(
+                      color: Colors.white,
+                      fontSize: 44,
+                      fontWeight: FontWeight.w900,
+                      height: 1.05,
+                      letterSpacing: -1.5,
+                    ),
                   ),
                 ).animate().fadeIn(delay: 200.ms, duration: 700.ms).slideY(begin: 0.2, end: 0),
 
                 const SizedBox(height: 20),
 
-                // Subtitle
                 Text(
-                  'La première application tunisienne qui transforme chaque geste de tri en récompenses réelles. Scanner IA, points fidélité et impact mesurable.',
+                  'Transformez chaque geste de tri en récompenses réelles. Quiz, communauté, points fidélité et impact mesurable.',
                   style: GoogleFonts.inter(
                     color: Colors.white.withOpacity(0.75),
                     fontSize: 16,
@@ -762,49 +798,38 @@ class _MarketingLandingScreenState extends State<MarketingLandingScreen> with Ti
 
                 const SizedBox(height: 28),
 
-                // Social proof
-                Row(
-                  children: [
-                    // Avatars stack
-                    SizedBox(
-                      width: 80,
-                      height: 32,
-                      child: Stack(
-                        children: List.generate(3, (index) {
-                          return Positioned(
-                            left: index * 22.0,
-                            child: Container(
-                              width: 32,
-                              height: 32,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                border: Border.all(color: Colors.white, width: 2),
-                              ),
-                              child: ClipOval(
-                                child: SizedBox(
-                                  width: 32,
-                                  height: 32,
-                                  child: SafeNetworkImage('https://i.pravatar.cc/150?u=user${index + 10}',
-                                      fit: BoxFit.cover, placeholder: Container(color: Colors.grey.shade200)),
-                                ),
-                              ),
-                            ),
-                          );
-                        }),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        '+850 citoyens nous ont déjà rejoints',
-                        style: GoogleFonts.inter(
-                          color: Colors.white.withOpacity(0.6),
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
+                // Glassmorphism social proof bar
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.08),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: Colors.white.withOpacity(0.1)),
+                  ),
+                  child: Row(children: [
+                    SizedBox(width: 80, height: 32, child: Stack(
+                      children: List.generate(3, (index) => Positioned(
+                        left: index * 22.0,
+                        child: Container(
+                          width: 32, height: 32,
+                          decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: Colors.white, width: 2)),
+                          child: ClipOval(child: SafeNetworkImage(
+                            'https://i.pravatar.cc/150?u=user${index + 10}',
+                            fit: BoxFit.cover, placeholder: Container(color: Colors.grey.shade700),
+                          )),
                         ),
-                      ),
-                    ),
-                  ],
+                      )),
+                    )),
+                    const SizedBox(width: 12),
+                    Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      Text('+850 éco-citoyens actifs', style: GoogleFonts.inter(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w700)),
+                      Row(children: [
+                        ...List.generate(5, (i) => Icon(Icons.star_rounded, color: const Color(0xFFFBBF24), size: 14)),
+                        const SizedBox(width: 6),
+                        Text('4.9/5', style: GoogleFonts.inter(color: Colors.white.withOpacity(0.6), fontSize: 11)),
+                      ]),
+                    ])),
+                  ]),
                 ).animate().fadeIn(delay: 800.ms),
               ],
             ),
