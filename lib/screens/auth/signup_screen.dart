@@ -145,6 +145,7 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
   Widget build(BuildContext context) {
     final progress = _filledFields / 6;
     return Scaffold(
+      backgroundColor: const Color(0xFF0F172A),
       body: Stack(
         children: [
           // ── Animated dark background ──

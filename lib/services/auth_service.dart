@@ -407,16 +407,40 @@ class AuthService {
   // SYNCHRONISATION DES PUBLICATIONS
   // ===========================================
 
-  /// Recupere toutes les publications
+  /// Recupere toutes les publications (avec etat liked/saved si connecte)
   Future<List<dynamic>> fetchAllPosts() async {
     try {
-      final response = await http.get(Uri.parse('$baseUrl/posts'));
+      final token = await _getToken();
+      final headers = <String, String>{'Content-Type': 'application/json'};
+      if (token != null) headers['Authorization'] = 'Bearer $token';
+      final response = await http.get(Uri.parse('$baseUrl/posts'), headers: headers);
       if (response.statusCode == 200) {
         return json.decode(utf8.decode(response.bodyBytes));
       }
       return [];
     } catch (e) {
       return [];
+    }
+  }
+
+  /// Upload une image et retourne l'URL
+  Future<String?> uploadImage(String filePath) async {
+    try {
+      final token = await _getToken();
+      if (token == null) return null;
+      final uri = Uri.parse('$baseUrl/upload');
+      final request = http.MultipartRequest('POST', uri)
+        ..headers['Authorization'] = 'Bearer $token'
+        ..files.add(await http.MultipartFile.fromPath('file', filePath));
+      final streamedResponse = await request.send();
+      if (streamedResponse.statusCode == 200) {
+        final respStr = await streamedResponse.stream.bytesToString();
+        final data = json.decode(respStr);
+        return data['url'] ?? data['image_url'];
+      }
+      return null;
+    } catch (e) {
+      return null;
     }
   }
 
