@@ -88,6 +88,43 @@ class AuthService {
     }
   }
 
+  /// Envoie un code OTP par email ou SMS
+  Future<Map<String, dynamic>> sendOTP(String identifier, {String method = 'email'}) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/otp/send'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({'identifier': identifier, 'method': method}),
+      );
+      if (response.statusCode == 200) {
+        return json.decode(utf8.decode(response.bodyBytes));
+      }
+      final error = json.decode(response.body);
+      return {'success': false, 'message': error['detail'] ?? 'Erreur d\'envoi OTP'};
+    } catch (e) {
+      return {'success': false, 'message': 'Erreur réseau : $e'};
+    }
+  }
+
+  /// Vérifie un code OTP et retourne un token si succès
+  Future<Map<String, dynamic>> verifyOTP(String identifier, String code) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/otp/verify'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({'identifier': identifier, 'code': code}),
+      );
+      if (response.statusCode == 200) {
+        return json.decode(utf8.decode(response.bodyBytes));
+      }
+      final error = json.decode(response.body);
+      return {'success': false, 'message': error['detail'] ?? 'Code invalide'};
+    } catch (e) {
+      return {'success': false, 'message': 'Erreur réseau : $e'};
+    }
+  }
+
+
   bool _isGoogleSignInInProgress = false;
 
   /// Connexion avec Google
@@ -361,6 +398,9 @@ class AuthService {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('jwt_token', token);
   }
+
+  /// Public alias for saving token (used by OTP verification)
+  Future<void> saveToken(String token) => _saveToken(token);
 
   /// Recupere le token stocke
   Future<String?> _getToken() async {

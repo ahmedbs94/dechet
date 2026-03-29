@@ -1,6 +1,6 @@
 from sqlalchemy import Boolean, Column, Integer, String, ForeignKey, DateTime, Text
 from sqlalchemy.orm import relationship
-from datetime import datetime
+from datetime import datetime, timedelta
 from database import Base
 
 class User(Base):
@@ -11,6 +11,7 @@ class User(Base):
     full_name = Column(String)
     hashed_password = Column(String)
     is_active = Column(Boolean, default=True)
+    is_verified = Column(Boolean, default=False)
     role = Column(String, default="user") # user, admin, educator, intercommunality, pointManager, collector
     google_id = Column(String, unique=True, index=True, nullable=True)
     facebook_id = Column(String, unique=True, index=True, nullable=True)
@@ -72,3 +73,15 @@ class Comment(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
 
     post = relationship("Post", back_populates="comments")
+
+class OTPCode(Base):
+    __tablename__ = "otp_codes"
+
+    id = Column(Integer, primary_key=True, index=True)
+    identifier = Column(String, index=True)  # email or phone
+    code = Column(String)
+    purpose = Column(String, default="register")  # register, reset
+    created_at = Column(DateTime, default=datetime.utcnow)
+    expires_at = Column(DateTime)
+    is_used = Column(Boolean, default=False)
+

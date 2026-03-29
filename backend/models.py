@@ -103,3 +103,12 @@ class UserUpdate(BaseModel):
 class ChangePasswordRequest(BaseModel):
     old_password: str
     new_password: str
+
+class OTPSendRequest(BaseModel):
+    identifier: str  # email or phone
+    method: str = "email"  # "email" or "sms"
+
+class OTPVerifyRequest(BaseModel):
+    identifier: str
+    code: str
+

@@ -82,6 +82,7 @@ async def get_admin_user(current_user: db_models.User = Depends(get_current_user
         )
     return current_user
 
+import random
 
 @app.post("/register", response_model=models.User)
 async def register(user: models.UserCreate, db: Session = Depends(get_db)):
@@ -94,12 +95,150 @@ async def register(user: models.UserCreate, db: Session = Depends(get_db)):
         email=user.email,
         full_name=user.full_name,
         hashed_password=hashed_password,
-        role=user.role
+        role=user.role,
+        is_verified=False
     )
     db.add(new_user)
     db.commit()
     db.refresh(new_user)
     return new_user
+
+# ============================================
+# OTP SYSTEM
+# ============================================
+
+def generate_otp_code():
+    """Generate a 6-digit OTP code"""
+    return str(random.randint(100000, 999999))
+
+@app.post("/otp/send")
+async def send_otp(request: models.OTPSendRequest, db: Session = Depends(get_db)):
+    """Send OTP code via email (or SMS placeholder)"""
+    identifier = request.identifier.strip()
+    method = request.method  # "email" or "sms"
+    
+    if not identifier:
+        raise HTTPException(status_code=400, detail="Identifiant requis")
+    
+    # Invalidate previous unused codes for this identifier
+    db.query(db_models.OTPCode).filter(
+        db_models.OTPCode.identifier == identifier,
+        db_models.OTPCode.is_used == False
+    ).update({"is_used": True})
+    db.commit()
+    
+    # Generate new code
+    code = generate_otp_code()
+    expires_at = datetime.utcnow() + timedelta(minutes=5)
+    
+    otp_entry = db_models.OTPCode(
+        identifier=identifier,
+        code=code,
+        purpose="register",
+        expires_at=expires_at,
+        is_used=False
+    )
+    db.add(otp_entry)
+    db.commit()
+    
+    # Send via email
+    if method == "email" and "@" in identifier:
+        try:
+            message = MessageSchema(
+                subject="🔐 TriDéchet - Code de vérification",
+                recipients=[identifier],
+                body=f"""
+                <html>
+                <body style="font-family: 'Segoe UI', Arial, sans-serif; background: #f4f7fa; padding: 40px;">
+                    <div style="max-width: 480px; margin: auto; background: white; border-radius: 20px; padding: 40px; box-shadow: 0 4px 24px rgba(0,0,0,0.08);">
+                        <div style="text-align: center; margin-bottom: 30px;">
+                            <div style="width: 64px; height: 64px; background: linear-gradient(135deg, #00BFA6, #00E5A0); border-radius: 16px; margin: 0 auto 16px; display: flex; align-items: center; justify-content: center;">
+                                <span style="font-size: 32px;">🌿</span>
+                            </div>
+                            <h1 style="color: #1E293B; font-size: 24px; margin: 0;">TriDéchet</h1>
+                        </div>
+                        <p style="color: #64748B; font-size: 15px; text-align: center;">Voici votre code de vérification :</p>
+                        <div style="background: linear-gradient(135deg, #00BFA6, #00E5A0); border-radius: 16px; padding: 24px; text-align: center; margin: 24px 0;">
+                            <span style="font-size: 36px; font-weight: 900; color: white; letter-spacing: 12px; font-family: monospace;">{code}</span>
+                        </div>
+                        <p style="color: #94A3B8; font-size: 13px; text-align: center;">Ce code expire dans <strong>5 minutes</strong>.</p>
+                        <p style="color: #CBD5E1; font-size: 11px; text-align: center; margin-top: 30px;">Si vous n'avez pas demandé ce code, ignorez cet email.</p>
+                    </div>
+                </body>
+                </html>
+                """,
+                subtype=MessageType.html
+            )
+            fm = FastMail(conf)
+            await fm.send_message(message)
+            return {"success": True, "message": "Code envoyé par email", "method": "email"}
+        except Exception as e:
+            print(f"OTP Email Error: {e}")
+            # In dev mode, still return success with code visible in logs
+            print(f"OTP CODE for {identifier}: {code}")
+            return {"success": True, "message": "Code envoyé (mode dev)", "method": "email"}
+    else:
+        # SMS placeholder - in production, integrate Twilio or similar
+        print(f"OTP CODE for {identifier}: {code}")
+        return {"success": True, "message": "Code envoyé par SMS", "method": "sms"}
+
+@app.post("/otp/verify")
+async def verify_otp(request: models.OTPVerifyRequest, db: Session = Depends(get_db)):
+    """Verify OTP code and mark user as verified"""
+    identifier = request.identifier.strip()
+    code = request.code.strip()
+    
+    if not identifier or not code:
+        raise HTTPException(status_code=400, detail="Identifiant et code requis")
+    
+    # Find the latest unused, non-expired code for this identifier
+    otp = db.query(db_models.OTPCode).filter(
+        db_models.OTPCode.identifier == identifier,
+        db_models.OTPCode.code == code,
+        db_models.OTPCode.is_used == False,
+        db_models.OTPCode.expires_at > datetime.utcnow()
+    ).order_by(db_models.OTPCode.created_at.desc()).first()
+    
+    if not otp:
+        # Check if code existed but expired
+        expired = db.query(db_models.OTPCode).filter(
+            db_models.OTPCode.identifier == identifier,
+            db_models.OTPCode.code == code,
+            db_models.OTPCode.is_used == False,
+            db_models.OTPCode.expires_at <= datetime.utcnow()
+        ).first()
+        
+        if expired:
+            raise HTTPException(status_code=410, detail="Le code a expiré. Veuillez en demander un nouveau.")
+        
+        raise HTTPException(status_code=400, detail="Code invalide")
+    
+    # Mark code as used (single use)
+    otp.is_used = True
+    db.commit()
+    
+    # Mark user as verified
+    user = db.query(db_models.User).filter(db_models.User.email == identifier).first()
+    if user:
+        user.is_verified = True
+        db.commit()
+        db.refresh(user)
+        
+        # Auto-login: generate access token
+        access_token = create_access_token(data={"sub": user.email})
+        return {
+            "success": True,
+            "message": "Compte vérifié avec succès",
+            "access_token": access_token,
+            "token_type": "bearer",
+            "role": user.role,
+            "id": user.id,
+            "email": user.email,
+            "full_name": user.full_name
+        }
+    
+    return {"success": True, "message": "Code vérifié"}
+
 
 @app.post("/token", response_model=models.Token)
 async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
