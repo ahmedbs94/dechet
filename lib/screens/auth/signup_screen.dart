@@ -97,8 +97,12 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
     final password = _passwordController.text;
     final confirmPassword = _confirmPasswordController.text;
 
-    if (name.isEmpty || email.isEmpty || password.isEmpty) {
-      setState(() => _errorMessage = 'Veuillez remplir tous les champs obligatoires');
+    if (name.isEmpty || password.isEmpty) {
+      setState(() => _errorMessage = 'Veuillez remplir le nom et le mot de passe');
+      return;
+    }
+    if (email.isEmpty && phone.isEmpty) {
+      setState(() => _errorMessage = 'Veuillez saisir un email ou un numéro de téléphone');
       return;
     }
     if (password.length < 6) {
@@ -117,7 +121,8 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
     setState(() { _isLoading = true; _errorMessage = null; });
 
     try {
-      final result = await _authService.register(email, name, password);
+      final identifier = email.isNotEmpty ? email : '+216$phone';
+      final result = await _authService.register(identifier, name, password);
 
       if (!mounted) return;
 
@@ -297,19 +302,21 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
                               _buildField(controller: _nameController, label: 'Nom complet', icon: Icons.person_outline_rounded).animate().fadeIn(delay: 300.ms).slideX(begin: -0.03, end: 0),
                               const SizedBox(height: 14),
                               _buildField(controller: _emailController, label: 'Email', icon: Icons.alternate_email_rounded, keyboardType: TextInputType.emailAddress).animate().fadeIn(delay: 350.ms).slideX(begin: -0.03, end: 0),
-                              const SizedBox(height: 14),
+                              const SizedBox(height: 6),
+                              Center(child: Text('ou', style: GoogleFonts.inter(color: Colors.white.withOpacity(0.4), fontSize: 12))),
+                              const SizedBox(height: 6),
                               _buildField(controller: _phoneController, label: 'Téléphone', icon: Icons.phone_iphone_rounded, prefix: '+216 ', keyboardType: TextInputType.phone).animate().fadeIn(delay: 400.ms).slideX(begin: -0.03, end: 0),
                               const SizedBox(height: 14),
                               _buildField(controller: _dobController, label: 'Date de naissance', icon: Icons.calendar_today_rounded, readOnly: true, onTap: () => _selectDate(context)).animate().fadeIn(delay: 450.ms).slideX(begin: -0.03, end: 0),
                               const SizedBox(height: 14),
                               _buildField(
                                 controller: _passwordController, label: 'Mot de passe', icon: Icons.lock_outline_rounded, obscure: _obscurePassword,
-                                suffixIcon: IconButton(icon: Icon(_obscurePassword ? Icons.visibility_off_rounded : Icons.visibility_rounded, size: 18, color: Colors.white.withOpacity(0.4)), onPressed: () => setState(() => _obscurePassword = !_obscurePassword)),
+                                suffixIcon: IconButton(icon: Icon(_obscurePassword ? Icons.visibility_off_rounded : Icons.visibility_rounded, size: 18, color: const Color(0xFF94A3B8)), onPressed: () => setState(() => _obscurePassword = !_obscurePassword)),
                               ).animate().fadeIn(delay: 500.ms).slideX(begin: -0.03, end: 0),
                               const SizedBox(height: 14),
                               _buildField(
                                 controller: _confirmPasswordController, label: 'Confirmer le mot de passe', icon: Icons.lock_reset_rounded, obscure: _obscureConfirm,
-                                suffixIcon: IconButton(icon: Icon(_obscureConfirm ? Icons.visibility_off_rounded : Icons.visibility_rounded, size: 18, color: Colors.white.withOpacity(0.4)), onPressed: () => setState(() => _obscureConfirm = !_obscureConfirm)),
+                                suffixIcon: IconButton(icon: Icon(_obscureConfirm ? Icons.visibility_off_rounded : Icons.visibility_rounded, size: 18, color: const Color(0xFF94A3B8)), onPressed: () => setState(() => _obscureConfirm = !_obscureConfirm)),
                               ).animate().fadeIn(delay: 550.ms).slideX(begin: -0.03, end: 0),
 
                               const SizedBox(height: 24),
@@ -404,9 +411,10 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
   }) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.06),
+        color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withOpacity(0.08)),
+        border: Border.all(color: Colors.white.withOpacity(0.15)),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.08), blurRadius: 10, offset: const Offset(0, 4))],
       ),
       child: TextField(
         controller: controller,
@@ -414,14 +422,14 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
         readOnly: readOnly,
         onTap: onTap,
         keyboardType: keyboardType,
-        style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w500, fontSize: 14),
+        style: GoogleFonts.inter(color: const Color(0xFF1E293B), fontWeight: FontWeight.w500, fontSize: 14),
         cursorColor: AppTheme.primaryGreen,
         decoration: InputDecoration(
           labelText: label,
-          labelStyle: GoogleFonts.inter(color: Colors.white.withOpacity(0.4), fontSize: 13),
-          prefixIcon: Icon(icon, size: 20, color: AppTheme.primaryGreen.withOpacity(0.7)),
+          labelStyle: GoogleFonts.inter(color: const Color(0xFF94A3B8), fontSize: 13),
+          prefixIcon: Icon(icon, size: 20, color: AppTheme.primaryGreen),
           prefixText: prefix,
-          prefixStyle: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w600),
+          prefixStyle: GoogleFonts.inter(color: const Color(0xFF1E293B), fontWeight: FontWeight.w600),
           suffixIcon: suffixIcon,
           border: InputBorder.none,
           contentPadding: const EdgeInsets.symmetric(vertical: 18, horizontal: 16),

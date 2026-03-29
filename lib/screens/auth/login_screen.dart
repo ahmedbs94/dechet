@@ -286,7 +286,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                             icon: Icons.lock_outline_rounded,
                             obscure: _obscurePassword,
                             suffixIcon: IconButton(
-                              icon: Icon(_obscurePassword ? Icons.visibility_off_rounded : Icons.visibility_rounded, size: 18, color: Colors.white.withOpacity(0.4)),
+                              icon: Icon(_obscurePassword ? Icons.visibility_off_rounded : Icons.visibility_rounded, size: 18, color: const Color(0xFF94A3B8)),
                               onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
                             ),
                           ),
@@ -396,20 +396,21 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
   }) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.06),
+        color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withOpacity(0.08)),
+        border: Border.all(color: Colors.white.withOpacity(0.15)),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.08), blurRadius: 10, offset: const Offset(0, 4))],
       ),
       child: TextField(
         controller: controller,
         obscureText: obscure,
         keyboardType: keyboardType,
-        style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w500, fontSize: 14),
+        style: GoogleFonts.inter(color: const Color(0xFF1E293B), fontWeight: FontWeight.w500, fontSize: 14),
         cursorColor: AppTheme.primaryGreen,
         decoration: InputDecoration(
           labelText: label,
-          labelStyle: GoogleFonts.inter(color: Colors.white.withOpacity(0.4), fontSize: 13),
-          prefixIcon: Icon(icon, size: 20, color: AppTheme.primaryGreen.withOpacity(0.7)),
+          labelStyle: GoogleFonts.inter(color: const Color(0xFF94A3B8), fontSize: 13),
+          prefixIcon: Icon(icon, size: 20, color: AppTheme.primaryGreen),
           suffixIcon: suffixIcon,
           border: InputBorder.none,
           contentPadding: const EdgeInsets.symmetric(vertical: 18, horizontal: 16),
