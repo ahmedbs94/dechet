@@ -9,7 +9,6 @@ import '../../theme/app_theme.dart';
 import '../../models/user_model.dart';
 import '../../services/auth_service.dart';
 import '../../widgets/auth_prompt_dialog.dart';
-import '../../services/notification_service.dart';
 
 class FeedTab extends StatefulWidget {
   const FeedTab({Key? key}) : super(key: key);
@@ -310,10 +309,6 @@ class _RealPostCardState extends State<_RealPostCard> {
     final result = await widget.authService.toggleLikePost(widget.post['id'].toString());
     if (result['success'] == true) {
       setState(() { _isLiked = result['liked'] ?? _isLiked; _likeCount = result['count'] ?? _likeCount; });
-      // Notify post author
-      if (_isLiked && mounted) {
-        NotificationService.showToast(context, title: 'Nouveau j\'aime ❤️', body: '${AuthState.currentUser?.name ?? "Quelqu\'un"} a aimé votre publication', type: NotificationType.like);
-      }
     }
   }
 
@@ -333,10 +328,6 @@ class _RealPostCardState extends State<_RealPostCard> {
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ));
-      // Notify post author
-      if (_isSaved) {
-        NotificationService.showToast(context, title: 'Publication sauvegardée 🔖', body: '${AuthState.currentUser?.name ?? "Quelqu\'un"} a sauvegardé votre publication', type: NotificationType.save);
-      }
     }
   }
 
@@ -447,10 +438,6 @@ class _RealPostCardState extends State<_RealPostCard> {
                           setModalState(() => comments.insert(0, result['data']));
                           setState(() {}); // Update main count
                           commentController.clear();
-                          // Notify post author
-                          if (mounted) {
-                            NotificationService.showToast(context, title: 'Nouveau commentaire 💬', body: '${user?.name ?? "Quelqu\'un"} a commenté votre publication', type: NotificationType.comment);
-                          }
                         }
                       }
                     } : null,

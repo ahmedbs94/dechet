@@ -719,6 +719,20 @@ async def toggle_like(post_id: int, db: Session = Depends(get_db), current_user:
     db.add(new_like)
     db_post.likes_count += 1
     db.commit()
+    
+    # Notify post author (not self)
+    if db_post.user_id != user_id:
+        notif = db_models.Notification(
+            user_id=db_post.user_id,
+            type="like",
+            title="Nouveau j'aime \u2764\ufe0f",
+            body=f"{current_user.full_name} a aim\u00e9 votre publication",
+            from_user_name=current_user.full_name,
+            post_id=post_id
+        )
+        db.add(notif)
+        db.commit()
+    
     return {"liked": True, "count": db_post.likes_count}
 
 @app.get("/posts/{post_id}/likers", response_model=List[models.UserSmall])
@@ -747,7 +761,22 @@ async def save_post(post_id: int, db: Session = Depends(get_db), current_user: d
     new_save = db_models.SavedPost(user_id=user_id, post_id=post_id)
     db.add(new_save)
     db.commit()
-    return {"message": "Publication enregistrée", "saved": True}
+    
+    # Notify post author (not self)
+    db_post = db.query(db_models.Post).filter(db_models.Post.id == post_id).first()
+    if db_post and db_post.user_id != user_id:
+        notif = db_models.Notification(
+            user_id=db_post.user_id,
+            type="save",
+            title="Publication sauvegard\u00e9e \ud83d\udd16",
+            body=f"{current_user.full_name} a sauvegard\u00e9 votre publication",
+            from_user_name=current_user.full_name,
+            post_id=post_id
+        )
+        db.add(notif)
+        db.commit()
+    
+    return {"message": "Publication enregistr\u00e9e", "saved": True}
 
 @app.post("/posts/{post_id}/comments", response_model=models.Comment)
 async def create_comment(post_id: int, comment: models.CommentCreate, db: Session = Depends(get_db), current_user: db_models.User = Depends(get_current_user)):
@@ -765,6 +794,20 @@ async def create_comment(post_id: int, comment: models.CommentCreate, db: Sessio
     db.add(new_comment)
     db.commit()
     db.refresh(new_comment)
+    
+    # Notify post author (not self)
+    if db_post.user_id != current_user.id:
+        notif = db_models.Notification(
+            user_id=db_post.user_id,
+            type="comment",
+            title="Nouveau commentaire \ud83d\udcac",
+            body=f"{current_user.full_name} a comment\u00e9 votre publication",
+            from_user_name=current_user.full_name,
+            post_id=post_id
+        )
+        db.add(notif)
+        db.commit()
+    
     return new_comment
 
 @app.put("/comments/{comment_id}", response_model=models.Comment)
@@ -800,3 +843,54 @@ async def get_saved_posts(db: Session = Depends(get_db), current_user: db_models
     saved_refs = db.query(db_models.SavedPost).filter(db_models.SavedPost.user_id == user_id).all()
     post_ids = [ref.post_id for ref in saved_refs]
     return db.query(db_models.Post).options(joinedload(db_models.Post.comments)).filter(db_models.Post.id.in_(post_ids)).all()
+
+# --- NOTIFICATIONS ---
+
+@app.get("/notifications")
+async def get_notifications(skip: int = 0, limit: int = 50, db: Session = Depends(get_db), current_user: db_models.User = Depends(get_current_user)):
+    notifs = db.query(db_models.Notification).filter(
+        db_models.Notification.user_id == current_user.id
+    ).order_by(db_models.Notification.created_at.desc()).offset(skip).limit(limit).all()
+    
+    return [
+        {
+            "id": n.id,
+            "type": n.type,
+            "title": n.title,
+            "body": n.body,
+            "from_user_name": n.from_user_name,
+            "post_id": n.post_id,
+            "is_read": n.is_read,
+            "created_at": n.created_at.isoformat() if n.created_at else None,
+        }
+        for n in notifs
+    ]
+
+@app.get("/notifications/unread-count")
+async def get_unread_count(db: Session = Depends(get_db), current_user: db_models.User = Depends(get_current_user)):
+    count = db.query(db_models.Notification).filter(
+        db_models.Notification.user_id == current_user.id,
+        db_models.Notification.is_read == False
+    ).count()
+    return {"count": count}
+
+@app.put("/notifications/{notif_id}/read")
+async def mark_notification_read(notif_id: int, db: Session = Depends(get_db), current_user: db_models.User = Depends(get_current_user)):
+    notif = db.query(db_models.Notification).filter(
+        db_models.Notification.id == notif_id,
+        db_models.Notification.user_id == current_user.id
+    ).first()
+    if not notif:
+        raise HTTPException(status_code=404, detail="Notification non trouvée")
+    notif.is_read = True
+    db.commit()
+    return {"message": "Notification lue"}
+
+@app.put("/notifications/read-all")
+async def mark_all_read(db: Session = Depends(get_db), current_user: db_models.User = Depends(get_current_user)):
+    db.query(db_models.Notification).filter(
+        db_models.Notification.user_id == current_user.id,
+        db_models.Notification.is_read == False
+    ).update({"is_read": True})
+    db.commit()
+    return {"message": "Toutes les notifications marquées comme lues"}

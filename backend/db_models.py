@@ -85,3 +85,15 @@ class OTPCode(Base):
     expires_at = Column(DateTime)
     is_used = Column(Boolean, default=False)
 
+class Notification(Base):
+    __tablename__ = "notifications"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), index=True)  # recipient
+    type = Column(String)  # like, comment, save
+    title = Column(String)
+    body = Column(String)
+    from_user_name = Column(String)
+    post_id = Column(Integer, nullable=True)
+    is_read = Column(Boolean, default=False)
+    created_at = Column(DateTime, default=datetime.utcnow)

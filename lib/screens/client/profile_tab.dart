@@ -8,6 +8,7 @@ import '../../models/user_model.dart';
 import '../../models/waste_record_model.dart';
 import '../../widgets/premium_widgets.dart';
 import '../../services/auth_service.dart';
+import 'notifications_screen.dart';
 
 class ProfileTab extends StatefulWidget {
   const ProfileTab({Key? key}) : super(key: key);
@@ -21,6 +22,19 @@ class _ProfileTabState extends State<ProfileTab> {
   bool _pushNotifications = true;
   bool _mfaEnabled = false;
   final AuthService _authService = AuthService();
+  int _unreadNotifCount = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUnreadCount();
+  }
+
+  Future<void> _loadUnreadCount() async {
+    if (!AuthState.isLoggedIn) return;
+    final count = await _authService.fetchUnreadCount();
+    if (mounted) setState(() => _unreadNotifCount = count);
+  }
 
   void _changeProfileImage() {
     ScaffoldMessenger.of(context).showSnackBar(
@@ -148,6 +162,20 @@ class _ProfileTabState extends State<ProfileTab> {
                 title: 'Publications enregistrées',
                 subtitle: 'Accédez à votre bibliothèque éco',
                 onTap: () => _viewSavedPosts(context),
+              ),
+              _MenuAction(
+                icon: FontAwesomeIcons.bell,
+                title: 'Notifications',
+                subtitle: _unreadNotifCount > 0 ? '$_unreadNotifCount non lue${_unreadNotifCount > 1 ? 's' : ''}' : 'Aucune nouvelle',
+                trailing: _unreadNotifCount > 0 ? Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(color: const Color(0xFFFF6B8A), borderRadius: BorderRadius.circular(12)),
+                  child: Text('$_unreadNotifCount', style: GoogleFonts.outfit(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
+                ) : null,
+                onTap: () async {
+                  await Navigator.push(context, MaterialPageRoute(builder: (_) => const NotificationsScreen()));
+                  _loadUnreadCount(); // Refresh count when returning
+                },
               ),
               _MenuAction(
                 icon: FontAwesomeIcons.fileExport, // Changed icon from fileContract to fileExport

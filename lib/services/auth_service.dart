@@ -477,6 +477,77 @@ class AuthService {
     }
   }
 
+  // ===========================================
+  // NOTIFICATIONS
+  // ===========================================
+
+  /// Récupère les notifications de l'utilisateur
+  Future<List<dynamic>> fetchNotifications() async {
+    try {
+      final token = await _getToken();
+      if (token == null) return [];
+      final response = await http.get(
+        Uri.parse('$baseUrl/notifications'),
+        headers: {'Authorization': 'Bearer $token'},
+      );
+      if (response.statusCode == 200) {
+        return json.decode(utf8.decode(response.bodyBytes));
+      }
+      return [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  /// Récupère le nombre de notifications non lues
+  Future<int> fetchUnreadCount() async {
+    try {
+      final token = await _getToken();
+      if (token == null) return 0;
+      final response = await http.get(
+        Uri.parse('$baseUrl/notifications/unread-count'),
+        headers: {'Authorization': 'Bearer $token'},
+      );
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        return data['count'] ?? 0;
+      }
+      return 0;
+    } catch (e) {
+      return 0;
+    }
+  }
+
+  /// Marque une notification comme lue
+  Future<bool> markNotificationRead(int notifId) async {
+    try {
+      final token = await _getToken();
+      if (token == null) return false;
+      final response = await http.put(
+        Uri.parse('$baseUrl/notifications/$notifId/read'),
+        headers: {'Authorization': 'Bearer $token'},
+      );
+      return response.statusCode == 200;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  /// Marque toutes les notifications comme lues
+  Future<bool> markAllNotificationsRead() async {
+    try {
+      final token = await _getToken();
+      if (token == null) return false;
+      final response = await http.put(
+        Uri.parse('$baseUrl/notifications/read-all'),
+        headers: {'Authorization': 'Bearer $token'},
+      );
+      return response.statusCode == 200;
+    } catch (e) {
+      return false;
+    }
+  }
+
   /// Upload une image et retourne l'URL
   Future<String?> uploadImage(String filePath) async {
     try {
