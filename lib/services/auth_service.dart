@@ -452,10 +452,24 @@ class AuthService {
     try {
       final token = await _getToken();
       final headers = <String, String>{'Content-Type': 'application/json'};
-      if (token != null) headers['Authorization'] = 'Bearer $token';
-      final response = await http.get(Uri.parse('$baseUrl/posts'), headers: headers);
+      
+      // Use /posts/feed when authenticated (returns is_liked/is_saved)
+      String endpoint = '$baseUrl/posts';
+      if (token != null) {
+        headers['Authorization'] = 'Bearer $token';
+        endpoint = '$baseUrl/posts/feed';
+      }
+      
+      final response = await http.get(Uri.parse(endpoint), headers: headers);
       if (response.statusCode == 200) {
         return json.decode(utf8.decode(response.bodyBytes));
+      }
+      // If /posts/feed fails (401), fallback to /posts
+      if (token != null && response.statusCode == 401) {
+        final fallback = await http.get(Uri.parse('$baseUrl/posts'));
+        if (fallback.statusCode == 200) {
+          return json.decode(utf8.decode(fallback.bodyBytes));
+        }
       }
       return [];
     } catch (e) {
@@ -565,7 +579,9 @@ class AuthService {
       );
 
       if (response.statusCode == 200) {
-        return json.decode(utf8.decode(response.bodyBytes));
+        final data = json.decode(utf8.decode(response.bodyBytes));
+        data['success'] = true;
+        return data;
       }
       return {'success': false};
     } catch (e) {
@@ -588,10 +604,11 @@ class AuthService {
       );
 
       if (response.statusCode == 200) {
-        return json.decode(utf8.decode(response.bodyBytes));
-      } else {
-        return {'success': false, 'message': 'Erreur de synchronisation'};
+        final data = json.decode(utf8.decode(response.bodyBytes));
+        data['success'] = true;
+        return data;
       }
+      return {'success': false, 'message': 'Erreur de synchronisation'};
     } catch (e) {
       return {'success': false, 'message': 'Erreur réseau : $e'};
     }

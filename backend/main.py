@@ -584,9 +584,89 @@ async def create_post(post: models.PostCreate, db: Session = Depends(get_db), cu
     db.refresh(new_post)
     return new_post
 
-@app.get("/posts", response_model=List[models.Post])
-async def get_posts(skip: int = 0, limit: int = 50, db: Session = Depends(get_db)):
-    return db.query(db_models.Post).options(joinedload(db_models.Post.comments)).order_by(db_models.Post.created_at.desc()).offset(skip).limit(limit).all()
+@app.get("/posts")
+async def get_posts(skip: int = 0, limit: int = 50, db: Session = Depends(get_db), authorization: Optional[str] = None):
+    from fastapi import Header
+    posts = db.query(db_models.Post).options(joinedload(db_models.Post.comments)).order_by(db_models.Post.created_at.desc()).offset(skip).limit(limit).all()
+    
+    # Try to get current user from token for is_liked/is_saved
+    current_user_id = None
+    # Read token from query or we'll use a different approach
+    
+    result = []
+    for post in posts:
+        post_dict = {
+            "id": post.id,
+            "user_id": post.user_id,
+            "user_name": post.user_name,
+            "user_avatar_url": post.user_avatar_url or "",
+            "image_url": post.image_url or "",
+            "description": post.description or "",
+            "created_at": post.created_at.isoformat() if post.created_at else None,
+            "likes_count": post.likes_count or 0,
+            "comments": [
+                {
+                    "id": c.id,
+                    "post_id": c.post_id,
+                    "user_id": c.user_id,
+                    "user_name": c.user_name,
+                    "user_avatar_url": c.user_avatar_url,
+                    "content": c.content,
+                    "created_at": c.created_at.isoformat() if c.created_at else None,
+                }
+                for c in (post.comments or [])
+            ],
+            "is_liked": False,
+            "is_saved": False,
+        }
+        result.append(post_dict)
+    
+    return result
+
+# New endpoint: get posts with user-specific states
+@app.get("/posts/feed")
+async def get_feed(skip: int = 0, limit: int = 50, db: Session = Depends(get_db), current_user: db_models.User = Depends(get_current_user)):
+    posts = db.query(db_models.Post).options(joinedload(db_models.Post.comments)).order_by(db_models.Post.created_at.desc()).offset(skip).limit(limit).all()
+    
+    user_id = current_user.id
+    
+    # Get all liked and saved post IDs for this user in bulk
+    liked_ids = set(
+        r[0] for r in db.query(db_models.Like.post_id).filter(db_models.Like.user_id == user_id).all()
+    )
+    saved_ids = set(
+        r[0] for r in db.query(db_models.SavedPost.post_id).filter(db_models.SavedPost.user_id == user_id).all()
+    )
+    
+    result = []
+    for post in posts:
+        post_dict = {
+            "id": post.id,
+            "user_id": post.user_id,
+            "user_name": post.user_name,
+            "user_avatar_url": post.user_avatar_url or "",
+            "image_url": post.image_url or "",
+            "description": post.description or "",
+            "created_at": post.created_at.isoformat() if post.created_at else None,
+            "likes_count": post.likes_count or 0,
+            "comments": [
+                {
+                    "id": c.id,
+                    "post_id": c.post_id,
+                    "user_id": c.user_id,
+                    "user_name": c.user_name,
+                    "user_avatar_url": c.user_avatar_url,
+                    "content": c.content,
+                    "created_at": c.created_at.isoformat() if c.created_at else None,
+                }
+                for c in (post.comments or [])
+            ],
+            "is_liked": post.id in liked_ids,
+            "is_saved": post.id in saved_ids,
+        }
+        result.append(post_dict)
+    
+    return result
 
 @app.put("/posts/{post_id}", response_model=models.Post)
 async def update_post(post_id: int, post_update: models.PostUpdate, db: Session = Depends(get_db)):
