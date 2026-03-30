@@ -175,7 +175,7 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
 
         // Navigate to home after 2 seconds
         Future.delayed(const Duration(seconds: 2), () {
-          if (mounted) Navigator.pushNamedAndRemoveUntil(context, '/client', (route) => false);
+          if (mounted) Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
         });
       } else {
         setState(() { _errorMessage = result['message']; _isLoading = false; });
