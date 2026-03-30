@@ -725,8 +725,8 @@ async def toggle_like(post_id: int, db: Session = Depends(get_db), current_user:
         notif = db_models.Notification(
             user_id=db_post.user_id,
             type="like",
-            title="Nouveau j'aime \u2764\ufe0f",
-            body=f"{current_user.full_name} a aim\u00e9 votre publication",
+            title="Nouveau j'aime",
+            body=f"{current_user.full_name} a aime votre publication",
             from_user_name=current_user.full_name,
             post_id=post_id
         )
@@ -768,8 +768,8 @@ async def save_post(post_id: int, db: Session = Depends(get_db), current_user: d
         notif = db_models.Notification(
             user_id=db_post.user_id,
             type="save",
-            title="Publication sauvegard\u00e9e \ud83d\udd16",
-            body=f"{current_user.full_name} a sauvegard\u00e9 votre publication",
+            title="Publication sauvegardee",
+            body=f"{current_user.full_name} a sauvegarde votre publication",
             from_user_name=current_user.full_name,
             post_id=post_id
         )
@@ -800,8 +800,8 @@ async def create_comment(post_id: int, comment: models.CommentCreate, db: Sessio
         notif = db_models.Notification(
             user_id=db_post.user_id,
             type="comment",
-            title="Nouveau commentaire \ud83d\udcac",
-            body=f"{current_user.full_name} a comment\u00e9 votre publication",
+            title="Nouveau commentaire",
+            body=f"{current_user.full_name} a commente votre publication",
             from_user_name=current_user.full_name,
             post_id=post_id
         )
