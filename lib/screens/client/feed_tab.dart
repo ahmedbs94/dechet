@@ -146,7 +146,7 @@ class _FeedTabState extends State<FeedTab> {
                     String imageUrl = '';
                     // Upload image if selected
                     if (_selectedImage != null) {
-                      final uploadedUrl = await _authService.uploadImage(_selectedImage!.path);
+                      final uploadedUrl = await _authService.uploadImageFromXFile(_selectedImage!);
                       if (uploadedUrl != null) imageUrl = uploadedUrl;
                     }
 

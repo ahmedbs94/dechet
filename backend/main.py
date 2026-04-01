@@ -604,9 +604,12 @@ async def create_post(post: models.PostCreate, db: Session = Depends(get_db), cu
 @app.post("/upload")
 async def upload_image(file: UploadFile = File(...), current_user: db_models.User = Depends(get_current_user)):
     """Upload an image file and return its URL."""
-    # Validate file type
+    # Validate file type (be lenient: check content_type OR file extension)
     allowed_types = ["image/jpeg", "image/png", "image/gif", "image/webp"]
-    if file.content_type not in allowed_types:
+    allowed_exts = [".jpg", ".jpeg", ".png", ".gif", ".webp"]
+    ext = os.path.splitext(file.filename or "")[1].lower()
+    
+    if file.content_type not in allowed_types and ext not in allowed_exts:
         raise HTTPException(status_code=400, detail="Type de fichier non autorisé. Utilisez JPEG, PNG, GIF ou WebP.")
     
     # Generate unique filename

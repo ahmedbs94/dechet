@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:developer' as developer;
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
@@ -548,7 +549,52 @@ class AuthService {
     }
   }
 
-  /// Upload une image et retourne l'URL complète
+  /// Upload une image depuis un XFile (compatible Web + Mobile)
+  Future<String?> uploadImageFromXFile(dynamic xFile) async {
+    try {
+      final token = await _getToken();
+      if (token == null) return null;
+
+      final uri = Uri.parse('$baseUrl/upload');
+      final request = http.MultipartRequest('POST', uri)
+        ..headers['Authorization'] = 'Bearer $token';
+
+      // Read bytes from XFile (works on both Web and Mobile)
+      final bytes = await xFile.readAsBytes();
+      final fileName = xFile.name ?? 'image.jpg';
+      
+      // Detect MIME type from extension
+      final ext = fileName.split('.').last.toLowerCase();
+      final mimeTypes = {'jpg': 'image/jpeg', 'jpeg': 'image/jpeg', 'png': 'image/png', 'gif': 'image/gif', 'webp': 'image/webp'};
+      final contentType = mimeTypes[ext] ?? 'image/jpeg';
+
+      request.files.add(http.MultipartFile.fromBytes(
+        'file',
+        bytes,
+        filename: fileName,
+        contentType: MediaType.parse(contentType),
+      ));
+
+      final streamedResponse = await request.send();
+      if (streamedResponse.statusCode == 200) {
+        final respStr = await streamedResponse.stream.bytesToString();
+        final data = json.decode(respStr);
+        String? url = data['url'] ?? data['image_url'];
+        if (url != null && url.startsWith('/')) {
+          url = '$baseUrl$url';
+        }
+        developer.log('Image uploaded successfully: $url', name: 'AuthService');
+        return url;
+      }
+      developer.log('Upload failed: ${streamedResponse.statusCode}', name: 'AuthService');
+      return null;
+    } catch (e) {
+      developer.log('Upload image error: $e', name: 'AuthService');
+      return null;
+    }
+  }
+
+  /// Upload une image par chemin (Mobile uniquement, fallback)
   Future<String?> uploadImage(String filePath) async {
     try {
       final token = await _getToken();
@@ -562,7 +608,6 @@ class AuthService {
         final respStr = await streamedResponse.stream.bytesToString();
         final data = json.decode(respStr);
         String? url = data['url'] ?? data['image_url'];
-        // Convert relative URL to absolute
         if (url != null && url.startsWith('/')) {
           url = '$baseUrl$url';
         }
