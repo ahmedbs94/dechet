@@ -777,6 +777,45 @@ class AuthService {
     }
   }
 
+  /// Récupère la liste des utilisateurs ayant aimé une publication
+  Future<List<Map<String, dynamic>>> fetchPostLikers(String postId) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/posts/$postId/likers'),
+        headers: {'Content-Type': 'application/json'},
+      );
+      if (response.statusCode == 200) {
+        final List<dynamic> data = json.decode(utf8.decode(response.bodyBytes));
+        return data.cast<Map<String, dynamic>>();
+      }
+      return [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  /// Récupère une publication unique par son ID
+  Future<Map<String, dynamic>?> fetchSinglePost(int postId) async {
+    try {
+      final token = await _getToken();
+      final headers = <String, String>{'Content-Type': 'application/json'};
+      if (token != null) headers['Authorization'] = 'Bearer $token';
+
+      // Fetch all posts and find the one matching postId
+      final endpoint = token != null ? '$baseUrl/posts/feed' : '$baseUrl/posts';
+      final response = await http.get(Uri.parse(endpoint), headers: headers);
+      if (response.statusCode == 200) {
+        final List<dynamic> posts = json.decode(utf8.decode(response.bodyBytes));
+        for (final p in posts) {
+          if (p['id'] == postId) return Map<String, dynamic>.from(p);
+        }
+      }
+      return null;
+    } catch (e) {
+      return null;
+    }
+  }
+
   // ===========================================
   // ADMINISTRATION DES UTILISATEURS
   // ===========================================

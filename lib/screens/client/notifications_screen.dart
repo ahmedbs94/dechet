@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:timeago/timeago.dart' as timeago;
 import '../../theme/app_theme.dart';
 import '../../services/auth_service.dart';
+import 'post_detail_screen.dart';
 
 class NotificationsScreen extends StatefulWidget {
   const NotificationsScreen({Key? key}) : super(key: key);
@@ -19,6 +21,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   @override
   void initState() {
     super.initState();
+    timeago.setLocaleMessages('fr', timeago.FrMessages());
     _loadNotifications();
   }
 
@@ -56,14 +59,49 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   String _formatTime(String? dateStr) {
     if (dateStr == null) return '';
     try {
-      final dt = DateTime.parse(dateStr);
-      final diff = DateTime.now().difference(dt);
-      if (diff.inMinutes < 1) return 'maintenant';
-      if (diff.inMinutes < 60) return 'il y a ${diff.inMinutes}min';
-      if (diff.inHours < 24) return 'il y a ${diff.inHours}h';
-      if (diff.inDays < 7) return 'il y a ${diff.inDays}j';
-      return '${dt.day}/${dt.month}/${dt.year}';
+      return timeago.format(DateTime.parse(dateStr), locale: 'fr');
     } catch (_) { return ''; }
+  }
+
+  Future<void> _navigateToPost(int postId) async {
+    // Show loading indicator
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => Center(
+        child: Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 20)],
+          ),
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            const CircularProgressIndicator(color: AppTheme.primaryGreen),
+            const SizedBox(height: 16),
+            Text('Chargement...', style: GoogleFonts.inter(fontSize: 14, color: AppTheme.textMuted)),
+          ]),
+        ),
+      ),
+    );
+
+    final post = await _authService.fetchSinglePost(postId);
+
+    if (mounted) Navigator.pop(context); // Close loading
+
+    if (post != null && mounted) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => PostDetailScreen(post: post)),
+      );
+    } else if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text('Publication introuvable ou supprimée', style: GoogleFonts.inter(fontWeight: FontWeight.w500)),
+        backgroundColor: Colors.red.shade400,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ));
+    }
   }
 
   @override
@@ -133,6 +171,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     final color = _getColor(type);
     final icon = _getIcon(type);
     final time = _formatTime(notif['created_at']);
+    final postId = notif['post_id'];
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
@@ -166,7 +205,17 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
             const SizedBox(height: 4),
             Text(notif['body'] ?? '', style: GoogleFonts.inter(fontSize: 13, color: const Color(0xFF64748B))),
             const SizedBox(height: 6),
-            Text(time, style: GoogleFonts.inter(fontSize: 11, color: const Color(0xFF94A3B8), fontWeight: FontWeight.w500)),
+            Row(
+              children: [
+                Text(time, style: GoogleFonts.inter(fontSize: 11, color: const Color(0xFF94A3B8), fontWeight: FontWeight.w500)),
+                if (postId != null) ...[
+                  const SizedBox(width: 8),
+                  Icon(Icons.open_in_new_rounded, size: 12, color: color.withOpacity(0.6)),
+                  const SizedBox(width: 2),
+                  Text('Voir', style: GoogleFonts.inter(fontSize: 11, color: color, fontWeight: FontWeight.w600)),
+                ],
+              ],
+            ),
           ],
         ),
         trailing: !isRead
@@ -174,14 +223,23 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                 width: 10, height: 10,
                 decoration: BoxDecoration(shape: BoxShape.circle, color: color),
               )
-            : null,
+            : postId != null
+                ? Icon(Icons.chevron_right_rounded, color: Colors.grey.shade300, size: 22)
+                : null,
         onTap: () async {
+          // Mark as read
           if (!isRead) {
             final id = notif['id'];
             if (id != null) {
               await _authService.markNotificationRead(id is int ? id : int.parse(id.toString()));
               setState(() => notif['is_read'] = true);
             }
+          }
+
+          // Navigate to the post if post_id is available
+          if (postId != null) {
+            final pid = postId is int ? postId : int.parse(postId.toString());
+            _navigateToPost(pid);
           }
         },
       ),

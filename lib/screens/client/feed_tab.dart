@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
@@ -331,122 +332,221 @@ class _RealPostCardState extends State<_RealPostCard> {
     }
   }
 
+  String _formatCommentTime(dynamic comment) {
+    // If we have a local _createdAt DateTime (just created), use it directly
+    if (comment is Map && comment['_local_created_at'] != null) {
+      final dt = comment['_local_created_at'] as DateTime;
+      return timeago.format(dt, locale: 'fr');
+    }
+    return widget.formatTime(comment['created_at']);
+  }
+
   void _showCommentModal() {
     final TextEditingController commentController = TextEditingController();
     final List<dynamic> comments = List<dynamic>.from(widget.post['comments'] ?? []);
+    Timer? refreshTimer;
 
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) => StatefulBuilder(
-        builder: (context, setModalState) => Container(
-          height: MediaQuery.of(context).size.height * 0.75,
-          decoration: const BoxDecoration(color: Colors.white, borderRadius: BorderRadius.vertical(top: Radius.circular(32))),
-          child: Column(
-            children: [
-              Container(width: 40, height: 4, margin: const EdgeInsets.symmetric(vertical: 12), decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(2))),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-                child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-                  Text('Commentaires (${comments.length})', style: GoogleFonts.outfit(fontSize: 20, fontWeight: FontWeight.bold)),
-                  IconButton(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.close)),
-                ]),
-              ),
-              Expanded(
-                child: comments.isEmpty
-                    ? Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
-                        Icon(Icons.chat_bubble_outline, size: 48, color: Colors.grey.shade300),
-                        const SizedBox(height: 12),
-                        Text('Aucun commentaire', style: GoogleFonts.inter(color: AppTheme.textMuted)),
-                        Text('Soyez le premier à commenter !', style: GoogleFonts.inter(color: AppTheme.textMuted, fontSize: 12)),
-                      ]))
-                    : ListView.builder(
-                        padding: const EdgeInsets.all(24),
-                        itemCount: comments.length,
-                        itemBuilder: (context, index) {
-                          final comment = comments[index];
-                          final commentUserName = comment['user_name'] ?? 'Anonyme';
-                          final commentContent = comment['content'] ?? '';
-                          final commentTime = widget.formatTime(comment['created_at']);
-                          final isMyComment = AuthState.isLoggedIn && commentUserName == AuthState.currentUser?.name;
+        builder: (context, setModalState) {
+          // Auto-refresh timestamps every 30 seconds
+          refreshTimer ??= Timer.periodic(const Duration(seconds: 30), (_) {
+            if (context.mounted) setModalState(() {});
+          });
 
-                          return Padding(
-                            padding: const EdgeInsets.only(bottom: 16),
-                            child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                              CircleAvatar(
-                                radius: 18,
-                                backgroundColor: AppTheme.primaryGreen.withOpacity(0.1),
-                                child: Text(commentUserName.isNotEmpty ? commentUserName[0].toUpperCase() : '?', style: GoogleFonts.outfit(color: AppTheme.primaryGreen, fontWeight: FontWeight.bold)),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(child: Container(
-                                padding: const EdgeInsets.all(12),
-                                decoration: BoxDecoration(color: Colors.grey.shade50, borderRadius: BorderRadius.circular(16)),
-                                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                                  Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-                                    Text(commentUserName, style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 13)),
-                                    Row(mainAxisSize: MainAxisSize.min, children: [
-                                      Text(commentTime, style: GoogleFonts.inter(fontSize: 10, color: AppTheme.textMuted)),
-                                      if (isMyComment) ...[
-                                        const SizedBox(width: 4),
-                                        GestureDetector(
-                                          onTap: () async {
-                                            final commentId = comment['id'];
-                                            if (commentId != null) {
-                                              final deleted = await widget.authService.deleteComment(commentId is int ? commentId : int.parse(commentId.toString()));
-                                              if (deleted) {
-                                                setModalState(() => comments.removeAt(index));
-                                                setState(() {}); // update main count
+          return Container(
+            height: MediaQuery.of(context).size.height * 0.75,
+            decoration: const BoxDecoration(color: Colors.white, borderRadius: BorderRadius.vertical(top: Radius.circular(32))),
+            child: Column(
+              children: [
+                Container(width: 40, height: 4, margin: const EdgeInsets.symmetric(vertical: 12), decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(2))),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                  child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+                    Text('Commentaires (${comments.length})', style: GoogleFonts.outfit(fontSize: 20, fontWeight: FontWeight.bold)),
+                    IconButton(onPressed: () { refreshTimer?.cancel(); Navigator.pop(context); }, icon: const Icon(Icons.close)),
+                  ]),
+                ),
+                Expanded(
+                  child: comments.isEmpty
+                      ? Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
+                          Icon(Icons.chat_bubble_outline, size: 48, color: Colors.grey.shade300),
+                          const SizedBox(height: 12),
+                          Text('Aucun commentaire', style: GoogleFonts.inter(color: AppTheme.textMuted)),
+                          Text('Soyez le premier à commenter !', style: GoogleFonts.inter(color: AppTheme.textMuted, fontSize: 12)),
+                        ]))
+                      : ListView.builder(
+                          padding: const EdgeInsets.all(24),
+                          itemCount: comments.length,
+                          itemBuilder: (context, index) {
+                            final comment = comments[index];
+                            final commentUserName = comment['user_name'] ?? 'Anonyme';
+                            final commentContent = comment['content'] ?? '';
+                            final commentTime = _formatCommentTime(comment);
+                            final isMyComment = AuthState.isLoggedIn && commentUserName == AuthState.currentUser?.name;
+
+                            return Padding(
+                              padding: const EdgeInsets.only(bottom: 16),
+                              child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                                CircleAvatar(
+                                  radius: 18,
+                                  backgroundColor: AppTheme.primaryGreen.withOpacity(0.1),
+                                  child: Text(commentUserName.isNotEmpty ? commentUserName[0].toUpperCase() : '?', style: GoogleFonts.outfit(color: AppTheme.primaryGreen, fontWeight: FontWeight.bold)),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(child: Container(
+                                  padding: const EdgeInsets.all(12),
+                                  decoration: BoxDecoration(color: Colors.grey.shade50, borderRadius: BorderRadius.circular(16)),
+                                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                                    Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+                                      Text(commentUserName, style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 13)),
+                                      Row(mainAxisSize: MainAxisSize.min, children: [
+                                        Text(commentTime, style: GoogleFonts.inter(fontSize: 10, color: AppTheme.textMuted)),
+                                        if (isMyComment) ...[
+                                          const SizedBox(width: 4),
+                                          GestureDetector(
+                                            onTap: () async {
+                                              final commentId = comment['id'];
+                                              if (commentId != null) {
+                                                final deleted = await widget.authService.deleteComment(commentId is int ? commentId : int.parse(commentId.toString()));
+                                                if (deleted) {
+                                                  setModalState(() => comments.removeAt(index));
+                                                  setState(() {}); // update main count
+                                                }
                                               }
-                                            }
-                                          },
-                                          child: Icon(Icons.delete_outline, size: 16, color: Colors.red.shade300),
-                                        ),
-                                      ],
+                                            },
+                                            child: Icon(Icons.delete_outline, size: 16, color: Colors.red.shade300),
+                                          ),
+                                        ],
+                                      ]),
                                     ]),
+                                    const SizedBox(height: 4),
+                                    Text(commentContent, style: GoogleFonts.inter(fontSize: 14)),
                                   ]),
-                                  const SizedBox(height: 4),
-                                  Text(commentContent, style: GoogleFonts.inter(fontSize: 14)),
-                                ]),
-                              )),
-                            ]),
-                          );
-                        },
+                                )),
+                              ]),
+                            );
+                          },
+                        ),
+                ),
+                Padding(
+                  padding: EdgeInsets.fromLTRB(24, 0, 24, MediaQuery.of(context).viewInsets.bottom + 24),
+                  child: Row(children: [
+                    Expanded(child: TextField(
+                      controller: commentController,
+                      decoration: InputDecoration(
+                        hintText: AuthState.isLoggedIn ? 'Ajouter un commentaire...' : 'Connectez-vous pour commenter',
+                        enabled: AuthState.isLoggedIn,
+                        filled: true, fillColor: Colors.grey.shade100,
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(24), borderSide: BorderSide.none),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
                       ),
-              ),
-              Padding(
-                padding: EdgeInsets.fromLTRB(24, 0, 24, MediaQuery.of(context).viewInsets.bottom + 24),
-                child: Row(children: [
-                  Expanded(child: TextField(
-                    controller: commentController,
-                    decoration: InputDecoration(
-                      hintText: AuthState.isLoggedIn ? 'Ajouter un commentaire...' : 'Connectez-vous pour commenter',
-                      enabled: AuthState.isLoggedIn,
-                      filled: true, fillColor: Colors.grey.shade100,
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(24), borderSide: BorderSide.none),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                    ),
-                  )),
-                  const SizedBox(width: 8),
-                  IconButton(
-                    onPressed: AuthState.isLoggedIn ? () async {
-                      if (commentController.text.isNotEmpty) {
-                        final user = AuthState.currentUser;
-                        final result = await widget.authService.addComment(widget.post['id'].toString(), user?.name ?? 'Anonyme', user?.avatarUrl, commentController.text);
-                        if (result['success'] == true) {
-                          setModalState(() => comments.insert(0, result['data']));
-                          setState(() {}); // Update main count
-                          commentController.clear();
+                    )),
+                    const SizedBox(width: 8),
+                    IconButton(
+                      onPressed: AuthState.isLoggedIn ? () async {
+                        if (commentController.text.isNotEmpty) {
+                          final user = AuthState.currentUser;
+                          final result = await widget.authService.addComment(widget.post['id'].toString(), user?.name ?? 'Anonyme', user?.avatarUrl, commentController.text);
+                          if (result['success'] == true) {
+                            // Inject local DateTime for instant "à l'instant" display
+                            final newComment = Map<String, dynamic>.from(result['data'] as Map);
+                            newComment['_local_created_at'] = DateTime.now();
+                            setModalState(() => comments.insert(0, newComment));
+                            setState(() {}); // Update main count
+                            commentController.clear();
+                          }
                         }
-                      }
-                    } : null,
-                    icon: const Icon(Icons.send_rounded, color: AppTheme.primaryGreen),
-                  ),
+                      } : null,
+                      icon: const Icon(Icons.send_rounded, color: AppTheme.primaryGreen),
+                    ),
+                  ]),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    ).whenComplete(() => refreshTimer?.cancel());
+  }
+
+  void _showLikersModal() async {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        height: MediaQuery.of(context).size.height * 0.5,
+        decoration: const BoxDecoration(color: Colors.white, borderRadius: BorderRadius.vertical(top: Radius.circular(32))),
+        child: Column(
+          children: [
+            Container(width: 40, height: 4, margin: const EdgeInsets.symmetric(vertical: 12), decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(2))),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+              child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+                Row(children: [
+                  const Icon(Icons.favorite_rounded, color: Colors.pink, size: 22),
+                  const SizedBox(width: 10),
+                  Text('J\'aime ($_likeCount)', style: GoogleFonts.outfit(fontSize: 20, fontWeight: FontWeight.bold)),
                 ]),
+                IconButton(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.close)),
+              ]),
+            ),
+            Expanded(
+              child: FutureBuilder<List<Map<String, dynamic>>>(
+                future: widget.authService.fetchPostLikers(widget.post['id'].toString()),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(child: CircularProgressIndicator(color: AppTheme.primaryGreen));
+                  }
+                  final likers = snapshot.data ?? [];
+                  if (likers.isEmpty) {
+                    return Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
+                      Icon(Icons.favorite_border_rounded, size: 48, color: Colors.grey.shade300),
+                      const SizedBox(height: 12),
+                      Text('Aucun j\'aime', style: GoogleFonts.inter(color: AppTheme.textMuted)),
+                    ]));
+                  }
+                  return ListView.builder(
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    itemCount: likers.length,
+                    itemBuilder: (context, index) {
+                      final liker = likers[index];
+                      final name = liker['full_name'] ?? 'Utilisateur';
+                      final email = liker['email'] ?? '';
+                      return Container(
+                        margin: const EdgeInsets.only(bottom: 8),
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade50,
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: Row(children: [
+                          CircleAvatar(
+                            radius: 20,
+                            backgroundColor: Colors.pink.withOpacity(0.1),
+                            child: Text(name.isNotEmpty ? name[0].toUpperCase() : '?', style: GoogleFonts.outfit(color: Colors.pink, fontWeight: FontWeight.bold, fontSize: 16)),
+                          ),
+                          const SizedBox(width: 14),
+                          Expanded(child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(name, style: GoogleFonts.outfit(fontWeight: FontWeight.w600, fontSize: 15)),
+                              if (email.isNotEmpty)
+                                Text(email, style: GoogleFonts.inter(fontSize: 12, color: AppTheme.textMuted)),
+                            ],
+                          )),
+                          const Icon(Icons.favorite_rounded, color: Colors.pink, size: 18),
+                        ]),
+                      );
+                    },
+                  );
+                },
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
@@ -531,7 +631,7 @@ class _RealPostCardState extends State<_RealPostCard> {
         Padding(
           padding: const EdgeInsets.all(24),
           child: Row(children: [
-            _buildActionIcon(_isLiked ? Icons.favorite_rounded : Icons.favorite_border_rounded, '$_likeCount', _isLiked ? Colors.pink : AppTheme.textMuted, onTap: _handleLike),
+            _buildActionIcon(_isLiked ? Icons.favorite_rounded : Icons.favorite_border_rounded, '$_likeCount', _isLiked ? Colors.pink : AppTheme.textMuted, onTap: _handleLike, onLongPress: _likeCount > 0 ? _showLikersModal : null, onCountTap: _likeCount > 0 ? _showLikersModal : null),
             const SizedBox(width: 20),
             _buildActionIcon(Icons.chat_bubble_outline_rounded, '$commentCount', AppTheme.textMuted, onTap: _showCommentModal),
             const Spacer(),
@@ -555,14 +655,18 @@ class _RealPostCardState extends State<_RealPostCard> {
     ));
   }
 
-  Widget _buildActionIcon(IconData icon, String count, Color color, {VoidCallback? onTap}) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Row(children: [
-        Icon(icon, size: 24, color: color),
-        const SizedBox(width: 8),
-        Text(count, style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 14, color: color)),
-      ]),
-    );
+  Widget _buildActionIcon(IconData icon, String count, Color color, {VoidCallback? onTap, VoidCallback? onLongPress, VoidCallback? onCountTap}) {
+    return Row(children: [
+      GestureDetector(
+        onTap: onTap,
+        onLongPress: onLongPress,
+        child: Icon(icon, size: 24, color: color),
+      ),
+      const SizedBox(width: 8),
+      GestureDetector(
+        onTap: onCountTap ?? onTap,
+        child: Text(count, style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 14, color: color)),
+      ),
+    ]);
   }
 }
