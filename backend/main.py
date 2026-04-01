@@ -2,9 +2,12 @@ from dotenv import load_dotenv
 load_dotenv()
 
 import os
-from fastapi import FastAPI, Depends, HTTPException, status
+import uuid
+import shutil
+from fastapi import FastAPI, Depends, HTTPException, status, UploadFile, File
 from fastapi.security import OAuth2PasswordRequestForm, OAuth2PasswordBearer
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from google.oauth2 import id_token
 from google.auth.transport import requests
 from datetime import datetime, timedelta
@@ -23,6 +26,20 @@ from auth import verify_password, get_password_hash, create_access_token, ACCESS
 db_models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="EcoRewind API", version="1.0.0")
+
+# Create uploads directory
+UPLOADS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "uploads")
+os.makedirs(UPLOADS_DIR, exist_ok=True)
+
+# Serve uploaded files as static
+app.mount("/uploads", StaticFiles(directory=UPLOADS_DIR), name="uploads")
+
+# Helper: format UTC datetime with timezone info so frontend parses it correctly
+def _utc_iso(dt):
+    """Return ISO string with +00:00 suffix so clients know it's UTC."""
+    if dt is None:
+        return None
+    return dt.isoformat() + "+00:00"
 
 # CORS Configuration
 app.add_middleware(
@@ -584,6 +601,28 @@ async def create_post(post: models.PostCreate, db: Session = Depends(get_db), cu
     db.refresh(new_post)
     return new_post
 
+@app.post("/upload")
+async def upload_image(file: UploadFile = File(...), current_user: db_models.User = Depends(get_current_user)):
+    """Upload an image file and return its URL."""
+    # Validate file type
+    allowed_types = ["image/jpeg", "image/png", "image/gif", "image/webp"]
+    if file.content_type not in allowed_types:
+        raise HTTPException(status_code=400, detail="Type de fichier non autorisé. Utilisez JPEG, PNG, GIF ou WebP.")
+    
+    # Generate unique filename
+    ext = os.path.splitext(file.filename or "img.jpg")[1] or ".jpg"
+    unique_name = f"{uuid.uuid4().hex}{ext}"
+    file_path = os.path.join(UPLOADS_DIR, unique_name)
+    
+    # Save file
+    with open(file_path, "wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
+    
+    # Return the URL (relative to the server)
+    image_url = f"/uploads/{unique_name}"
+    print(f"📸 Image uploaded: {image_url}")
+    return {"url": image_url, "image_url": image_url}
+
 @app.get("/posts")
 async def get_posts(skip: int = 0, limit: int = 50, db: Session = Depends(get_db), authorization: Optional[str] = None):
     from fastapi import Header
@@ -602,7 +641,7 @@ async def get_posts(skip: int = 0, limit: int = 50, db: Session = Depends(get_db
             "user_avatar_url": post.user_avatar_url or "",
             "image_url": post.image_url or "",
             "description": post.description or "",
-            "created_at": post.created_at.isoformat() if post.created_at else None,
+            "created_at": _utc_iso(post.created_at),
             "likes_count": post.likes_count or 0,
             "comments": [
                 {
@@ -612,7 +651,7 @@ async def get_posts(skip: int = 0, limit: int = 50, db: Session = Depends(get_db
                     "user_name": c.user_name,
                     "user_avatar_url": c.user_avatar_url,
                     "content": c.content,
-                    "created_at": c.created_at.isoformat() if c.created_at else None,
+                    "created_at": _utc_iso(c.created_at),
                 }
                 for c in (post.comments or [])
             ],
@@ -647,7 +686,7 @@ async def get_feed(skip: int = 0, limit: int = 50, db: Session = Depends(get_db)
             "user_avatar_url": post.user_avatar_url or "",
             "image_url": post.image_url or "",
             "description": post.description or "",
-            "created_at": post.created_at.isoformat() if post.created_at else None,
+            "created_at": _utc_iso(post.created_at),
             "likes_count": post.likes_count or 0,
             "comments": [
                 {
@@ -657,7 +696,7 @@ async def get_feed(skip: int = 0, limit: int = 50, db: Session = Depends(get_db)
                     "user_name": c.user_name,
                     "user_avatar_url": c.user_avatar_url,
                     "content": c.content,
-                    "created_at": c.created_at.isoformat() if c.created_at else None,
+                    "created_at": _utc_iso(c.created_at),
                 }
                 for c in (post.comments or [])
             ],
@@ -861,7 +900,7 @@ async def get_notifications(skip: int = 0, limit: int = 50, db: Session = Depend
             "from_user_name": n.from_user_name,
             "post_id": n.post_id,
             "is_read": n.is_read,
-            "created_at": n.created_at.isoformat() if n.created_at else None,
+            "created_at": _utc_iso(n.created_at),
         }
         for n in notifs
     ]

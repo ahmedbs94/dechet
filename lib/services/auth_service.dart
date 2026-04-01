@@ -548,7 +548,7 @@ class AuthService {
     }
   }
 
-  /// Upload une image et retourne l'URL
+  /// Upload une image et retourne l'URL complète
   Future<String?> uploadImage(String filePath) async {
     try {
       final token = await _getToken();
@@ -561,10 +561,17 @@ class AuthService {
       if (streamedResponse.statusCode == 200) {
         final respStr = await streamedResponse.stream.bytesToString();
         final data = json.decode(respStr);
-        return data['url'] ?? data['image_url'];
+        String? url = data['url'] ?? data['image_url'];
+        // Convert relative URL to absolute
+        if (url != null && url.startsWith('/')) {
+          url = '$baseUrl$url';
+        }
+        return url;
       }
+      developer.log('Upload failed: ${streamedResponse.statusCode}', name: 'AuthService');
       return null;
     } catch (e) {
+      developer.log('Upload image error: $e', name: 'AuthService');
       return null;
     }
   }
