@@ -654,6 +654,7 @@ async def get_posts(skip: int = 0, limit: int = 50, db: Session = Depends(get_db
                     "user_name": c.user_name,
                     "user_avatar_url": c.user_avatar_url,
                     "content": c.content,
+                    "parent_id": c.parent_id,
                     "created_at": _utc_iso(c.created_at),
                 }
                 for c in (post.comments or [])
@@ -699,6 +700,7 @@ async def get_feed(skip: int = 0, limit: int = 50, db: Session = Depends(get_db)
                     "user_name": c.user_name,
                     "user_avatar_url": c.user_avatar_url,
                     "content": c.content,
+                    "parent_id": c.parent_id,
                     "created_at": _utc_iso(c.created_at),
                 }
                 for c in (post.comments or [])
@@ -831,7 +833,8 @@ async def create_comment(post_id: int, comment: models.CommentCreate, db: Sessio
         user_id=current_user.id,
         user_name=comment.user_name,
         user_avatar_url=comment.user_avatar_url,
-        content=comment.content
+        content=comment.content,
+        parent_id=comment.parent_id
     )
     db.add(new_comment)
     db.commit()
@@ -843,12 +846,27 @@ async def create_comment(post_id: int, comment: models.CommentCreate, db: Sessio
             user_id=db_post.user_id,
             type="comment",
             title="Nouveau commentaire",
-            body=f"{current_user.full_name} a commente votre publication",
+            body=f"{current_user.full_name} a commenté votre publication",
             from_user_name=current_user.full_name,
             post_id=post_id
         )
         db.add(notif)
         db.commit()
+    
+    # If replying, also notify the parent comment author (not self)
+    if comment.parent_id:
+        parent_comment = db.query(db_models.Comment).filter(db_models.Comment.id == comment.parent_id).first()
+        if parent_comment and parent_comment.user_id != current_user.id:
+            notif = db_models.Notification(
+                user_id=parent_comment.user_id,
+                type="comment",
+                title="Réponse à votre commentaire",
+                body=f"{current_user.full_name} a répondu à votre commentaire",
+                from_user_name=current_user.full_name,
+                post_id=post_id
+            )
+            db.add(notif)
+            db.commit()
     
     return new_comment
 

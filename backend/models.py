@@ -59,12 +59,13 @@ class CommentBase(BaseModel):
     content: str
 
 class CommentCreate(CommentBase):
-    pass
+    parent_id: Optional[int] = None
 
 class Comment(CommentBase):
     id: int
     user_id: int
     post_id: int
+    parent_id: Optional[int] = None
     created_at: datetime
 
     class Config:

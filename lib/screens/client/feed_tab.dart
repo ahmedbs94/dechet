@@ -345,6 +345,8 @@ class _RealPostCardState extends State<_RealPostCard> {
     final TextEditingController commentController = TextEditingController();
     final List<dynamic> comments = List<dynamic>.from(widget.post['comments'] ?? []);
     Timer? refreshTimer;
+    Map<String, dynamic>? replyingTo; // The comment being replied to
+    String? replyingToName;
 
     showModalBottomSheet(
       context: context,
@@ -356,6 +358,88 @@ class _RealPostCardState extends State<_RealPostCard> {
           refreshTimer ??= Timer.periodic(const Duration(seconds: 30), (_) {
             if (context.mounted) setModalState(() {});
           });
+
+          // Separate top-level comments and replies
+          final topLevel = comments.where((c) => c['parent_id'] == null).toList();
+          List<dynamic> getReplies(int parentId) =>
+              comments.where((c) => c['parent_id'] == parentId).toList();
+
+          Widget buildComment(dynamic comment, {bool isReply = false}) {
+            final commentUserName = comment['user_name'] ?? 'Anonyme';
+            final commentContent = comment['content'] ?? '';
+            final commentTime = _formatCommentTime(comment);
+            final isMyComment = AuthState.isLoggedIn && commentUserName == AuthState.currentUser?.name;
+            final commentId = comment['id'];
+
+            return Padding(
+              padding: EdgeInsets.only(bottom: 12, left: isReply ? 40 : 0),
+              child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                CircleAvatar(
+                  radius: isReply ? 14 : 18,
+                  backgroundColor: isReply
+                      ? const Color(0xFF5B8DEF).withOpacity(0.1)
+                      : AppTheme.primaryGreen.withOpacity(0.1),
+                  child: Text(
+                    commentUserName.isNotEmpty ? commentUserName[0].toUpperCase() : '?',
+                    style: GoogleFonts.outfit(
+                      color: isReply ? const Color(0xFF5B8DEF) : AppTheme.primaryGreen,
+                      fontWeight: FontWeight.bold,
+                      fontSize: isReply ? 11 : 14,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(child: Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: isReply ? const Color(0xFFF0F4FF) : Colors.grey.shade50,
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+                      Text(commentUserName, style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: isReply ? 12 : 13)),
+                      Row(mainAxisSize: MainAxisSize.min, children: [
+                        Text(commentTime, style: GoogleFonts.inter(fontSize: 10, color: AppTheme.textMuted)),
+                        if (isMyComment && commentId != null) ...[
+                          const SizedBox(width: 4),
+                          GestureDetector(
+                            onTap: () async {
+                              final deleted = await widget.authService.deleteComment(commentId is int ? commentId : int.parse(commentId.toString()));
+                              if (deleted) {
+                                setModalState(() => comments.removeWhere((c) => c['id'] == commentId));
+                                setState(() {});
+                              }
+                            },
+                            child: Icon(Icons.delete_outline, size: 14, color: Colors.red.shade300),
+                          ),
+                        ],
+                      ]),
+                    ]),
+                    const SizedBox(height: 4),
+                    Text(commentContent, style: GoogleFonts.inter(fontSize: isReply ? 13 : 14)),
+                    if (AuthState.isLoggedIn && !isReply) ...[
+                      const SizedBox(height: 6),
+                      GestureDetector(
+                        onTap: () {
+                          setModalState(() {
+                            replyingTo = Map<String, dynamic>.from(comment);
+                            replyingToName = commentUserName;
+                          });
+                          commentController.clear();
+                          FocusScope.of(context).requestFocus(FocusNode());
+                        },
+                        child: Row(mainAxisSize: MainAxisSize.min, children: [
+                          Icon(Icons.reply_rounded, size: 14, color: const Color(0xFF5B8DEF).withOpacity(0.8)),
+                          const SizedBox(width: 4),
+                          Text('Répondre', style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w600, color: const Color(0xFF5B8DEF))),
+                        ]),
+                      ),
+                    ],
+                  ]),
+                )),
+              ]),
+            );
+          }
 
           return Container(
             height: MediaQuery.of(context).size.height * 0.75,
@@ -380,65 +464,51 @@ class _RealPostCardState extends State<_RealPostCard> {
                         ]))
                       : ListView.builder(
                           padding: const EdgeInsets.all(24),
-                          itemCount: comments.length,
+                          itemCount: topLevel.length,
                           itemBuilder: (context, index) {
-                            final comment = comments[index];
-                            final commentUserName = comment['user_name'] ?? 'Anonyme';
-                            final commentContent = comment['content'] ?? '';
-                            final commentTime = _formatCommentTime(comment);
-                            final isMyComment = AuthState.isLoggedIn && commentUserName == AuthState.currentUser?.name;
-
-                            return Padding(
-                              padding: const EdgeInsets.only(bottom: 16),
-                              child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                                CircleAvatar(
-                                  radius: 18,
-                                  backgroundColor: AppTheme.primaryGreen.withOpacity(0.1),
-                                  child: Text(commentUserName.isNotEmpty ? commentUserName[0].toUpperCase() : '?', style: GoogleFonts.outfit(color: AppTheme.primaryGreen, fontWeight: FontWeight.bold)),
-                                ),
-                                const SizedBox(width: 12),
-                                Expanded(child: Container(
-                                  padding: const EdgeInsets.all(12),
-                                  decoration: BoxDecoration(color: Colors.grey.shade50, borderRadius: BorderRadius.circular(16)),
-                                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                                    Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-                                      Text(commentUserName, style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 13)),
-                                      Row(mainAxisSize: MainAxisSize.min, children: [
-                                        Text(commentTime, style: GoogleFonts.inter(fontSize: 10, color: AppTheme.textMuted)),
-                                        if (isMyComment) ...[
-                                          const SizedBox(width: 4),
-                                          GestureDetector(
-                                            onTap: () async {
-                                              final commentId = comment['id'];
-                                              if (commentId != null) {
-                                                final deleted = await widget.authService.deleteComment(commentId is int ? commentId : int.parse(commentId.toString()));
-                                                if (deleted) {
-                                                  setModalState(() => comments.removeAt(index));
-                                                  setState(() {}); // update main count
-                                                }
-                                              }
-                                            },
-                                            child: Icon(Icons.delete_outline, size: 16, color: Colors.red.shade300),
-                                          ),
-                                        ],
-                                      ]),
-                                    ]),
-                                    const SizedBox(height: 4),
-                                    Text(commentContent, style: GoogleFonts.inter(fontSize: 14)),
-                                  ]),
-                                )),
-                              ]),
+                            final comment = topLevel[index];
+                            final replies = commentId(comment) != null ? getReplies(commentId(comment)!) : <dynamic>[];
+                            return Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                buildComment(comment),
+                                ...replies.map((r) => buildComment(r, isReply: true)),
+                              ],
                             );
                           },
                         ),
                 ),
+                // Reply banner
+                if (replyingTo != null)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF5B8DEF).withOpacity(0.06),
+                      border: Border(top: BorderSide(color: const Color(0xFF5B8DEF).withOpacity(0.15))),
+                    ),
+                    child: Row(children: [
+                      const Icon(Icons.reply_rounded, size: 16, color: Color(0xFF5B8DEF)),
+                      const SizedBox(width: 8),
+                      Expanded(child: Text(
+                        'Réponse à $replyingToName',
+                        style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600, color: const Color(0xFF5B8DEF)),
+                      )),
+                      GestureDetector(
+                        onTap: () => setModalState(() { replyingTo = null; replyingToName = null; }),
+                        child: const Icon(Icons.close_rounded, size: 18, color: Color(0xFF5B8DEF)),
+                      ),
+                    ]),
+                  ),
+                // Input
                 Padding(
                   padding: EdgeInsets.fromLTRB(24, 0, 24, MediaQuery.of(context).viewInsets.bottom + 24),
                   child: Row(children: [
                     Expanded(child: TextField(
                       controller: commentController,
                       decoration: InputDecoration(
-                        hintText: AuthState.isLoggedIn ? 'Ajouter un commentaire...' : 'Connectez-vous pour commenter',
+                        hintText: AuthState.isLoggedIn
+                            ? (replyingTo != null ? 'Répondre à $replyingToName...' : 'Ajouter un commentaire...')
+                            : 'Connectez-vous pour commenter',
                         enabled: AuthState.isLoggedIn,
                         filled: true, fillColor: Colors.grey.shade100,
                         border: OutlineInputBorder(borderRadius: BorderRadius.circular(24), borderSide: BorderSide.none),
@@ -450,13 +520,23 @@ class _RealPostCardState extends State<_RealPostCard> {
                       onPressed: AuthState.isLoggedIn ? () async {
                         if (commentController.text.isNotEmpty) {
                           final user = AuthState.currentUser;
-                          final result = await widget.authService.addComment(widget.post['id'].toString(), user?.name ?? 'Anonyme', user?.avatarUrl, commentController.text);
+                          final parentId = replyingTo != null ? commentId(replyingTo!) : null;
+                          final result = await widget.authService.addComment(
+                            widget.post['id'].toString(),
+                            user?.name ?? 'Anonyme',
+                            user?.avatarUrl,
+                            commentController.text,
+                            parentId: parentId,
+                          );
                           if (result['success'] == true) {
-                            // Inject local DateTime for instant "à l'instant" display
                             final newComment = Map<String, dynamic>.from(result['data'] as Map);
                             newComment['_local_created_at'] = DateTime.now();
-                            setModalState(() => comments.insert(0, newComment));
-                            setState(() {}); // Update main count
+                            setModalState(() {
+                              comments.insert(0, newComment);
+                              replyingTo = null;
+                              replyingToName = null;
+                            });
+                            setState(() {});
                             commentController.clear();
                           }
                         }
@@ -471,6 +551,13 @@ class _RealPostCardState extends State<_RealPostCard> {
         },
       ),
     ).whenComplete(() => refreshTimer?.cancel());
+  }
+
+  /// Helper to safely extract comment id as int
+  int? commentId(dynamic comment) {
+    final id = comment['id'];
+    if (id == null) return null;
+    return id is int ? id : int.tryParse(id.toString());
   }
 
   void _showLikersModal() async {

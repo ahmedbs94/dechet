@@ -737,11 +737,18 @@ class AuthService {
     }
   }
 
-  /// Ajoute un commentaire a une publication
-  Future<Map<String, dynamic>> addComment(String postId, String userName, String? userAvatarUrl, String content) async {
+  /// Ajoute un commentaire (ou une réponse) a une publication
+  Future<Map<String, dynamic>> addComment(String postId, String userName, String? userAvatarUrl, String content, {int? parentId}) async {
     try {
       final token = await _getToken();
       if (token == null) return {'success': false, 'message': 'Non authentifié'};
+
+      final body = <String, dynamic>{
+        'user_name': userName,
+        'user_avatar_url': userAvatarUrl,
+        'content': content,
+      };
+      if (parentId != null) body['parent_id'] = parentId;
 
       final response = await http.post(
         Uri.parse('$baseUrl/posts/$postId/comments'),
@@ -749,11 +756,7 @@ class AuthService {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
         },
-        body: json.encode({
-          'user_name': userName,
-          'user_avatar_url': userAvatarUrl,
-          'content': content,
-        }),
+        body: json.encode(body),
       );
 
       if (response.statusCode == 200) {

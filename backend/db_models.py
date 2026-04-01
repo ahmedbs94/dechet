@@ -70,9 +70,11 @@ class Comment(Base):
     user_name = Column(String)
     user_avatar_url = Column(String, nullable=True)
     content = Column(Text)
+    parent_id = Column(Integer, ForeignKey("comments.id"), nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 
     post = relationship("Post", back_populates="comments")
+    replies = relationship("Comment", backref="parent", remote_side=[id], lazy="joined")
 
 class OTPCode(Base):
     __tablename__ = "otp_codes"
