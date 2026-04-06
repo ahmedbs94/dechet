@@ -43,3 +43,27 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Project-specific
+# Backend Python
+backend/.env
+backend/sql_app.db
+backend/venv/
+backend/__pycache__/
+backend/*.pyc
+sql_app.db
+
+# Debug / reports generated
+*.txt
+!GUIDE_RESOLUTION.md
+!INSTALLATION_IMMEDIATE.md
+!RAPPORT_DIAGNOSTIC.md
+
+# Local scripts & generated artifacts
+*.bat
+*.ps1
+*.html
+image.png
+warnings.json
+keyhash_output.txt
+sha1_result.txt
