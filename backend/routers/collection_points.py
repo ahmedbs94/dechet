@@ -35,8 +35,6 @@ async def _reverse_geocode(lat: str, lng: str) -> str:
 
 
 # ── Version timestamp ──────────────────────────────────────────────────────────
-# Incrémenté à chaque création / modification / suppression.
-# Les clients Flutter vérifient ce timestamp avant de re-télécharger tous les points.
 _points_version: float = time.time()
 
 
@@ -45,11 +43,47 @@ def _bump_version():
     _points_version = time.time()
 
 
+# ── Création automatique d'alertes centre ──────────────────────────────────────
+def _create_center_alert(db: Session, point: db_models.CollectionPoint, new_status: str):
+    """
+    Crée une notification pour tous les admin, pointManager et collector
+    lorsqu'un centre passe en état 'saturé' ou 'maintenance'.
+    """
+    status_labels = {
+        "saturé": ("🔴 Centre Saturé", f"Le centre « {point.name} » est saturé et nécessite une collecte urgente."),
+        "sature": ("🔴 Centre Saturé", f"Le centre « {point.name} » est saturé et nécessite une collecte urgente."),
+        "maintenance": ("🟡 Maintenance Requise", f"Le centre « {point.name} » est en maintenance. Une intervention est nécessaire."),
+    }
+    if new_status.lower() not in status_labels:
+        return
+
+    title, body = status_labels[new_status.lower()]
+
+    # Récupérer tous les utilisateurs concernés
+    target_roles = ("admin", "pointManager", "collector")
+    users = db.query(db_models.User).filter(
+        db_models.User.role.in_(target_roles),
+        db_models.User.is_active == True,
+    ).all()
+
+    for user in users:
+        notif = db_models.Notification(
+            user_id=user.id,
+            type="center_alert",
+            title=title,
+            body=body,
+            from_user_name="Système EcoRewind",
+            post_id=point.id,   # On réutilise post_id pour stocker l'id du centre
+            is_read=False,
+        )
+        db.add(notif)
+
+    db.commit()
+
+
 @router.get("/collection-points/version")
 async def get_points_version():
-    """Retourne le timestamp de la dernière mise à jour des points de tri.
-    Endpoint ultra-léger : les clients l'appellent au démarrage pour savoir
-    s'ils doivent rafraîchir leur cache local."""
+    """Retourne le timestamp de la dernière mise à jour des points de tri."""
     return {
         "version": _points_version,
         "updated_at": datetime.fromtimestamp(_points_version, tz=timezone.utc).isoformat(),
@@ -58,18 +92,11 @@ async def get_points_version():
 
 @router.get("/collection-points/waste-types")
 async def get_waste_types():
-    """Retourne la liste des types de déchets disponibles pour la création d'un point de tri."""
+    """Retourne la liste des types de déchets disponibles."""
     return [
-        "Plastique",
-        "Verre",
-        "Papier",
-        "Carton",
-        "Métal",
-        "Électronique",
-        "Batteries",
-        "Compost",
-        "Vêtements",
-        "Général"
+        "Plastique", "Verre", "Papier", "Carton",
+        "Métal", "Électronique", "Batteries", "Compost",
+        "Vêtements", "Général"
     ]
 
 
@@ -141,13 +168,89 @@ async def list_points(type: Optional[str] = None, search: Optional[str] = None,
     return points
 
 
+@router.get("/admin/collection-points/alerts")
+async def get_center_alerts(
+    limit: int = 30,
+    db: Session = Depends(get_db),
+    current_user: db_models.User = Depends(get_current_user)
+):
+    """
+    Retourne les alertes centres de tri (notifications de type 'center_alert')
+    pour l'utilisateur courant (admin, pointManager ou collector).
+    """
+    if current_user.role not in ("admin", "pointManager", "collector"):
+        raise HTTPException(status_code=403, detail="Accès réservé aux gestionnaires et collecteurs")
+
+    alerts = (
+        db.query(db_models.Notification)
+        .filter(
+            db_models.Notification.user_id == current_user.id,
+            db_models.Notification.type == "center_alert",
+        )
+        .order_by(db_models.Notification.created_at.desc())
+        .limit(limit)
+        .all()
+    )
+
+    return [
+        {
+            "id": a.id,
+            "type": a.type,
+            "title": a.title,
+            "body": a.body,
+            "center_id": a.post_id,
+            "is_read": a.is_read,
+            "created_at": a.created_at.isoformat() if a.created_at else None,
+        }
+        for a in alerts
+    ]
+
+
+@router.get("/admin/collection-points/alerts/unread-count")
+async def get_center_alerts_unread_count(
+    db: Session = Depends(get_db),
+    current_user: db_models.User = Depends(get_current_user)
+):
+    """Retourne le nombre d'alertes centres non lues."""
+    if current_user.role not in ("admin", "pointManager", "collector"):
+        raise HTTPException(status_code=403, detail="Accès réservé")
+
+    count = (
+        db.query(db_models.Notification)
+        .filter(
+            db_models.Notification.user_id == current_user.id,
+            db_models.Notification.type == "center_alert",
+            db_models.Notification.is_read == False,
+        )
+        .count()
+    )
+    return {"count": count}
+
+
+@router.put("/admin/collection-points/alerts/read-all")
+async def mark_center_alerts_read(
+    db: Session = Depends(get_db),
+    current_user: db_models.User = Depends(get_current_user)
+):
+    """Marque toutes les alertes centres comme lues."""
+    if current_user.role not in ("admin", "pointManager", "collector"):
+        raise HTTPException(status_code=403, detail="Accès réservé")
+
+    db.query(db_models.Notification).filter(
+        db_models.Notification.user_id == current_user.id,
+        db_models.Notification.type == "center_alert",
+        db_models.Notification.is_read == False,
+    ).update({"is_read": True})
+    db.commit()
+    return {"message": "Toutes les alertes marquées comme lues"}
+
+
 @router.post("/admin/collection-points")
 async def create_point(point: models.CollectionPointCreate, db: Session = Depends(get_db),
                        current_user: db_models.User = Depends(get_current_user)):
     if current_user.role not in ("admin", "pointManager"):
         raise HTTPException(status_code=403, detail="Réservé aux administrateurs")
     data = point.dict()
-    # Géocodage inverse automatique si adresse manquante
     if not data.get("address"):
         data["address"] = await _reverse_geocode(data["lat"], data["lng"])
     db_point = db_models.CollectionPoint(**data)
@@ -155,6 +258,10 @@ async def create_point(point: models.CollectionPointCreate, db: Session = Depend
     db.commit()
     db.refresh(db_point)
     _bump_version()
+    # Alerter si le centre est créé directement en statut critique
+    new_status = data.get("status", "disponible")
+    if new_status in ("saturé", "sature", "maintenance"):
+        _create_center_alert(db, db_point, new_status)
     return _to_dict(db_point)
 
 
@@ -168,19 +275,30 @@ async def update_point(point_id: int, update: models.CollectionPointUpdate,
         db_models.CollectionPoint.id == point_id).first()
     if not db_point:
         raise HTTPException(status_code=404, detail="Point de collecte non trouvé")
+
     update_data = update.dict(exclude_unset=True)
+    old_status = db_point.status or "disponible"
+
     # Géocodage si position changée ou adresse vidée explicitement
     new_lat = update_data.get("lat", db_point.lat)
     new_lng = update_data.get("lng", db_point.lng)
     addr_sent = update_data.get("address", None)
     if addr_sent == "" or (("lat" in update_data or "lng" in update_data) and not db_point.address):
         update_data["address"] = await _reverse_geocode(str(new_lat), str(new_lng))
+
     for field, value in update_data.items():
         if value is not None:
             setattr(db_point, field, value)
     db.commit()
     db.refresh(db_point)
     _bump_version()
+
+    # ── Déclencher les alertes si le statut change vers un état critique ──────
+    new_status = update_data.get("status", old_status)
+    alert_statuses = {"saturé", "sature", "maintenance"}
+    if new_status.lower() in alert_statuses and new_status.lower() != old_status.lower():
+        _create_center_alert(db, db_point, new_status)
+
     return _to_dict(db_point)
 
 
@@ -216,5 +334,5 @@ async def delete_point(point_id: int, db: Session = Depends(get_db),
         raise HTTPException(status_code=404, detail="Point de collecte non trouvé")
     db.delete(db_point)
     db.commit()
-    _bump_version()  # ← notifie les clients qu'une mise à jour est disponible
+    _bump_version()
     return {"message": "Point de collecte supprimé"}

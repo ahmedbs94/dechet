@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -751,6 +752,11 @@ class _CollectionPointsManagementTab extends StatefulWidget {
 class _CollectionPointsManagementTabState extends State<_CollectionPointsManagementTab> {
   final AuthService _authService = AuthService();
   List<Map<String, dynamic>> _points = [];
+  List<Map<String, dynamic>> _alerts = [];
+  int _unreadCount = 0;
+  bool _loadingAlerts = true;
+  bool _showAlerts = true;
+  Timer? _pollingTimer;
   // Types pré-remplis (liste fixe du backend) + complétés par les centres chargés
   List<String> _typesFromApi = [
     'Plastique', 'Verre', 'Papier', 'Carton',
@@ -763,6 +769,105 @@ class _CollectionPointsManagementTabState extends State<_CollectionPointsManagem
   void initState() {
     super.initState();
     _loadPoints();
+    _loadAlerts();
+    _pollingTimer = Timer.periodic(const Duration(seconds: 30), (_) => _loadAlerts());
+  }
+
+  @override
+  void dispose() {
+    _pollingTimer?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _loadAlerts() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final jwt = prefs.getString('jwt_token');
+      if (jwt == null) return;
+      final response = await http.get(
+        Uri.parse('${AuthService.baseUrl}/admin/collection-points/alerts?limit=20'),
+        headers: {'Authorization': 'Bearer $jwt'},
+      );
+      final countRes = await http.get(
+        Uri.parse('${AuthService.baseUrl}/admin/collection-points/alerts/unread-count'),
+        headers: {'Authorization': 'Bearer $jwt'},
+      );
+      if (!mounted) return;
+      if (response.statusCode == 200) {
+        final data = json.decode(utf8.decode(response.bodyBytes)) as List;
+        final count = countRes.statusCode == 200
+            ? (json.decode(countRes.body)['count'] ?? 0) as int
+            : 0;
+        setState(() {
+          _alerts = data.cast<Map<String, dynamic>>();
+          _unreadCount = count;
+          _loadingAlerts = false;
+        });
+      } else {
+        setState(() => _loadingAlerts = false);
+      }
+    } catch (_) {
+      if (mounted) setState(() => _loadingAlerts = false);
+    }
+  }
+
+  Future<void> _markAlertsRead() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final jwt = prefs.getString('jwt_token');
+      if (jwt == null) return;
+      await http.put(
+        Uri.parse('${AuthService.baseUrl}/admin/collection-points/alerts/read-all'),
+        headers: {'Authorization': 'Bearer $jwt'},
+      );
+      await _loadAlerts();
+    } catch (_) {}
+  }
+
+  Future<void> _updatePointStatus(int id, String newStatus) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final jwt = prefs.getString('jwt_token');
+      final response = await http.put(
+        Uri.parse('${AuthService.baseUrl}/admin/collection-points/$id'),
+        headers: {'Authorization': 'Bearer $jwt', 'Content-Type': 'application/json'},
+        body: json.encode({'status': newStatus}),
+      );
+      if (!mounted) return;
+      if (response.statusCode == 200) {
+        final statusLabel = newStatus == 'disponible' ? '✅ Disponible'
+            : newStatus == 'saturé' ? '🔴 Saturé'
+            : '🟡 Maintenance';
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Statut mis à jour : $statusLabel'),
+          backgroundColor: newStatus == 'disponible' ? Colors.green
+              : newStatus == 'saturé' ? Colors.red : Colors.orange,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        ));
+        _loadPoints();
+        _loadAlerts();
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Erreur: $e'), backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
+        ));
+      }
+    }
+  }
+
+  String _timeAgo(String? isoDate) {
+    if (isoDate == null) return '';
+    try {
+      final dt = DateTime.parse(isoDate).toLocal();
+      final diff = DateTime.now().difference(dt);
+      if (diff.inMinutes < 1) return 'À l\'instant';
+      if (diff.inMinutes < 60) return 'Il y a ${diff.inMinutes} min';
+      if (diff.inHours < 24) return 'Il y a ${diff.inHours}h';
+      return 'Il y a ${diff.inDays}j';
+    } catch (_) { return ''; }
   }
 
   Future<void> _loadPoints() async {
@@ -980,7 +1085,125 @@ class _CollectionPointsManagementTabState extends State<_CollectionPointsManagem
             ),
           ],
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 20),
+
+        // ── Panneau Alertes Centres ──────────────────────────────────────────
+        GestureDetector(
+          onTap: () => setState(() => _showAlerts = !_showAlerts),
+          child: Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: _unreadCount > 0 ? Colors.red.shade50 : Colors.grey.shade50,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: _unreadCount > 0 ? Colors.red.shade200 : Colors.grey.shade200,
+              ),
+            ),
+            child: Row(children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: (_unreadCount > 0 ? Colors.red : Colors.grey).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(Icons.notifications_active_rounded,
+                    color: _unreadCount > 0 ? Colors.red : Colors.grey, size: 16),
+              ),
+              const SizedBox(width: 12),
+              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text('ALERTES CENTRES DE TRI',
+                    style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w900,
+                        letterSpacing: 1, color: _unreadCount > 0 ? Colors.red.shade800 : AppTheme.textMuted)),
+                Text(_unreadCount > 0 ? '$_unreadCount alerte(s) non lue(s)' : 'Aucune alerte non lue',
+                    style: GoogleFonts.inter(fontSize: 11,
+                        color: _unreadCount > 0 ? Colors.red.shade600 : AppTheme.textMuted)),
+              ])),
+              if (_unreadCount > 0)
+                TextButton(
+                  onPressed: _markAlertsRead,
+                  style: TextButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 10)),
+                  child: Text('Tout lire', style: GoogleFonts.inter(
+                      fontSize: 11, fontWeight: FontWeight.w700, color: AppTheme.primaryGreen)),
+                ),
+              Icon(_showAlerts ? Icons.keyboard_arrow_up_rounded : Icons.keyboard_arrow_down_rounded,
+                  color: AppTheme.textMuted, size: 18),
+            ]),
+          ),
+        ),
+
+        if (_showAlerts) ...[
+          const SizedBox(height: 12),
+          if (_loadingAlerts)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 20),
+              child: Center(child: CircularProgressIndicator(color: AppTheme.primaryGreen)),
+            )
+          else if (_alerts.isEmpty)
+            Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: Colors.grey.shade100),
+              ),
+              child: Row(children: [
+                Icon(Icons.check_circle_outline_rounded, color: AppTheme.primaryGreen.withOpacity(0.6), size: 20),
+                const SizedBox(width: 12),
+                Text('Aucune alerte récente — tous les centres sont normaux.',
+                    style: GoogleFonts.inter(fontSize: 12, color: AppTheme.textMuted)),
+              ]),
+            )
+          else
+            ..._alerts.map((alert) {
+              final isSature = (alert['title'] ?? '').toString().contains('Saturé');
+              final isRead = alert['is_read'] == true;
+              final color = isSature ? Colors.red : Colors.orange;
+              return Container(
+                margin: const EdgeInsets.only(bottom: 8),
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: isRead ? Colors.white : color.withOpacity(0.04),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(
+                    color: isRead ? Colors.grey.shade100 : color.withOpacity(0.25),
+                    width: isRead ? 1 : 1.5,
+                  ),
+                ),
+                child: Row(children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(color: color.withOpacity(0.1), shape: BoxShape.circle),
+                    child: Icon(
+                      isSature ? Icons.error_rounded : Icons.build_circle_rounded,
+                      color: color, size: 16,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Row(children: [
+                      Expanded(child: Text(alert['title'] ?? '',
+                          style: GoogleFonts.outfit(
+                            fontWeight: FontWeight.bold, fontSize: 12,
+                            color: isRead ? AppTheme.textMuted : AppTheme.deepSlate,
+                          ))),
+                      if (!isRead) Container(width: 7, height: 7,
+                          decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
+                    ]),
+                    const SizedBox(height: 3),
+                    Text(alert['body'] ?? '',
+                        style: GoogleFonts.inter(fontSize: 11, color: AppTheme.textMuted),
+                        maxLines: 2, overflow: TextOverflow.ellipsis),
+                    const SizedBox(height: 4),
+                    Text(_timeAgo(alert['created_at']?.toString()),
+                        style: GoogleFonts.inter(fontSize: 10, color: AppTheme.textMuted.withOpacity(0.6),
+                            fontWeight: FontWeight.w600)),
+                  ])),
+                ]),
+              );
+            }).toList(),
+        ],
+
+        const SizedBox(height: 20),
 
         // Filtres statut
         SingleChildScrollView(
@@ -1212,6 +1435,72 @@ class _CollectionPointsManagementTabState extends State<_CollectionPointsManagem
             ).toList()),
           ],
 
+          // ── Changement rapide de statut ─────────────────────────────────
+          const SizedBox(height: 14),
+          const Divider(height: 1, color: Color(0xFFF1F5F9)),
+          const SizedBox(height: 12),
+          Row(children: [
+            Text('STATUT RAPIDE', style: GoogleFonts.inter(
+                fontSize: 9, fontWeight: FontWeight.w900, letterSpacing: 1, color: AppTheme.textMuted)),
+            const Spacer(),
+            _StatusBtn(
+              label: 'Disponible',
+              color: Colors.green,
+              icon: Icons.check_circle_rounded,
+              active: rawStatus == 'disponible',
+              onTap: rawStatus == 'disponible' ? null : () => _updatePointStatus(p['id'], 'disponible'),
+            ),
+            const SizedBox(width: 6),
+            _StatusBtn(
+              label: 'Saturé',
+              color: Colors.red,
+              icon: Icons.warning_rounded,
+              active: rawStatus == 'saturé',
+              onTap: rawStatus == 'saturé' ? null : () => _updatePointStatus(p['id'], 'saturé'),
+            ),
+            const SizedBox(width: 6),
+            _StatusBtn(
+              label: 'Maint.',
+              color: Colors.orange,
+              icon: Icons.build_rounded,
+              active: rawStatus == 'maintenance',
+              onTap: rawStatus == 'maintenance' ? null : () => _updatePointStatus(p['id'], 'maintenance'),
+            ),
+          ]),
+
+        ]),
+      ),
+    );
+  }
+}
+
+// ── Widget bouton statut rapide ───────────────────────────────────────────────
+class _StatusBtn extends StatelessWidget {
+  final String label;
+  final Color color;
+  final IconData icon;
+  final bool active;
+  final VoidCallback? onTap;
+  const _StatusBtn({required this.label, required this.color, required this.icon, required this.active, this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+        decoration: BoxDecoration(
+          color: active ? color : color.withOpacity(0.07),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: active ? color : color.withOpacity(0.2)),
+        ),
+        child: Row(mainAxisSize: MainAxisSize.min, children: [
+          Icon(icon, size: 11, color: active ? Colors.white : color),
+          const SizedBox(width: 4),
+          Text(label, style: GoogleFonts.inter(
+              fontSize: 10, fontWeight: FontWeight.w800,
+              color: active ? Colors.white : color)),
         ]),
       ),
     );
