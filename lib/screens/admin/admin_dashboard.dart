@@ -26,8 +26,6 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> with Single
   final AuthService _authService = AuthService();
 
   // Admin stats (loaded from API)
-  Map<String, dynamic> _adminStats = {};
-  bool _statsLoading = true;
 
   @override
   void initState() {
@@ -37,8 +35,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> with Single
   }
 
   Future<void> _loadStats() async {
-    final stats = await _authService.fetchAdminStats();
-    if (mounted) setState(() { _adminStats = stats; _statsLoading = false; });
+    await _authService.fetchAdminStats();
   }
 
   @override
@@ -122,261 +119,6 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> with Single
     );
   }
 
-  Widget _buildOverviewTab() {
-    return SingleChildScrollView(
-      key: const PageStorageKey('admin_overview'),
-      primary: false,
-      padding: const EdgeInsets.all(24),
-      physics: const BouncingScrollPhysics(),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildKpiGroup(
-            label: 'COMMUNAUTÉ & CROISSANCE',
-            color: Colors.blue,
-            icon: Icons.people_alt_rounded,
-            children: _buildCommunityKpis(),
-          ),
-          const SizedBox(height: 24),
-          _buildKpiGroup(
-            label: 'MODÉRATION & ACTIONS',
-            color: Colors.orange,
-            icon: Icons.pending_actions_rounded,
-            children: _buildModerationKpis(),
-          ),
-          const SizedBox(height: 24),
-          _buildKpiGroup(
-            label: 'IMPACT ENVIRONNEMENTAL',
-            color: AppTheme.primaryGreen,
-            icon: Icons.eco_rounded,
-            children: _buildEnvironmentKpis(),
-          ),
-          const SizedBox(height: 100),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildKpiGroup({
-    required String label,
-    required Color color,
-    required IconData icon,
-    required List<Widget> children,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(6),
-              decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
-              child: Icon(icon, color: color, size: 14),
-            ),
-            const SizedBox(width: 10),
-            Text(label, style: GoogleFonts.outfit(fontWeight: FontWeight.w900, letterSpacing: 1.5, fontSize: 11, color: AppTheme.textMuted)),
-          ],
-        ),
-        const SizedBox(height: 12),
-        LayoutBuilder(
-          builder: (context, constraints) {
-            if (_statsLoading) {
-              return const Center(child: Padding(
-                padding: EdgeInsets.symmetric(vertical: 24),
-                child: CircularProgressIndicator(color: AppTheme.primaryGreen),
-              ));
-            }
-            return Wrap(spacing: 12, runSpacing: 12, children: children);
-          },
-        ),
-      ],
-    );
-  }
-
-  List<Widget> _buildCommunityKpis() {
-    String fmt(dynamic v) {
-      final n = (v as num?)?.toInt() ?? 0;
-      if (n >= 1000) return '${(n / 1000).toStringAsFixed(1)}k';
-      return '$n';
-    }
-    return [
-      _buildKpiCard(
-        title: 'Utilisateurs',
-        value: fmt(_adminStats['total_users']),
-        subtitle: 'Comptes actifs',
-        icon: Icons.group_rounded,
-        color: Colors.blue,
-      ),
-      _buildKpiCard(
-        title: 'Publications',
-        value: fmt(_adminStats['total_posts']),
-        subtitle: 'Posts soumis',
-        icon: Icons.library_books_rounded,
-        color: Colors.purple,
-      ),
-      _buildKpiCard(
-        title: 'Centres de Tri',
-        value: fmt(_adminStats['total_collection_points']),
-        subtitle: 'Points validés',
-        icon: Icons.map_rounded,
-        color: const Color(0xFFF59E0B),
-      ),
-      _buildKpiCard(
-        title: 'Témoignages',
-        value: fmt(_adminStats['total_testimonials']),
-        subtitle: 'Avis reçus',
-        icon: Icons.rate_review_rounded,
-        color: Colors.teal,
-      ),
-    ];
-  }
-
-  List<Widget> _buildModerationKpis() {
-    String fmt(dynamic v) {
-      final n = (v as num?)?.toInt() ?? 0;
-      if (n >= 1000) return '${(n / 1000).toStringAsFixed(1)}k';
-      return '$n';
-    }
-    final pendingPosts = (_adminStats['pending_review'] ?? 0) as int;
-    final pendingTesti = (_adminStats['pending_testimonials'] ?? 0) as int;
-    return [
-      _buildKpiCard(
-        title: 'Posts en Attente',
-        value: fmt(_adminStats['pending_review']),
-        subtitle: pendingPosts > 0 ? '⚠️ À modérer' : '✅ File vide',
-        icon: Icons.pending_actions_rounded,
-        color: pendingPosts > 0 ? Colors.red : Colors.green,
-        urgent: pendingPosts > 0,
-      ),
-      _buildKpiCard(
-        title: 'Témoignages ⏳',
-        value: fmt(_adminStats['pending_testimonials']),
-        subtitle: pendingTesti > 0 ? '⚠️ À approuver' : '✅ À jour',
-        icon: Icons.reviews_rounded,
-        color: pendingTesti > 0 ? Colors.orange : Colors.green,
-        urgent: pendingTesti > 0,
-      ),
-    ];
-  }
-
-  List<Widget> _buildEnvironmentKpis() {
-    final co2 = (_adminStats['co2_saved_kg'] as num?)?.toDouble() ?? 0;
-    final waste = (_adminStats['waste_sorted_kg'] as num?)?.toDouble() ?? 0;
-    final trees = (_adminStats['trees_equivalent'] as num?)?.toInt() ?? 0;
-
-    String fmtKg(double v) {
-      if (v >= 1000) return '${(v / 1000).toStringAsFixed(1)} T';
-      return '${v.toStringAsFixed(1)} kg';
-    }
-    return [
-      _buildKpiCard(
-        title: 'CO₂ Évité',
-        value: _statsLoading ? '...' : fmtKg(co2),
-        subtitle: 'Emissions évitées',
-        icon: Icons.cloud_done_rounded,
-        color: Colors.blueAccent,
-      ),
-      _buildKpiCard(
-        title: 'Déchets Triés',
-        value: _statsLoading ? '...' : fmtKg(waste),
-        subtitle: 'Correctement recyclés',
-        icon: Icons.recycling_rounded,
-        color: Colors.cyan.shade700,
-      ),
-      _buildKpiCard(
-        title: 'Arbres Équivalents',
-        value: _statsLoading ? '...' : '$trees 🌳',
-        subtitle: 'Préservés grâce au tri',
-        icon: Icons.forest_rounded,
-        color: AppTheme.primaryGreen,
-      ),
-    ];
-  }
-
-  Widget _buildKpiCard({
-    required String title,
-    required String value,
-    required String subtitle,
-    required IconData icon,
-    required Color color,
-    bool urgent = false,
-  }) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final parentWidth = constraints.maxWidth;
-        final cardWidth = parentWidth > 600 ? (parentWidth - 36) / 4 : (parentWidth - 12) / 2;
-        return Container(
-          width: cardWidth,
-          padding: const EdgeInsets.all(18),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(20),
-            boxShadow: AppTheme.tightShadow,
-            border: urgent ? Border.all(color: color.withOpacity(0.3), width: 1.5) : null,
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(color: color.withOpacity(0.1), shape: BoxShape.circle),
-                    child: Icon(icon, color: color, size: 18),
-                  ),
-                  if (urgent)
-                    Container(
-                      width: 8, height: 8,
-                      decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-                    ),
-                ],
-              ),
-              const SizedBox(height: 14),
-              Text(value, style: GoogleFonts.outfit(fontWeight: FontWeight.w900, fontSize: 22, color: AppTheme.deepSlate)),
-              const SizedBox(height: 2),
-              Text(title, style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w700, color: AppTheme.deepSlate)),
-              const SizedBox(height: 2),
-              Text(subtitle, style: GoogleFonts.inter(fontSize: 11, color: AppTheme.textMuted)),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildSummaryCard(String title, String value, String trend, IconData icon, Color color, double parentWidth, {VoidCallback? onTap}) {
-    double width = (parentWidth - 16) / 2;
-    final card = Container(
-      width: width,
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: AppTheme.tightShadow,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Container(padding: const EdgeInsets.all(8), decoration: BoxDecoration(color: color.withOpacity(0.1), shape: BoxShape.circle), child: Icon(icon, color: color, size: 20)),
-              Text(trend, style: TextStyle(color: trend.startsWith('+') ? Colors.green : Colors.red, fontWeight: FontWeight.bold, fontSize: 12)),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Text(value, style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 24, color: AppTheme.deepSlate)),
-          Text(title, style: const TextStyle(color: AppTheme.textMuted, fontSize: 12)),
-        ],
-      ),
-    );
-    if (onTap != null) {
-      return GestureDetector(onTap: onTap, child: card);
-    }
-    return card;
-  }
-
   Widget _buildContentValidationTab() {
     return _TestimonialsManagementTab();
   }
@@ -453,7 +195,7 @@ class _AdminHeaderState extends State<_AdminHeader> with SingleTickerProviderSta
         // Ligne décorative verticale
         Positioned(left: 0, top: 0, bottom: 0, child: Container(
           width: 3,
-          decoration: BoxDecoration(
+          decoration: const BoxDecoration(
             gradient: LinearGradient(
               colors: [Colors.transparent, AppTheme.primaryGreen, Colors.transparent],
               begin: Alignment.topCenter, end: Alignment.bottomCenter,
@@ -491,9 +233,8 @@ class _AdminHeaderState extends State<_AdminHeader> with SingleTickerProviderSta
                   )),
                   const SizedBox(height: 8),
                   // Badges info
-                  Row(children: [
+                  Wrap(spacing: 8, runSpacing: 6, children: [
                     _pill(Icons.calendar_today_rounded, dateStr, Colors.white24, Colors.white60),
-                    const SizedBox(width: 8),
                     _pill(Icons.circle, '● Système actif', AppTheme.primaryGreen.withOpacity(0.2),
                       AppTheme.primaryGreen),
                   ]),
@@ -899,11 +640,13 @@ class _CollectionPointsManagementTabState extends State<_CollectionPointsManagem
           ? ['Plastique', 'Verre', 'Papier', 'Carton', 'Métal', 'Électronique', 'Batteries', 'Compost', 'Vêtements', 'Général']
           : (typesSet.toList()..sort());
 
-      if (mounted) setState(() {
-        _points = points;
-        _typesFromApi = types;
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _points = points;
+          _typesFromApi = types;
+          _isLoading = false;
+        });
+      }
     } catch (e) {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -1019,10 +762,11 @@ class _CollectionPointsManagementTabState extends State<_CollectionPointsManagem
             types = raw.map((e) => e.toString()).toList();
           } else if (raw is String && raw.isNotEmpty) {
             final decoded = json.decode(raw);
-            if (decoded is List) types = decoded.cast<String>();
-            else if (decoded is Map) {
+            if (decoded is List) {
+              types = decoded.cast<String>();
+            } else if (decoded is Map) {
               for (final v in decoded.values) {
-                if (v is List) types.addAll(v.cast<String>());
+                if (v is List) { types.addAll(v.cast<String>()); }
               }
             }
           }
@@ -1047,12 +791,15 @@ class _CollectionPointsManagementTabState extends State<_CollectionPointsManagem
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         // En-tête
         Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-          Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text('RÉSEAU DE COLLECTE', style: GoogleFonts.outfit(
-              fontWeight: FontWeight.w900, letterSpacing: 1.5, fontSize: 11, color: AppTheme.textMuted)),
-            Text('${_points.length} points recensés',
-              style: GoogleFonts.outfit(fontWeight: FontWeight.w900, fontSize: 20, color: AppTheme.deepSlate)),
-          ]),
+          Expanded(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text('RÉSEAU DE COLLECTE', style: GoogleFonts.outfit(
+                fontWeight: FontWeight.w900, letterSpacing: 1.5, fontSize: 11, color: AppTheme.textMuted)),
+              Text('${_points.length} points recensés',
+                style: GoogleFonts.outfit(fontWeight: FontWeight.w900, fontSize: 20, color: AppTheme.deepSlate)),
+            ]),
+          ),
+          const SizedBox(width: 8),
           ElevatedButton.icon(
             onPressed: () => _openAddEditScreen(),
             icon: const Icon(Icons.add_location_alt_rounded, size: 18),
@@ -1149,8 +896,10 @@ class _CollectionPointsManagementTabState extends State<_CollectionPointsManagem
               child: Row(children: [
                 Icon(Icons.check_circle_outline_rounded, color: AppTheme.primaryGreen.withOpacity(0.6), size: 20),
                 const SizedBox(width: 12),
-                Text('Aucune alerte récente — tous les centres sont normaux.',
-                    style: GoogleFonts.inter(fontSize: 12, color: AppTheme.textMuted)),
+                Expanded(
+                  child: Text('Aucune alerte récente — tous les centres sont normaux.',
+                      style: GoogleFonts.inter(fontSize: 12, color: AppTheme.textMuted)),
+                ),
               ]),
             )
           else
@@ -1375,7 +1124,7 @@ class _CollectionPointsManagementTabState extends State<_CollectionPointsManagem
               if (address.isNotEmpty) ...[
                 const SizedBox(height: 6),
                 Row(children: [
-                  Icon(Icons.place_outlined, size: 12, color: AppTheme.textMuted),
+                  const Icon(Icons.place_outlined, size: 12, color: AppTheme.textMuted),
                   const SizedBox(width: 4),
                   Expanded(child: Text(address, style: GoogleFonts.inter(
                     color: AppTheme.textMuted, fontSize: 11), maxLines: 2,
@@ -1385,7 +1134,7 @@ class _CollectionPointsManagementTabState extends State<_CollectionPointsManagem
               if (hours.isNotEmpty) ...[
                 const SizedBox(height: 3),
                 Row(children: [
-                  Icon(Icons.access_time_rounded, size: 12, color: AppTheme.textMuted),
+                  const Icon(Icons.access_time_rounded, size: 12, color: AppTheme.textMuted),
                   const SizedBox(width: 4),
                   Text(hours, style: GoogleFonts.inter(color: AppTheme.textMuted, fontSize: 11)),
                 ]),
@@ -1439,34 +1188,38 @@ class _CollectionPointsManagementTabState extends State<_CollectionPointsManagem
           const SizedBox(height: 14),
           const Divider(height: 1, color: Color(0xFFF1F5F9)),
           const SizedBox(height: 12),
-          Row(children: [
-            Text('STATUT RAPIDE', style: GoogleFonts.inter(
-                fontSize: 9, fontWeight: FontWeight.w900, letterSpacing: 1, color: AppTheme.textMuted)),
-            const Spacer(),
-            _StatusBtn(
-              label: 'Disponible',
-              color: Colors.green,
-              icon: Icons.check_circle_rounded,
-              active: rawStatus == 'disponible',
-              onTap: rawStatus == 'disponible' ? null : () => _updatePointStatus(p['id'], 'disponible'),
-            ),
-            const SizedBox(width: 6),
-            _StatusBtn(
-              label: 'Saturé',
-              color: Colors.red,
-              icon: Icons.warning_rounded,
-              active: rawStatus == 'saturé',
-              onTap: rawStatus == 'saturé' ? null : () => _updatePointStatus(p['id'], 'saturé'),
-            ),
-            const SizedBox(width: 6),
-            _StatusBtn(
-              label: 'Maint.',
-              color: Colors.orange,
-              icon: Icons.build_rounded,
-              active: rawStatus == 'maintenance',
-              onTap: rawStatus == 'maintenance' ? null : () => _updatePointStatus(p['id'], 'maintenance'),
-            ),
-          ]),
+          Wrap(
+            alignment: WrapAlignment.start,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            spacing: 6,
+            runSpacing: 6,
+            children: [
+              Text('STATUT RAPIDE', style: GoogleFonts.inter(
+                  fontSize: 9, fontWeight: FontWeight.w900, letterSpacing: 1, color: AppTheme.textMuted)),
+              const SizedBox(width: 4),
+              _StatusBtn(
+                label: 'Disponible',
+                color: Colors.green,
+                icon: Icons.check_circle_rounded,
+                active: rawStatus == 'disponible',
+                onTap: rawStatus == 'disponible' ? null : () => _updatePointStatus(p['id'], 'disponible'),
+              ),
+              _StatusBtn(
+                label: 'Saturé',
+                color: Colors.red,
+                icon: Icons.warning_rounded,
+                active: rawStatus == 'saturé',
+                onTap: rawStatus == 'saturé' ? null : () => _updatePointStatus(p['id'], 'saturé'),
+              ),
+              _StatusBtn(
+                label: 'Maint.',
+                color: Colors.orange,
+                icon: Icons.build_rounded,
+                active: rawStatus == 'maintenance',
+                onTap: rawStatus == 'maintenance' ? null : () => _updatePointStatus(p['id'], 'maintenance'),
+              ),
+            ],
+          ),
 
         ]),
       ),
@@ -1678,8 +1431,10 @@ class _PostsModerationTabState extends State<_PostsModerationTab> {
         ),
         borderRadius: BorderRadius.circular(20),
       ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
+      child: Wrap(
+        alignment: WrapAlignment.spaceAround,
+        spacing: 12,
+        runSpacing: 12,
         children: [
           _statChip('Publiés', published, Colors.green),
           _statChip('En attente', pending, Colors.amber),

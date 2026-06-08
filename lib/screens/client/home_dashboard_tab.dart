@@ -10,7 +10,9 @@ import '../../models/post_model.dart';
 import '../../services/auth_service.dart';
 import '../../constants.dart';
 import '../../widgets/auth_prompt_dialog.dart';
-import 'notifications_screen.dart';
+import '../../screens/client/notifications_screen.dart';
+import '../../screens/client/bin_scanner_screen.dart';
+import '../../features/scan/scan_history_screen.dart';
 
 class HomeDashboardTab extends StatefulWidget {
   final Function(int) onNavigate;
@@ -102,6 +104,13 @@ class _HomeDashboardTabState extends State<HomeDashboardTab> with SingleTickerPr
     if (v >= 1000) return '${(v / 1000).toStringAsFixed(1)}k${kg ? ' T' : ''}';
     return '${v.toInt()}${kg ? ' kg' : ''}';
   }
+
+  String _getLevelBadge(double score) {
+    if (score >= 5000) return 'Légende Éco 👑';
+    if (score >= 2000) return 'Champion Vert 🏆';
+    return 'Éco-Citoyen 🪙';
+  }
+
 
   @override
   void dispose() {
@@ -210,9 +219,9 @@ class _HomeDashboardTabState extends State<HomeDashboardTab> with SingleTickerPr
                   )],
                 ),
                 child: ClipOval(
-                  child: (user?.avatarUrl != null && user?.avatarUrl!.isNotEmpty == true)
-                      ? Image.network(user!.avatarUrl!, fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => _avatarFallback(user?.name ?? 'E'))
+                  child: (user?.avatarUrl != null && user!.avatarUrl.isNotEmpty)
+                      ? Image.network(user.avatarUrl, fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => _avatarFallback(user.name))
                       : _avatarFallback(user?.name ?? 'E'),
                 ),
               ),
@@ -235,13 +244,13 @@ class _HomeDashboardTabState extends State<HomeDashboardTab> with SingleTickerPr
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(28),
         gradient: const LinearGradient(
-          colors: [Color(0xFF0A3D2E), AppTheme.deepNavy],
+          colors: [Color(0xFF052E24), AppTheme.deepNavy],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         boxShadow: [
           BoxShadow(
-            color: AppTheme.deepNavy.withOpacity(0.25),
+            color: AppTheme.deepNavy.withOpacity(0.3),
             blurRadius: 30,
             offset: const Offset(0, 15),
           ),
@@ -290,22 +299,35 @@ class _HomeDashboardTabState extends State<HomeDashboardTab> with SingleTickerPr
                             'Bonjour 👋',
                             style: GoogleFonts.inter(
                               color: Colors.white.withOpacity(0.6),
-                              fontSize: 14,
+                              fontSize: 13,
                               fontWeight: FontWeight.w500,
                             ),
                           ),
                           const SizedBox(height: 4),
                           Text(
                             name,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                             style: GoogleFonts.spaceGrotesk(
                               color: Colors.white,
-                              fontSize: 26,
+                              fontSize: 24,
                               fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            _getLevelBadge(user?.globalScore ?? 0.0),
+                            style: GoogleFonts.inter(
+                              color: AppTheme.accentMint,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: 0.2,
                             ),
                           ),
                         ],
                       ),
                     ),
+                    const SizedBox(width: 8),
                     Container(
                       padding: const EdgeInsets.all(14),
                       decoration: BoxDecoration(
@@ -356,7 +378,7 @@ class _HomeDashboardTabState extends State<HomeDashboardTab> with SingleTickerPr
                             crossAxisAlignment: CrossAxisAlignment.end,
                             children: [
                               Text(
-                                '${user?.globalScore.toStringAsFixed(1) ?? '0.0'}',
+                                user?.globalScore.toStringAsFixed(1) ?? '0.0',
                                 style: GoogleFonts.outfit(
                                   color: Colors.white,
                                   fontSize: 32,
@@ -427,53 +449,60 @@ class _HomeDashboardTabState extends State<HomeDashboardTab> with SingleTickerPr
   Widget _buildTipOfTheDay() {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 20),
-      padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            const Color(0xFFFEF3C7),
-            Colors.amber.shade50,
-          ],
-        ),
+        color: Colors.amber.shade50.withOpacity(0.4),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFFFDE68A)),
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: Colors.amber.withOpacity(0.2),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: const Icon(Icons.lightbulb_rounded, color: Color(0xFFF59E0B), size: 20),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Conseil du jour 💡',
-                  style: GoogleFonts.outfit(
-                    fontWeight: FontWeight.w800,
-                    fontSize: 14,
-                    color: const Color(0xFF92400E),
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  'Rincez vos contenants en plastique avant de les jeter pour un meilleur recyclage.',
-                  style: GoogleFonts.inter(
-                    fontSize: 12,
-                    color: const Color(0xFFB45309),
-                    height: 1.4,
-                  ),
-                ),
-              ],
-            ),
+        border: Border.all(color: Colors.amber.shade200.withOpacity(0.5), width: 1.5),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.amber.shade500.withOpacity(0.03),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
           ),
         ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(20),
+        child: Padding(
+          padding: const EdgeInsets.all(18),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: Colors.amber.withOpacity(0.12),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(Icons.lightbulb_rounded, color: Color(0xFFD97706), size: 20),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Conseil du jour 💡',
+                      style: GoogleFonts.outfit(
+                        fontWeight: FontWeight.w800,
+                        fontSize: 14,
+                        color: const Color(0xFF92400E),
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'Rincez vos contenants en plastique avant de les jeter pour un meilleur recyclage.',
+                      style: GoogleFonts.inter(
+                        fontSize: 12,
+                        color: const Color(0xFFB45309),
+                        height: 1.4,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     ).animate().fadeIn(delay: 300.ms).slideX(begin: -0.05, end: 0);
   }
@@ -493,15 +522,17 @@ class _HomeDashboardTabState extends State<HomeDashboardTab> with SingleTickerPr
             ),
           ),
           const SizedBox(height: 16),
+          // Bouton Scanner en vedette (pleine largeur)
+          _buildScannerBanner(),
+          const SizedBox(height: 12),
           GridView.count(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
             crossAxisCount: 2,
             mainAxisSpacing: 12,
             crossAxisSpacing: 12,
-            childAspectRatio: 1.35,
+            childAspectRatio: 1.45,
             children: [
-              // Scanner retiré — fonctionnalité non disponible
               _buildActionCard(
                 'Centres de Tri',
                 Icons.location_on_rounded,
@@ -518,19 +549,142 @@ class _HomeDashboardTabState extends State<HomeDashboardTab> with SingleTickerPr
                 'Fil Citoyen',
                 Icons.people_alt_rounded,
                 const Color(0xFF8B5CF6),
-                0, // feed is index 0
+                0,
               ),
               _buildActionCard(
                 'Boutique',
                 Icons.shopping_bag_rounded,
                 const Color(0xFFEF4444),
-                2, // rewards is index 2
+                2,
               ),
             ],
           ),
         ],
       ),
     );
+  }
+
+  /// Bannière Scanner QR pleine largeur avec animation pulse
+  Widget _buildScannerBanner() {
+    return GestureDetector(
+      onTap: () {
+        if (!AuthState.isLoggedIn) {
+          AuthPromptDialog.show(context: context);
+          return;
+        }
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const BinScannerScreen()),
+        );
+      },
+      child: Container(
+        height: 76,
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [Color(0xFF052E24), AppTheme.deepNavy],
+            begin: Alignment.centerLeft,
+            end: Alignment.centerRight,
+          ),
+          borderRadius: BorderRadius.circular(22),
+          boxShadow: [
+            BoxShadow(
+              color: AppTheme.primaryGreen.withOpacity(0.22),
+              blurRadius: 18,
+              offset: const Offset(0, 6),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            const SizedBox(width: 18),
+            // Icône animée
+            Container(
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [AppTheme.primaryGreen, AppTheme.accentTeal],
+                ),
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: AppTheme.primaryGreen.withOpacity(0.4),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: const Icon(
+                Icons.qr_code_scanner_rounded,
+                color: Colors.white,
+                size: 24,
+              ),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Scanner une Poubelle',
+                    style: GoogleFonts.outfit(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w900,
+                      fontSize: 15,
+                    ),
+                  ),
+                  Text(
+                    'Gagnez des points éco instantanément',
+                    style: GoogleFonts.inter(
+                      color: AppTheme.accentMint.withOpacity(0.8),
+                      fontSize: 11,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            // Bouton historique
+            GestureDetector(
+              onTap: () {
+                if (!AuthState.isLoggedIn) {
+                  AuthPromptDialog.show(context: context);
+                  return;
+                }
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const ScanHistoryScreen()),
+                );
+              },
+              child: Container(
+                margin: const EdgeInsets.only(right: 14),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.08),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.white.withOpacity(0.15)),
+                ),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.history_rounded, color: Colors.white70, size: 16),
+                    const SizedBox(height: 2),
+                    Text(
+                      'Historique',
+                      style: GoogleFonts.inter(
+                        color: Colors.white54,
+                        fontSize: 9,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    ).animate().fadeIn(delay: 150.ms).slideY(begin: 0.1, end: 0);
   }
 
   Widget _buildActionCard(
@@ -547,15 +701,13 @@ class _HomeDashboardTabState extends State<HomeDashboardTab> with SingleTickerPr
           AuthPromptDialog.show(context: context);
           return;
         }
-        if (title.contains('Scanner')) {
-          Navigator.pushNamed(context, '/scanner');
-        } else if (title.contains('Apprendre')) {
+        if (title.contains('Apprendre')) {
           Navigator.pushNamed(context, '/multimedia');
         }
         widget.onNavigate(targetTab);
       },
       child: Container(
-        padding: const EdgeInsets.all(18),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         decoration: BoxDecoration(
           color: isSpecial ? color.withOpacity(0.06) : Colors.white,
           borderRadius: BorderRadius.circular(22),
@@ -571,27 +723,42 @@ class _HomeDashboardTabState extends State<HomeDashboardTab> with SingleTickerPr
                     offset: const Offset(0, 6),
                   ),
                 ]
-              : [],
+              : [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.02),
+                    blurRadius: 8,
+                    offset: const Offset(0, 4),
+                  )
+                ],
         ),
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
           crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Container(
-              padding: const EdgeInsets.all(10),
+              padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
                 color: color.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: Icon(icon, color: color, size: 22),
+              child: Icon(icon, color: color, size: 20),
             ),
-            const SizedBox(height: 14),
-            Text(
-              title,
-              style: GoogleFonts.outfit(
-                fontSize: 14,
-                fontWeight: FontWeight.w800,
-                color: AppTheme.deepNavy,
+            const SizedBox(height: 8),
+            Expanded(
+              child: Align(
+                alignment: Alignment.bottomLeft,
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    title,
+                    style: GoogleFonts.outfit(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w800,
+                      color: AppTheme.deepNavy,
+                    ),
+                  ),
+                ),
               ),
             ),
           ],
@@ -731,6 +898,8 @@ class _HomeDashboardTabState extends State<HomeDashboardTab> with SingleTickerPr
                   const SizedBox(height: 8),
                   Text(
                     title,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                     style: GoogleFonts.spaceGrotesk(
                       color: Colors.white,
                       fontSize: 16,
@@ -814,11 +983,11 @@ class _HomeDashboardTabState extends State<HomeDashboardTab> with SingleTickerPr
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              _buildImpactStat(_fmt(co2Val), 'CO₂ ÉVITÉ', Icons.cloud_done_rounded),
+              Expanded(child: _buildImpactStat(_fmt(co2Val), 'CO₂ ÉVITÉ', Icons.cloud_done_rounded)),
               Container(width: 1, height: 40, color: Colors.white.withOpacity(0.08)),
-              _buildImpactStat(_fmt(wasteVal, kg: true), 'TRIÉ', Icons.recycling_rounded),
+              Expanded(child: _buildImpactStat(_fmt(wasteVal, kg: true), 'TRIÉ', Icons.recycling_rounded)),
               Container(width: 1, height: 40, color: Colors.white.withOpacity(0.08)),
-              _buildImpactStat('$treesVal 🌳', 'ARBRES', Icons.forest_rounded),
+              Expanded(child: _buildImpactStat('$treesVal 🌳', 'ARBRES', Icons.forest_rounded)),
             ],
           ),
         ],
@@ -828,25 +997,32 @@ class _HomeDashboardTabState extends State<HomeDashboardTab> with SingleTickerPr
 
   Widget _buildImpactStat(String value, String label, IconData icon) {
     return Column(
+      mainAxisSize: MainAxisSize.min,
       children: [
         Icon(icon, color: AppTheme.accentTeal, size: 24),
         const SizedBox(height: 10),
-        Text(
-          value,
-          style: GoogleFonts.outfit(
-            color: Colors.white,
-            fontSize: 22,
-            fontWeight: FontWeight.w900,
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(
+            value,
+            style: GoogleFonts.outfit(
+              color: Colors.white,
+              fontSize: 22,
+              fontWeight: FontWeight.w900,
+            ),
           ),
         ),
         const SizedBox(height: 2),
-        Text(
-          label,
-          style: GoogleFonts.inter(
-            color: Colors.white.withOpacity(0.4),
-            fontSize: 9,
-            fontWeight: FontWeight.w700,
-            letterSpacing: 0.5,
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(
+            label,
+            style: GoogleFonts.inter(
+              color: Colors.white.withOpacity(0.4),
+              fontSize: 9,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.5,
+            ),
           ),
         ),
       ],
@@ -911,7 +1087,7 @@ class _HomeDashboardTabState extends State<HomeDashboardTab> with SingleTickerPr
               );
             }
             return SizedBox(
-              height: 120,
+              height: 136,
               child: ListView.builder(
                 scrollDirection: Axis.horizontal,
                 padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -929,9 +1105,9 @@ class _HomeDashboardTabState extends State<HomeDashboardTab> with SingleTickerPr
 
   Widget _buildMiniPostCard(Post post) {
     return Container(
-      width: 220,
-      margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      padding: const EdgeInsets.all(14),
+      width: 225,
+      margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),

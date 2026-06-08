@@ -196,6 +196,12 @@ def _format_post(post, liked_ids=None, saved_ids=None, is_liked=False, is_saved=
         "description": post.description or "",
         "created_at": _utc_iso(post.created_at),
         "likes_count": post.likes_count or 0,
+        # ── Champs de modération IA ───────────────────────────────────────────
+        "status": post.status or "pending_ai",
+        "moderation_score": post.moderation_score or 0.0,
+        "moderation_reason": post.moderation_reason or None,
+        "moderated_at": _utc_iso(post.moderated_at) if post.moderated_at else None,
+        "moderation_model_version": post.moderation_model_version or None,
         "comments": [
             {"id": c.id, "post_id": c.post_id, "user_id": c.user_id,
              "user_name": c.user_name, "user_avatar_url": c.user_avatar_url,
@@ -301,52 +307,120 @@ async def moderate_image(file: UploadFile = File(...)):
 async def create_post(post: models.PostCreate, db: Session = Depends(get_db),
                       current_user: db_models.User = Depends(get_current_user)):
     """
-    Crée une publication avec vérification IA automatique :
-      - score < 0.30 → publié directement
-      - 0.30 ≤ score < 0.65 → en attente de validation admin
-      - score ≥ 0.65 → rejeté automatiquement (403)
+    Flux de publication avec audit IA complet :
+
+    1. Le post est IMMÉDIATEMENT persisté en DB avec status="pending_ai".
+       → Garantit la traçabilité même si l'IA plante en cours d'analyse.
+
+    2. L'IA analyse texte + image.
+
+    3. Le statut est mis à jour selon le résultat :
+         - score < 0.30                → "published"
+         - 0.30 ≤ score < 0.65        → "pending_review" (admin valide)
+         - score ≥ 0.65 (ou "rejected") → "pending_review" (admin tranche,
+           jamais auto-supprimé pour conserver la preuve de tentative)
+
+    4. moderated_at et moderation_model_version sont enregistrés à chaque décision.
     """
     from moderation_ai.eco_moderator import cnn_moderator as moderator
+    from fastapi.responses import JSONResponse as _JSONResponse
 
+    # ── Étape 1 : Créer le post en DB avec status="pending_ai" ─────────────────
+    # Garantit l'auditabilité même si l'analyse IA échoue.
+    new_post = db_models.Post(
+        user_id=current_user.id,
+        user_name=post.user_name,
+        user_avatar_url=post.user_avatar_url,
+        image_url=post.image_url,
+        description=post.description,
+        status="pending_ai",        # Statut transitoire obligatoire
+        moderation_score=0.0,
+        moderation_reason=None,
+        moderation_details=None,
+        moderated_at=None,
+        moderation_model_version=None,
+    )
+    db.add(new_post)
+    db.commit()
+    db.refresh(new_post)
+
+    if IS_DEV:
+        print(f"📝 [MOD] Post {new_post.id} créé → status=pending_ai (avant analyse IA)")
+
+    # ── Étape 2 : Analyse IA ────────────────────────────────────────────────────
     # Résoudre le chemin local de l'image pour l'analyse IA
     image_local_path = ""
     if post.image_url:
-        # image_url = "/uploads/abc123.jpg" → chemin local réel
         filename = os.path.basename(post.image_url)
         candidate = os.path.join(UPLOADS_DIR, filename)
         if os.path.exists(candidate):
             image_local_path = candidate
 
-    # Lancer la modération IA
-    mod_result = moderator.moderate(
-        text=post.description or "",
-        image_local_path=image_local_path,
-    )
+    try:
+        mod_result = moderator.moderate(
+            text=post.description or "",
+            image_local_path=image_local_path,
+        )
+        ai_error = False
+    except Exception as e:
+        # L'IA a planté : le post reste en pending_ai (ne sera pas publié)
+        # L'admin verra les posts bloqués en pending_ai et pourra intervenir.
+        if IS_DEV:
+            print(f"🔴 [MOD] Erreur IA sur post {new_post.id} : {e}")
+        new_post.moderation_reason = f"AI_ERROR:{str(e)[:120]}"
+        new_post.moderated_at = datetime.utcnow()
+        db.commit()
+        # Retourner le post en pending_ai — Flutter affiche un message générique
+        post_data = _format_post(new_post)
+        post_data["ai_flagged"] = False
+        return _JSONResponse(content=post_data, status_code=200)
 
     if IS_DEV:
-        print(f"🤖 [MOD] score={mod_result.score:.3f} status={mod_result.status} | {mod_result.reasons}")
+        print(f"🤖 [MOD] Post {new_post.id} score={mod_result.score:.3f} status={mod_result.status} | {mod_result.reasons}")
 
-    # ── Contenu signalé par l'IA → envoi en file admin (pending_review) ──────
+    # ── Étape 3 : Calculer le statut final et la version du modèle ─────────────
+    # Construire la version du pipeline utilisé (ex: "cnn_text+resnet18+nudenet")
+    model_parts = []
+    if mod_result.text_model_used:
+        model_parts.append(mod_result.text_model_used)
+    if mod_result.image_model_used:
+        model_parts.append(mod_result.image_model_used)
+    # Ajouter le nom du pipeline CNN si disponible
+    try:
+        if hasattr(moderator, '_obj') and moderator._obj is not None:
+            model_parts.append("EcoCNN_v1")
+        elif hasattr(moderator, '_cnn_ready'):
+            model_parts.append("EcoCNN_v1")
+    except Exception:
+        pass
+    model_version = "|".join(model_parts) if model_parts else "rules_only"
+
+    # Le contenu signalé comme rejected → envoyé en pending_review (admin décide)
     if mod_result.status == "rejected":
         details = _rejection_details(mod_result.reasons, mod_result.score)
+        final_status = "pending_review"
+        moderation_reason = f"AI_FLAGGED:{details['category']}"
+    else:
+        details = None
+        final_status = mod_result.status   # "published" ou "pending_review"
+        moderation_reason = mod_result.short_reason
 
-        # Sauvegarder le post en pending_review (l'admin tranche)
-        new_post = db_models.Post(
-            user_id=current_user.id,
-            user_name=post.user_name,
-            user_avatar_url=post.user_avatar_url,
-            image_url=post.image_url,
-            description=post.description,
-            status="pending_review",
-            moderation_score=mod_result.score,
-            moderation_reason=f"AI_FLAGGED:{details['category']}",
-            moderation_details=mod_result.to_json(),
-        )
-        db.add(new_post)
-        db.commit()
-        db.refresh(new_post)
+    # ── Étape 4 : Mettre à jour le post avec le résultat de l'IA ───────────────
+    new_post.status                   = final_status
+    new_post.moderation_score         = mod_result.score
+    new_post.moderation_reason        = moderation_reason
+    new_post.moderation_details       = mod_result.to_json()
+    new_post.moderated_at             = datetime.utcnow()   # Horodatage de la décision
+    new_post.moderation_model_version = model_version
+    db.commit()
+    db.refresh(new_post)
 
-        # Notifier l'utilisateur : signalement → admin en cours
+    if IS_DEV:
+        print(f"✅ [MOD] Post {new_post.id} mis à jour → status={final_status} | model={model_version}")
+
+    # ── Étape 5 : Notifications ─────────────────────────────────────────────────
+    if details is not None:
+        # Contenu initialement rejeté → signalé, admin tranche
         notif = db_models.Notification(
             user_id=current_user.id,
             type="moderation",
@@ -362,15 +436,9 @@ async def create_post(post: models.PostCreate, db: Session = Depends(get_db),
         db.add(notif)
         db.commit()
 
-        if IS_DEV:
-            print(f"🤖 [MOD] ⚠️ Post {new_post.id} signalé → pending_review (admin) | {details['category']}")
-
-        # Retourner une réponse enrichie pour que Flutter affiche le bon dialog
-        from fastapi.responses import JSONResponse as _JSONResponse
         post_data = _format_post(new_post)
         post_data.update({
-            "status": "pending_review",
-            "ai_flagged": True,
+            "ai_flagged":         True,
             "rejection_category": details["category"],
             "rejection_title":    details["title"],
             "rejection_body":     details["body"],
@@ -378,24 +446,7 @@ async def create_post(post: models.PostCreate, db: Session = Depends(get_db),
         })
         return _JSONResponse(content=post_data, status_code=200)
 
-    # Créer la publication (publiée ou pending_review normale)
-    new_post = db_models.Post(
-        user_id=current_user.id,
-        user_name=post.user_name,
-        user_avatar_url=post.user_avatar_url,
-        image_url=post.image_url,
-        description=post.description,
-        status=mod_result.status,
-        moderation_score=mod_result.score,
-        moderation_reason=mod_result.short_reason,
-        moderation_details=mod_result.to_json(),
-    )
-    db.add(new_post)
-    db.commit()
-    db.refresh(new_post)
-
-    # Si en attente de revue (incertitude IA), notifier l'auteur
-    if mod_result.status == "pending_review":
+    if final_status == "pending_review":
         notif = db_models.Notification(
             user_id=current_user.id,
             type="moderation",
@@ -407,11 +458,7 @@ async def create_post(post: models.PostCreate, db: Session = Depends(get_db),
         db.add(notif)
         db.commit()
 
-    # Retourner une JSONResponse explicite avec status garanti
-    # (évite que FastAPI filtre silencieusement le champ status via le schema Pydantic)
-    from fastapi.responses import JSONResponse as _JSONResponse
     post_data = _format_post(new_post)
-    post_data["status"] = new_post.status   # "published" ou "pending_review"
     post_data["ai_flagged"] = False
     return _JSONResponse(content=post_data, status_code=200)
 

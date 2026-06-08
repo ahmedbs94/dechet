@@ -181,7 +181,7 @@ class _CreateMeetingScreenState extends State<CreateMeetingScreen> {
           padding: const EdgeInsets.all(20),
           children: [
             // ── Nom du cours ───────────────────────────────────────────────
-            _SectionLabel('Nom du cours'),
+            const _SectionLabel('Nom du cours'),
             _StyledField(
               controller: _titleCtrl,
               hint: 'Ex : Tri des déchets plastiques',
@@ -191,7 +191,7 @@ class _CreateMeetingScreenState extends State<CreateMeetingScreen> {
             const SizedBox(height: 20),
 
             // ── Description ────────────────────────────────────────────────
-            _SectionLabel('Description / Objectifs'),
+            const _SectionLabel('Description / Objectifs'),
             _StyledField(
               controller: _descCtrl,
               hint: 'Décrivez les objectifs de cette séance...',
@@ -201,7 +201,7 @@ class _CreateMeetingScreenState extends State<CreateMeetingScreen> {
             const SizedBox(height: 20),
 
             // ── Date & Heure ────────────────────────────────────────────────
-            _SectionLabel('Date & Heure'),
+            const _SectionLabel('Date & Heure'),
             Row(children: [
               Expanded(child: _DateTimeChip(
                 icon: Icons.calendar_today_rounded,
@@ -218,7 +218,7 @@ class _CreateMeetingScreenState extends State<CreateMeetingScreen> {
             const SizedBox(height: 20),
 
             // ── Durée ──────────────────────────────────────────────────────
-            _SectionLabel('Durée de la séance'),
+            const _SectionLabel('Durée de la séance'),
             _DurationSelector(
               value: _durationMinutes,
               onChanged: (v) => setState(() => _durationMinutes = v),
@@ -226,14 +226,14 @@ class _CreateMeetingScreenState extends State<CreateMeetingScreen> {
             const SizedBox(height: 20),
 
             // ── Audience ────────────────────────────────────────────────────
-            _SectionLabel('Destinataires'),
+            const _SectionLabel('Destinataires'),
             _AudienceSelector(
               value: _audience,
               onChanged: (v) => setState(() => _audience = v),
             ),
             if (_audience == 'group') ...[
               const SizedBox(height: 12),
-              _SectionLabel('Sélectionner un groupe'),
+              const _SectionLabel('Sélectionner un groupe'),
               // Dropdown groupes existants
               if (_groups.isNotEmpty)
                 Container(

@@ -66,7 +66,7 @@ class _RewardsTabState extends State<RewardsTab> {
   Widget build(BuildContext context) {
     final level = _computeLevel(_score);
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: RefreshIndicator(
         color: AppTheme.primaryGreen,
         onRefresh: _loadScore,
@@ -110,14 +110,14 @@ class _RewardsTabState extends State<RewardsTab> {
       floating: true,
       pinned: true,
       elevation: 0,
-      backgroundColor: Colors.white,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       surfaceTintColor: Colors.transparent,
       flexibleSpace: FlexibleSpaceBar(
         titlePadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
         title: Text(
           'Récompenses',
           style: GoogleFonts.spaceGrotesk(
-            color: AppTheme.deepNavy,
+            color: Theme.of(context).brightness == Brightness.dark ? Colors.white : AppTheme.deepNavy,
             fontWeight: FontWeight.w900,
             fontSize: 24,
             letterSpacing: -0.5,
@@ -155,16 +155,17 @@ class _RewardsTabState extends State<RewardsTab> {
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
-          colors: [AppTheme.primaryGreen, AppTheme.accentTeal],
+          colors: [Color(0xFF07201B), Color(0xFF0F172A)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(32),
+        border: Border.all(color: Colors.white.withOpacity(0.08), width: 1.5),
         boxShadow: [
           BoxShadow(
-            color: AppTheme.primaryGreen.withOpacity(0.3),
-            blurRadius: 24,
-            offset: const Offset(0, 12),
+            color: const Color(0xFF00B894).withOpacity(0.12),
+            blurRadius: 30,
+            offset: const Offset(0, 15),
           ),
         ],
       ),
@@ -177,8 +178,9 @@ class _RewardsTabState extends State<RewardsTab> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.2),
+                  color: Colors.white.withOpacity(0.08),
                   borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: Colors.white.withOpacity(0.1)),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
@@ -199,8 +201,9 @@ class _RewardsTabState extends State<RewardsTab> {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.2),
+                  color: Colors.white.withOpacity(0.08),
                   shape: BoxShape.circle,
+                  border: Border.all(color: Colors.white.withOpacity(0.1)),
                 ),
                 child: const Icon(Icons.info_outline_rounded, color: Colors.white, size: 20),
               ),
@@ -210,7 +213,7 @@ class _RewardsTabState extends State<RewardsTab> {
           Text(
             'Solde Actuel',
             style: GoogleFonts.inter(
-              color: Colors.white.withOpacity(0.8),
+              color: Colors.white.withOpacity(0.7),
               fontSize: 14,
             ),
           ),
@@ -232,7 +235,7 @@ class _RewardsTabState extends State<RewardsTab> {
               Text(
                 'pts',
                 style: GoogleFonts.inter(
-                  color: Colors.white.withOpacity(0.9),
+                  color: AppTheme.accentMint,
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
                 ),
@@ -247,7 +250,7 @@ class _RewardsTabState extends State<RewardsTab> {
               children: [
                 Text(
                   'Vers ${_nextLevelLabel(nextScore)}',
-                  style: GoogleFonts.inter(color: Colors.white.withOpacity(0.8), fontSize: 11),
+                  style: GoogleFonts.inter(color: Colors.white.withOpacity(0.7), fontSize: 11),
                 ),
                 Text(
                   '${(_score).toStringAsFixed(0)} / $nextScore pts',
@@ -261,8 +264,8 @@ class _RewardsTabState extends State<RewardsTab> {
               child: LinearProgressIndicator(
                 value: progress,
                 minHeight: 8,
-                backgroundColor: Colors.white.withOpacity(0.25),
-                valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
+                backgroundColor: Colors.white.withOpacity(0.1),
+                valueColor: const AlwaysStoppedAnimation<Color>(AppTheme.accentMint),
               ),
             ),
           ] else ...[
@@ -270,11 +273,12 @@ class _RewardsTabState extends State<RewardsTab> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.15),
+                color: Colors.white.withOpacity(0.08),
                 borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.white.withOpacity(0.1)),
               ),
               child: Row(children: [
-                const Icon(Icons.workspace_premium_rounded, color: Colors.white, size: 16),
+                const Icon(Icons.workspace_premium_rounded, color: AppTheme.accentMint, size: 16),
                 const SizedBox(width: 6),
                 Text('Niveau Maximum atteint ! 🎉',
                   style: GoogleFonts.inter(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w700)),
@@ -298,7 +302,7 @@ class _RewardsTabState extends State<RewardsTab> {
       style: GoogleFonts.spaceGrotesk(
         fontSize: 20,
         fontWeight: FontWeight.w800,
-        color: AppTheme.deepNavy,
+        color: Theme.of(context).textTheme.titleLarge?.color ?? AppTheme.deepNavy,
       ),
     ).animate().fadeIn(delay: 200.ms).slideX(begin: -0.05);
   }
@@ -334,9 +338,9 @@ class _RewardsTabState extends State<RewardsTab> {
       width: 150,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: isCurrent ? color : (isUnlocked ? color.withOpacity(0.08) : Colors.white),
+        color: isCurrent ? color : (isUnlocked ? color.withOpacity(0.08) : Theme.of(context).colorScheme.surface),
         borderRadius: BorderRadius.circular(28),
-        border: isCurrent ? null : Border.all(color: isUnlocked ? color.withOpacity(0.3) : Colors.grey.shade200),
+        border: isCurrent ? null : Border.all(color: isUnlocked ? color.withOpacity(0.3) : Theme.of(context).dividerColor),
         boxShadow: isCurrent ? [
           BoxShadow(
             color: color.withOpacity(0.3),
@@ -377,7 +381,7 @@ class _RewardsTabState extends State<RewardsTab> {
                 style: GoogleFonts.spaceGrotesk(
                   fontSize: 14,
                   fontWeight: FontWeight.bold,
-                  color: isCurrent ? Colors.white : (isUnlocked ? color : AppTheme.deepNavy),
+                  color: isCurrent ? Colors.white : (isUnlocked ? color : Theme.of(context).textTheme.titleLarge?.color ?? AppTheme.deepNavy),
                   height: 1.1,
                 ),
               ),
@@ -405,25 +409,29 @@ class _RewardsTabState extends State<RewardsTab> {
       _BadgeData(Icons.groups_rounded, const Color(0xFF10B981), 'Communauté', _score >= 1000), // ignore: prefer_const_constructors
     ];
 
+    final double screenWidth = MediaQuery.of(context).size.width;
+    final int crossAxisCount = screenWidth > 900 ? 4 : (screenWidth > 600 ? 3 : 2);
+    final double cardWidth = (screenWidth - 40 - ((crossAxisCount - 1) * 16)) / crossAxisCount;
+
     return Wrap(
       spacing: 16,
       runSpacing: 16,
       children: badges.map((b) {
         final color = b.unlocked ? b.color : Colors.grey.shade400;
         return Container(
-          width: (MediaQuery.of(context).size.width - 40 - 16) / 2,
+          width: cardWidth,
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: b.unlocked ? color.withOpacity(0.05) : Colors.grey.shade50,
+            color: b.unlocked ? color.withOpacity(0.05) : Theme.of(context).colorScheme.surface,
             borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: b.unlocked ? color.withOpacity(0.1) : Colors.grey.shade200),
+            border: Border.all(color: b.unlocked ? color.withOpacity(0.1) : Theme.of(context).dividerColor),
           ),
           child: Row(
             children: [
               Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: b.unlocked ? color.withOpacity(0.15) : Colors.grey.shade200,
+                  color: b.unlocked ? color.withOpacity(0.15) : (Theme.of(context).brightness == Brightness.dark ? Colors.white.withOpacity(0.05) : Colors.grey.shade200),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(b.icon, color: color, size: 20),
@@ -438,7 +446,7 @@ class _RewardsTabState extends State<RewardsTab> {
                       style: GoogleFonts.inter(
                         fontSize: 13,
                         fontWeight: FontWeight.w700,
-                        color: b.unlocked ? AppTheme.deepNavy : Colors.grey.shade500,
+                        color: b.unlocked ? (Theme.of(context).textTheme.titleLarge?.color ?? AppTheme.deepNavy) : Colors.grey.shade500,
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,

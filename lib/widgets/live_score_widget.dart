@@ -86,12 +86,12 @@ class _ScoreCard extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
+        gradient: const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            const Color(0xFF0F2027),
-            const Color(0xFF1A3A2A),
+            Color(0xFF0F2027),
+            Color(0xFF1A3A2A),
           ],
         ),
         borderRadius: BorderRadius.circular(24),
@@ -128,10 +128,10 @@ class _ScoreCard extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 12),
-                Column(
+                const Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
+                    Text(
                       'Score Global',
                       style: TextStyle(
                         color: Color(0xFF94A3B8),
@@ -139,7 +139,7 @@ class _ScoreCard extends StatelessWidget {
                         letterSpacing: 0.5,
                       ),
                     ),
-                    const Text(
+                    Text(
                       'EcoRewind',
                       style: TextStyle(
                         color: Colors.white,

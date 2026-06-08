@@ -784,8 +784,3 @@ class _QuizPlayScreenState extends State<QuizPlayScreen> {
     );
   }
 }
-
-extension _ColorShade on Color {
-  Color get shade700 => HSLColor.fromColor(this).withLightness(0.3).toColor();
-  Color get shade400 => HSLColor.fromColor(this).withLightness(0.5).toColor();
-}

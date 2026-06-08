@@ -1,0 +1,26 @@
+{
+  "rules": {
+    "scores": {
+      "$user_id": {
+        ".read": "auth != null && auth.uid == $user_id",
+        ".write": false
+      }
+    },
+    "leaderboard": {
+      ".read": "auth != null",
+      ".write": false
+    },
+    "admin_dashboard": {
+      ".read": false,
+      ".write": false
+    },
+    "notifications": {
+      ".read": false,
+      ".write": false
+    },
+    "$other": {
+      ".read": false,
+      ".write": false
+    }
+  }
+}

@@ -3,7 +3,6 @@ import 'dart:ui';
 import 'dart:async';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../../widgets/safe_network_image.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/premium_widgets.dart';
@@ -153,168 +152,6 @@ class _WebMarketingLandingScreenState extends State<WebMarketingLandingScreen> w
     );
   }
 
-  void _showAuthDialog(String feature) {
-    showGeneralDialog(
-      context: context,
-      barrierDismissible: true,
-      barrierLabel: '',
-      barrierColor: Colors.black54,
-      transitionDuration: const Duration(milliseconds: 400),
-      transitionBuilder: (context, a1, a2, widget) {
-        return Transform.scale(
-          scale: a1.value,
-          child: Opacity(opacity: a1.value, child: widget),
-        );
-      },
-      pageBuilder: (context, a1, a2) => Dialog(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        insetPadding: const EdgeInsets.symmetric(horizontal: 24),
-        child: Container(
-          constraints: const BoxConstraints(maxWidth: 400),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(32),
-            boxShadow: [
-              BoxShadow(
-                color: AppTheme.primaryGreen.withOpacity(0.2),
-                blurRadius: 40,
-                offset: const Offset(0, 20),
-              ),
-            ],
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Top gradient strip
-              Container(
-                height: 6,
-                decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [AppTheme.primaryGreen, AppTheme.accentTeal],
-                  ),
-                  borderRadius: BorderRadius.vertical(
-                    top: Radius.circular(32),
-                  ),
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(32, 40, 32, 32),
-                child: Column(
-                  children: [
-                    // Animated Icon
-                    TweenAnimationBuilder<double>(
-                      tween: Tween(begin: 0, end: 1),
-                      duration: const Duration(milliseconds: 600),
-                      curve: Curves.elasticOut,
-                      builder: (context, value, child) => Transform.scale(
-                        scale: value,
-                        child: child,
-                      ),
-                      child: Container(
-                        width: 80,
-                        height: 80,
-                        decoration: BoxDecoration(
-                          gradient: const LinearGradient(
-                            colors: [AppTheme.primaryGreen, AppTheme.accentTeal],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          ),
-                          shape: BoxShape.circle,
-                          boxShadow: [
-                            BoxShadow(
-                              color: AppTheme.primaryGreen.withOpacity(0.3),
-                              blurRadius: 20,
-                              offset: const Offset(0, 8),
-                            ),
-                          ],
-                        ),
-                        child: const Icon(
-                          Icons.rocket_launch_rounded,
-                          color: Colors.white,
-                          size: 36,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 28),
-                    Text(
-                      'Débloquez "$feature"',
-                      textAlign: TextAlign.center,
-                      style: GoogleFonts.spaceGrotesk(
-                        fontSize: 24,
-                        fontWeight: FontWeight.w900,
-                        color: AppTheme.deepNavy,
-                        height: 1.2,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    Text(
-                      'Créez votre compte gratuitement pour accéder à toutes les fonctionnalités et commencer votre impact écologique.',
-                      textAlign: TextAlign.center,
-                      style: GoogleFonts.inter(
-                        color: AppTheme.textMuted,
-                        fontSize: 14,
-                        height: 1.6,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    // Benefits list
-                    ...['✓ 100% gratuit', '🎁 Bonus de bienvenue (10 pts)', '🏆 Classements & récompenses'].map(
-                      (benefit) => Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 4),
-                        child: Text(
-                          benefit,
-                          style: GoogleFonts.inter(
-                            fontSize: 13,
-                            color: AppTheme.deepNavy,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 28),
-                    PremiumButton(
-                      text: 'CRÉER MON COMPTE',
-                      icon: Icons.arrow_forward_rounded,
-                      onPressed: () {
-                        Navigator.pop(context);
-                        Navigator.pushNamed(context, '/signup');
-                      },
-                    ),
-                    const SizedBox(height: 12),
-                    TextButton(
-                      onPressed: () {
-                        Navigator.pop(context);
-                        Navigator.pushNamed(context, '/login');
-                      },
-                      child: RichText(
-                        text: TextSpan(
-                          text: 'Déjà membre ? ',
-                          style: GoogleFonts.inter(
-                            color: AppTheme.textMuted,
-                            fontSize: 14,
-                          ),
-                          children: [
-                            TextSpan(
-                              text: 'Se connecter',
-                              style: GoogleFonts.inter(
-                                color: AppTheme.primaryGreen,
-                                fontWeight: FontWeight.w800,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -370,23 +207,23 @@ class _WebMarketingLandingScreenState extends State<WebMarketingLandingScreen> w
         imageUrl: 'https://images.unsplash.com/photo-1532996122724-e3c354a0b15b?w=400&q=80',
         height: 220.0,
       ),
-      _SectionCard(
+      const _SectionCard(
         title: 'Témoignages',
         subtitle: 'Ils nous font confiance',
         icon: Icons.groups_rounded,
-        color: const Color(0xFF8B5CF6),
-        gradient: [const Color(0xFF6D28D9), const Color(0xFF8B5CF6)],
-        page: const SectionTestimonials(),
+        color: Color(0xFF8B5CF6),
+        gradient: [Color(0xFF6D28D9), Color(0xFF8B5CF6)],
+        page: SectionTestimonials(),
         imageUrl: 'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=400&q=80',
         height: 260.0,
       ),
-      _SectionCard(
+      const _SectionCard(
         title: 'Nos Avantages',
         subtitle: 'Pourquoi nous choisir',
         icon: Icons.diamond_rounded,
-        color: const Color(0xFFF59E0B),
-        gradient: [const Color(0xFFB45309), const Color(0xFFF59E0B)],
-        page: const SectionAdvantages(),
+        color: Color(0xFFF59E0B),
+        gradient: [Color(0xFFB45309), Color(0xFFF59E0B)],
+        page: SectionAdvantages(),
         imageUrl: 'https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?w=400&q=80',
         height: 200.0,
       ),
@@ -904,7 +741,7 @@ class _WebMarketingLandingScreenState extends State<WebMarketingLandingScreen> w
                         Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                           Text('+$_heroMembers éco-citoyens actifs', style: GoogleFonts.inter(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w700)),
                           Row(children: [
-                            ...List.generate(5, (i) => Icon(Icons.star_rounded, color: const Color(0xFFFBBF24), size: 14)),
+                            ...List.generate(5, (i) => const Icon(Icons.star_rounded, color: Color(0xFFFBBF24), size: 14)),
                             const SizedBox(width: 6),
                             Text('4.9/5', style: GoogleFonts.inter(color: Colors.white.withOpacity(0.6), fontSize: 11)),
                           ]),
@@ -957,60 +794,7 @@ class _WebMarketingLandingScreenState extends State<WebMarketingLandingScreen> w
     );
   }
 
-  // ===========================================================
-  // 2. TRUSTED BY
-  // ===========================================================
-  Widget _buildTrustedBy() {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 24),
-      child: Column(
-        children: [
-          Text(
-            'SOUTENU PAR',
-            style: GoogleFonts.inter(
-              color: AppTheme.textMuted.withOpacity(0.5),
-              fontSize: 11,
-              fontWeight: FontWeight.w900,
-              letterSpacing: 3,
-            ),
-          ),
-          const SizedBox(height: 20),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              _buildPartnerLogo('Assurances\nMaghrebia', Icons.shield_rounded),
-              _buildPartnerLogo('Municipalité\nde Tunis', Icons.location_city_rounded),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
 
-  Widget _buildPartnerLogo(String name, IconData icon) {
-    return Column(
-      children: [
-        Container(
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            color: AppTheme.backgroundSoft,
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: Icon(icon, color: AppTheme.textMuted.withOpacity(0.4), size: 24),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          name,
-          textAlign: TextAlign.center,
-          style: GoogleFonts.inter(
-            color: AppTheme.textMuted.withOpacity(0.5),
-            fontSize: 10,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-      ],
-    );
-  }
 
   // ===========================================================
   // 3. HOW IT WORKS
@@ -1040,9 +824,9 @@ class _WebMarketingLandingScreenState extends State<WebMarketingLandingScreen> w
           const SizedBox(height: 40),
           _buildStep(
             number: '01',
-            title: 'Scannez vos déchets',
-            description: 'Notre IA identifie automatiquement le type de déchet gr├óce à la caméra de votre téléphone.',
-            icon: Icons.document_scanner_rounded,
+            title: 'Utilisez votre badge QR',
+            description: 'Présentez votre QR code unique aux bornes de tri intelligentes pour enregistrer vos dépôts.',
+            icon: Icons.qr_code_rounded,
             color: const Color(0xFF6366F1),
             delay: 0,
           ),
@@ -1526,230 +1310,7 @@ class _WebMarketingLandingScreenState extends State<WebMarketingLandingScreen> w
     );
   }
 
-  // ===========================================================
-  // 6. TESTIMONIALS
-  // ===========================================================
-  Widget _buildTestimonials() {
-    final testimonials = [
-      _Testimonial(
-        'Samir B.',
-        'Citoyen, Tunis',
-        'J\'ai accumulé 2000 points en 2 semaines ! EcoRewind a changé ma façon de voir le recyclage.',
-        'https://ui-avatars.com/api/?name=Samir+B&background=10B981&color=fff&size=150',
-      ),
-      _Testimonial(
-        'Leila M.',
-        'Étudiante, Sousse',
-        'L\'appli est tellement intuitive. Le scanner IA est bluffant, il reconnaît tout !',
-        'https://ui-avatars.com/api/?name=Leila+M&background=3B82F6&color=fff&size=150',
-      ),
-      _Testimonial(
-        'Youssef K.',
-        'Entrepreneur, Sfax',
-        'Gr├óce à l\'aspect communautaire, mes voisins sont désormais engagés. C\'est motivant.',
-        'https://ui-avatars.com/api/?name=Youssef+K&background=F59E0B&color=fff&size=150',
-      ),
-    ];
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 32),
-      child: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 28),
-            child: Column(
-              children: [
-                Text(
-                  'Ils nous font confiance',
-                  style: GoogleFonts.spaceGrotesk(
-                    fontSize: 28,
-                    fontWeight: FontWeight.w900,
-                    color: AppTheme.deepNavy,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Témoignages de nos éco-citoyens',
-                  style: GoogleFonts.inter(
-                    fontSize: 14,
-                    color: AppTheme.textMuted,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 24),
-          SizedBox(
-            height: 220,
-            child: ListView.builder(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              physics: const BouncingScrollPhysics(),
-              itemCount: testimonials.length,
-              itemBuilder: (context, index) {
-                final t = testimonials[index];
-                return Container(
-                  width: 300,
-                  margin: const EdgeInsets.only(right: 16),
-                  padding: const EdgeInsets.all(24),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(24),
-                    border: Border.all(color: Colors.grey.shade100),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.03),
-                        blurRadius: 15,
-                        offset: const Offset(0, 6),
-                      ),
-                    ],
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          // Stars
-                          ...List.generate(
-                              5,
-                              (_) => const Icon(
-                                    Icons.star_rounded,
-                                    color: Color(0xFFFBBF24),
-                                    size: 16,
-                                  )),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-                      Expanded(
-                        child: Text(
-                          '"${t.quote}"',
-                          style: GoogleFonts.inter(
-                            color: AppTheme.deepNavy,
-                            fontSize: 14,
-                            fontStyle: FontStyle.italic,
-                            height: 1.5,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      Row(
-                        children: [
-                          SafeNetworkCircleAvatar(url: t.avatarUrl, radius: 18),
-                          const SizedBox(width: 12),
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                t.name,
-                                style: GoogleFonts.manrope(
-                                  fontWeight: FontWeight.w800,
-                                  fontSize: 13,
-                                  color: AppTheme.deepNavy,
-                                ),
-                              ),
-                              Text(
-                                t.role,
-                                style: GoogleFonts.inter(
-                                  fontSize: 11,
-                                  color: AppTheme.textMuted,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ).animate().fadeIn(delay: (index * 100).ms).slideX(begin: 0.1, end: 0);
-              },
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ===========================================================
-  // 7. ADVANTAGES
-  // ===========================================================
-  Widget _buildAdvantagesSection() {
-    final advantages = [
-      _Advantage(Icons.bolt_rounded, 'Ultra Rapide', 'Scanner en moins de 2 secondes', const Color(0xFF6366F1)),
-      _Advantage(
-          Icons.verified_user_rounded, '100% Sécurisé', 'Données protégées et cryptées', const Color(0xFF10B981)),
-      _Advantage(Icons.card_giftcard_rounded, 'Récompenses', 'Cadeaux réels et réductions', const Color(0xFFF59E0B)),
-      _Advantage(Icons.groups_rounded, 'Communauté', 'Réseau d\'éco-citoyens engagés', const Color(0xFF3B82F6)),
-    ];
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
-      child: Column(
-        children: [
-          Text(
-            'Pourquoi EcoRewind ?',
-            style: GoogleFonts.spaceGrotesk(
-              fontSize: 28,
-              fontWeight: FontWeight.w900,
-              color: AppTheme.deepNavy,
-            ),
-          ),
-          const SizedBox(height: 24),
-          GridView.count(
-            crossAxisCount: 2,
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            mainAxisSpacing: 12,
-            crossAxisSpacing: 12,
-            childAspectRatio: 1.0,
-            children: advantages.asMap().entries.map((entry) {
-              final i = entry.key;
-              final a = entry.value;
-              return Container(
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: a.color.withOpacity(0.04),
-                  borderRadius: BorderRadius.circular(24),
-                  border: Border.all(color: a.color.withOpacity(0.1)),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        color: a.color.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Icon(a.icon, color: a.color, size: 22),
-                    ),
-                    const SizedBox(height: 14),
-                    Text(
-                      a.title,
-                      style: GoogleFonts.spaceGrotesk(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w800,
-                        color: AppTheme.deepNavy,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      a.description,
-                      style: GoogleFonts.inter(
-                        fontSize: 12,
-                        color: AppTheme.textMuted,
-                        height: 1.3,
-                      ),
-                    ),
-                  ],
-                ),
-              ).animate().fadeIn(delay: (i * 80).ms).scale(begin: const Offset(0.9, 0.9));
-            }).toList(),
-          ),
-        ],
-      ),
-    );
-  }
 
   // ===========================================================
   // 8. FINAL CTA
@@ -1885,23 +1446,6 @@ class _SectionCard {
   });
 }
 
-class _Testimonial {
-  final String name;
-  final String role;
-  final String quote;
-  final String avatarUrl;
-
-  _Testimonial(this.name, this.role, this.quote, this.avatarUrl);
-}
-
-class _Advantage {
-  final IconData icon;
-  final String title;
-  final String description;
-  final Color color;
-
-  _Advantage(this.icon, this.title, this.description, this.color);
-}
 
 class _WavePainter extends CustomPainter {
   @override

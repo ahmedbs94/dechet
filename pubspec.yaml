@@ -37,6 +37,7 @@ dependencies:
   # ── Firebase (Score Temps Réel — QR Poubelle) ─────────────────────
   firebase_core: ^3.6.0
   firebase_database: ^11.1.4       # Realtime Database (score temps réel)
+  firebase_auth: ^5.3.1            # Auth pour signInWithCustomToken (Security Rules)
   # ── QR Scanner (caméra) ───────────────────────────────────
   mobile_scanner: ^5.2.3           # Scanner QR code avec caméra
 

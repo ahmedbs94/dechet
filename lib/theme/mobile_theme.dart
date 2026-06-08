@@ -68,7 +68,7 @@ class MobileTheme {
         brightness: Brightness.dark,
         scaffoldBackgroundColor: bgDark,
         primaryColor: AppTheme.primaryGreen,
-        colorScheme: ColorScheme.dark(
+        colorScheme: const ColorScheme.dark(
           primary: AppTheme.primaryGreen,
           secondary: AppTheme.accentTeal,
           surface: surfaceDark,

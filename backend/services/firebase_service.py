@@ -138,6 +138,36 @@ def get_user_score(user_id: int) -> Optional[dict]:
         return None
 
 
+def generate_custom_token(user_id: int) -> Optional[str]:
+    """
+    Génère un Firebase Custom Token pour un utilisateur EcoRewind.
+
+    Firebase ne connaît pas les utilisateurs JWT FastAPI. Ce token permet
+    à Flutter d'appeler FirebaseAuth.signInWithCustomToken(token) et
+    d'obtenir une identité Firebase reconnue par les Security Rules.
+
+    Le uid Firebase = str(user_id) pour que la règle
+        auth.uid == $user_id
+    fonctionne avec les chemins /scores/{user_id}.
+
+    Retourne None si Firebase est indisponible (mode noop).
+    """
+    if not _init_firebase():
+        return None
+    try:
+        import firebase_admin.auth as fb_auth
+        # uid doit être une string — on utilise l'ID PostgreSQL converti
+        uid = str(user_id)
+        token_bytes = fb_auth.create_custom_token(uid)
+        # create_custom_token retourne des bytes sur certaines versions
+        if isinstance(token_bytes, bytes):
+            return token_bytes.decode("utf-8")
+        return token_bytes
+    except Exception as e:
+        _safe_print(f"[Firebase] [ERREUR] generate_custom_token user {user_id} : {e}")
+        return None
+
+
 # Bareme des points par type de dechet
 WASTE_POINTS: dict[str, float] = {
     "plastique": 10.0,

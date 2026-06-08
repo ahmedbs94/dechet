@@ -57,6 +57,20 @@ backend/sql_app.db
 backend/test.db
 sql_app.db
 
+# Alembic — garder les versions en VCS, exclure les caches
+backend/alembic/__pycache__/
+backend/alembic/versions/__pycache__/
+
+# Docker — ne jamais versionner les volumes locaux
+backend/pgdata/
+.docker/
+
+# AI Worker — cache modèles IA (gros fichiers binaires)
+backend/ai_worker/__pycache__/
+backend/moderation_ai/__pycache__/
+backend/moderation_ai/models/*.pt
+backend/moderation_ai/models/*.bin
+
 # Firebase — NEVER commit credentials
 backend/firebase_credentials.json
 firebase_credentials.json

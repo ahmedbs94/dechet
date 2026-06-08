@@ -319,7 +319,7 @@ class _PointManagerTabState extends State<PointManagerTab>
         )),
         Positioned(left: 0, top: 0, bottom: 0, child: Container(
           width: 3,
-          decoration: BoxDecoration(
+          decoration: const BoxDecoration(
             gradient: LinearGradient(
               colors: [Colors.transparent, AppTheme.primaryGreen, Colors.transparent],
               begin: Alignment.topCenter, end: Alignment.bottomCenter,
@@ -426,7 +426,7 @@ class _PointManagerTabState extends State<PointManagerTab>
       child: Row(children: [
         Animate(
           onPlay: (c) => c.repeat(),
-          effects: [const ShimmerEffect(duration: Duration(seconds: 2), color: Colors.white24)],
+          effects: const [ShimmerEffect(duration: Duration(seconds: 2), color: Colors.white24)],
           child: const Icon(Icons.warning_amber_rounded, color: Colors.white, size: 32),
         ),
         const SizedBox(width: 16),

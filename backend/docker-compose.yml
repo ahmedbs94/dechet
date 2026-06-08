@@ -1,0 +1,55 @@
+# docker-compose.yml — PostgreSQL local pour EcoRewind
+# =========================================================
+# Utilisation :
+#   docker compose up -d          → Démarre PostgreSQL en arrière-plan
+#   docker compose down           → Arrête et supprime le conteneur
+#   docker compose down -v        → Supprime aussi les données (volume)
+#   docker compose logs -f        → Voir les logs en temps réel
+#
+# Après démarrage, vérifier que .env contient :
+#   DATABASE_URL=postgresql://postgres:postgres@localhost:5432/ecorewind
+#
+# Puis appliquer les migrations :
+#   cd backend
+#   alembic upgrade head
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: ecorewind_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: ecorewind
+      # Timezone cohérente avec le backend
+      TZ: Africa/Tunis
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d ecorewind"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # ── AI Worker (modèles IA dans un processus séparé) ──────────────────────
+  # Décommente ce bloc pour lancer le worker IA dans Docker
+  # ai_worker:
+  #   build:
+  #     context: .
+  #     dockerfile: ai_worker/Dockerfile
+  #   container_name: ecorewind_ai_worker
+  #   restart: unless-stopped
+  #   env_file: .env
+  #   depends_on:
+  #     postgres:
+  #       condition: service_healthy
+  #   volumes:
+  #     - ./uploads:/app/uploads
+
+volumes:
+  pgdata:
+    driver: local

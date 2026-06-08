@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+
 import '../../widgets/auth_prompt_dialog.dart';
+import '../../services/l10n_service.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../../models/user_model.dart';
 import 'feed_tab.dart';
@@ -38,6 +41,7 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
   @override
   void initState() {
     super.initState();
+    L10n.addListener(_onLocaleChange);
     _isLoggedIn = AuthState.currentUser != null;
     final role = AuthState.currentUser?.role ?? UserRole.user;
     _pages = _initializePages(role);
@@ -48,6 +52,16 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
         if (mounted) AuthPromptDialog.show(context: context);
       });
     }
+  }
+
+  @override
+  void dispose() {
+    L10n.removeListener(_onLocaleChange);
+    super.dispose();
+  }
+
+  void _onLocaleChange() {
+    if (mounted) setState(() {});
   }
 
 
@@ -136,11 +150,11 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
   /// Renvoie le label de l'onglet "Formation" selon le rôle
   String _proTabLabel(UserRole role) {
     switch (role) {
-      case UserRole.educator:     return 'Éducateur';
-      case UserRole.collector:    return 'Collecte';
-      case UserRole.intercommunality: return 'Gestion';
-      case UserRole.pointManager: return 'Points';
-      default:                    return 'Formation';
+      case UserRole.educator:     return L10n.tr('tab_educator');
+      case UserRole.collector:    return L10n.tr('tab_collector');
+      case UserRole.intercommunality: return L10n.tr('tab_intercommunality');
+      case UserRole.pointManager: return L10n.tr('tab_pointManager');
+      default:                    return L10n.tr('tab_multimedia');
     }
   }
 
@@ -163,42 +177,42 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
   List<NavigationDestination> _getDestinations(UserRole role) {
     // Visiteur non connecté — pas d'onglet Profil
     if (!_isLoggedIn) {
-      return const [
-        NavigationDestination(icon: FaIcon(FontAwesomeIcons.house, size: 20), label: 'Fil'),
-        NavigationDestination(icon: FaIcon(FontAwesomeIcons.graduationCap, size: 20), label: 'Formation'),
-        NavigationDestination(icon: FaIcon(FontAwesomeIcons.chartLine, size: 20), label: 'Impact'),
-        NavigationDestination(icon: FaIcon(FontAwesomeIcons.mapLocationDot, size: 20), label: 'Carte'),
+      return [
+        NavigationDestination(icon: const FaIcon(FontAwesomeIcons.house, size: 20), label: L10n.tr('tab_feed')),
+        NavigationDestination(icon: const FaIcon(FontAwesomeIcons.graduationCap, size: 20), label: _proTabLabel(role)),
+        NavigationDestination(icon: const FaIcon(FontAwesomeIcons.chartLine, size: 20), label: L10n.tr('tab_rewards')),
+        NavigationDestination(icon: const FaIcon(FontAwesomeIcons.mapLocationDot, size: 20), label: L10n.tr('tab_map')),
       ];
     }
 
     // ── Éducateur : 3 onglets (pas d'Impact ni de Carte) ──
     if (role == UserRole.educator) {
       return [
-        const NavigationDestination(icon: FaIcon(FontAwesomeIcons.house, size: 20), label: 'Fil'),
+        NavigationDestination(icon: const FaIcon(FontAwesomeIcons.house, size: 20), label: L10n.tr('tab_feed')),
         NavigationDestination(icon: _proTabIcon(role), label: _proTabLabel(role)),
-        const NavigationDestination(icon: FaIcon(FontAwesomeIcons.user, size: 20), label: 'Profil'),
+        NavigationDestination(icon: const FaIcon(FontAwesomeIcons.user, size: 20), label: L10n.tr('tab_profile')),
       ];
     }
 
     // ── Citoyen : 6 onglets avec Communauté ──
     if (role == UserRole.user) {
       return [
-        const NavigationDestination(icon: FaIcon(FontAwesomeIcons.house, size: 20), label: 'Fil'),
+        NavigationDestination(icon: const FaIcon(FontAwesomeIcons.house, size: 20), label: L10n.tr('tab_feed')),
         NavigationDestination(icon: _proTabIcon(role), label: _proTabLabel(role)),
-        const NavigationDestination(icon: FaIcon(FontAwesomeIcons.chartLine, size: 20), label: 'Impact'),
-        const NavigationDestination(icon: FaIcon(FontAwesomeIcons.mapLocationDot, size: 20), label: 'Carte'),
-        const NavigationDestination(icon: FaIcon(FontAwesomeIcons.comments, size: 20), label: 'Communauté'),
-        const NavigationDestination(icon: FaIcon(FontAwesomeIcons.user, size: 20), label: 'Profil'),
+        NavigationDestination(icon: const FaIcon(FontAwesomeIcons.chartLine, size: 20), label: L10n.tr('tab_rewards')),
+        NavigationDestination(icon: const FaIcon(FontAwesomeIcons.mapLocationDot, size: 20), label: L10n.tr('tab_map')),
+        NavigationDestination(icon: const FaIcon(FontAwesomeIcons.comments, size: 20), label: L10n.tr('tab_community')),
+        NavigationDestination(icon: const FaIcon(FontAwesomeIcons.user, size: 20), label: L10n.tr('tab_profile')),
       ];
     }
 
     // Tous les autres rôles connectés : 5 onglets
     return [
-      const NavigationDestination(icon: FaIcon(FontAwesomeIcons.house, size: 20), label: 'Fil'),
+      NavigationDestination(icon: const FaIcon(FontAwesomeIcons.house, size: 20), label: L10n.tr('tab_feed')),
       NavigationDestination(icon: _proTabIcon(role), label: _proTabLabel(role)),
-      const NavigationDestination(icon: FaIcon(FontAwesomeIcons.chartLine, size: 20), label: 'Impact'),
-      const NavigationDestination(icon: FaIcon(FontAwesomeIcons.mapLocationDot, size: 20), label: 'Carte'),
-      const NavigationDestination(icon: FaIcon(FontAwesomeIcons.user, size: 20), label: 'Profil'),
+      NavigationDestination(icon: const FaIcon(FontAwesomeIcons.chartLine, size: 20), label: L10n.tr('tab_rewards')),
+      NavigationDestination(icon: const FaIcon(FontAwesomeIcons.mapLocationDot, size: 20), label: L10n.tr('tab_map')),
+      NavigationDestination(icon: const FaIcon(FontAwesomeIcons.user, size: 20), label: L10n.tr('tab_profile')),
     ];
   }
 
@@ -230,8 +244,10 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
         onTap: (index) {
           _onTabSelected(index);
           if (!_isLoggedIn && mounted) {
+            final ctx = context; // capture before async gap
             Future.delayed(const Duration(milliseconds: 300), () {
-              if (mounted) AuthPromptDialog.show(context: context);
+              // ignore: use_build_context_synchronously
+              if (mounted) AuthPromptDialog.show(context: ctx);
             });
           }
         },
@@ -279,7 +295,10 @@ class _PremiumBottomNav extends StatelessWidget {
             return SizedBox(
               width: itemW,
               child: GestureDetector(
-                onTap: () => onTap(i),
+                onTap: () {
+                  HapticFeedback.lightImpact();
+                  onTap(i);
+                },
                 behavior: HitTestBehavior.opaque,
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 220),
@@ -289,28 +308,34 @@ class _PremiumBottomNav extends StatelessWidget {
                     color: active ? AppTheme.primaryGreen.withOpacity(0.13) : Colors.transparent,
                     borderRadius: BorderRadius.circular(14),
                   ),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      AnimatedScale(
-                        scale: active ? 1.12 : 1.0,
-                        duration: const Duration(milliseconds: 200),
-                        child: active
-                          ? ShaderMask(
-                              shaderCallback: (b) => const LinearGradient(colors: [AppTheme.primaryGreen, AppTheme.accentTeal]).createShader(b),
-                              child: IconTheme(data: const IconThemeData(color: Colors.white, size: 20), child: dest.icon),
-                            )
-                          : IconTheme(data: const IconThemeData(color: Color(0xFF64748B), size: 18), child: dest.icon),
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          AnimatedScale(
+                            scale: active ? 1.12 : 1.0,
+                            duration: const Duration(milliseconds: 200),
+                            child: active
+                              ? ShaderMask(
+                                  shaderCallback: (b) => const LinearGradient(colors: [AppTheme.primaryGreen, AppTheme.accentTeal]).createShader(b),
+                                  child: IconTheme(data: const IconThemeData(color: Colors.white, size: 20), child: dest.icon),
+                                )
+                              : IconTheme(data: const IconThemeData(color: Color(0xFF64748B), size: 18), child: dest.icon),
+                          ),
+                          const SizedBox(height: 3),
+                          AnimatedDefaultTextStyle(
+                            duration: const Duration(milliseconds: 200),
+                            style: active
+                              ? GoogleFonts.outfit(fontSize: count > 4 ? 10.0 : 11.0, fontWeight: FontWeight.w800, color: AppTheme.primaryGreen)
+                              : GoogleFonts.inter(fontSize: count > 4 ? 9.5 : 10.5, fontWeight: FontWeight.w500, color: const Color(0xFF64748B)),
+                            child: Text(dest.label, overflow: TextOverflow.ellipsis, maxLines: 1),
+                          ),
+                        ],
                       ),
-                      const SizedBox(height: 3),
-                      AnimatedDefaultTextStyle(
-                        duration: const Duration(milliseconds: 200),
-                        style: active
-                          ? GoogleFonts.outfit(fontSize: count > 4 ? 9.0 : 10.0, fontWeight: FontWeight.w800, color: AppTheme.primaryGreen)
-                          : GoogleFonts.inter(fontSize: count > 4 ? 8.5 : 9.5, fontWeight: FontWeight.w500, color: const Color(0xFF64748B)),
-                        child: Text(dest.label, overflow: TextOverflow.ellipsis, maxLines: 1),
-                      ),
-                    ],
+                    ),
                   ),
                 ),
               ),

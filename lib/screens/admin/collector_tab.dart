@@ -304,7 +304,7 @@ class _CollectorTabState extends State<CollectorTab>
               // ── Manifeste ──────────────────────────────────────────────
               Animate(
                 onPlay: (c) => c.repeat(),
-                effects: [ShimmerEffect(duration: 3.seconds)],
+                effects: const [ShimmerEffect(duration: Duration(seconds: 3))],
                 child: ElevatedButton.icon(
                   onPressed: () {},
                   icon: const Icon(Icons.file_present_rounded),
@@ -344,7 +344,7 @@ class _CollectorTabState extends State<CollectorTab>
         )),
         Positioned(left: 0, top: 0, bottom: 0, child: Container(
           width: 3,
-          decoration: BoxDecoration(
+          decoration: const BoxDecoration(
             gradient: LinearGradient(
               colors: [Colors.transparent, AppTheme.primaryGreen, Colors.transparent],
               begin: Alignment.topCenter, end: Alignment.bottomCenter,
@@ -423,7 +423,7 @@ class _CollectorTabState extends State<CollectorTab>
         Row(children: [
           Animate(
             onPlay: (c) => c.repeat(),
-            effects: [const ShimmerEffect(duration: Duration(seconds: 2), color: Colors.white24)],
+            effects: const [ShimmerEffect(duration: Duration(seconds: 2), color: Colors.white24)],
             child: const Icon(Icons.warning_amber_rounded, color: Colors.white, size: 26),
           ),
           const SizedBox(width: 12),
@@ -483,7 +483,7 @@ class _CollectorTabState extends State<CollectorTab>
           ),
         ]),
         const SizedBox(height: 24),
-        Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: const [
+        const Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
           _TourStat(label: 'Vitesse', value: '45 km/h'),
           _TourStat(label: 'Arrêts', value: '18/24'),
           _TourStat(label: 'ETA', value: '14:45'),

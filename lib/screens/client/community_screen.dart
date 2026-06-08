@@ -5,7 +5,7 @@ import '../../theme/app_theme.dart';
 import '../../models/user_model.dart';
 import '../../services/auth_service.dart';
 import '../../widgets/safe_network_image.dart';
-import '../../widgets/web_back_button.dart';
+
 
 class CommunityScreen extends StatefulWidget {
   const CommunityScreen({Key? key}) : super(key: key);
@@ -78,57 +78,6 @@ class _CommunityScreenState extends State<CommunityScreen> {
             ),
             _buildContent(),
           ],
-        ),
-      ),
-    );
-  }
-
-  SliverAppBar _buildSliverAppBar() {
-    return SliverAppBar(
-      expandedHeight: 190,
-      pinned: true,
-      backgroundColor: AppTheme.primaryGreen,
-      leading: webLeading(IconButton(
-        icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white),
-        onPressed: () => Navigator.pop(context),
-      )),
-      flexibleSpace: FlexibleSpaceBar(
-        background: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Color(0xFF059669), Color(0xFF0D9488), Color(0xFF0891B2)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-          ),
-          child: SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(20, 50, 20, 20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  Text(
-                    'Espace Communauté',
-                    style: GoogleFonts.spaceGrotesk(
-                      color: Colors.white,
-                      fontSize: 28,
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: -1,
-                    ),
-                  ).animate().fadeIn(duration: 300.ms).slideY(begin: 0.2, end: 0),
-                  const SizedBox(height: 6),
-                  Text(
-                    'Témoignages et propositions de nos éco-citoyens',
-                    style: GoogleFonts.inter(
-                      color: Colors.white.withOpacity(0.8),
-                      fontSize: 14,
-                    ),
-                  ).animate().fadeIn(delay: 150.ms),
-                ],
-              ),
-            ),
-          ),
         ),
       ),
     );

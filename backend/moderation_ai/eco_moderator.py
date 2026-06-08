@@ -291,15 +291,20 @@ class EcoCNNModerator(AIModerator):
         #   - explicitement classée off_topic PAR LE CNN
         #   - classée "eco" mais avec faible confiance (< 0.60) → ResNet incertain
         #   - classée autre chose que eco et eco_img < 0.40
-        image_is_clearly_eco = (cnn_img_decision == "eco" and eco_img >= 0.60)
+        # IMPORTANT : si aucune image n'a été fournie, on ne pénalise PAS.
+        #   Une salutation ou un texte éco sans image est un contenu légitime.
+        _has_image = bool(image_local_path and os.path.exists(image_local_path))
+        image_is_clearly_eco = (_has_image and cnn_img_decision == "eco" and eco_img >= 0.60)
         image_is_off_topic = (
-            cnn_img_decision == "off_topic"
-            or (cnn_img_decision == "eco" and eco_img < 0.60)   # eco mais peu confiant
-            or (cnn_img_decision not in ("eco",) and self._img_resnet is not None and eco_img < 0.40)
+            _has_image and (
+                cnn_img_decision == "off_topic"
+                or (cnn_img_decision == "eco" and eco_img < 0.60)   # eco mais peu confiant
+                or (cnn_img_decision not in ("eco",) and self._img_resnet is not None and eco_img < 0.40)
+            )
         )
         if _has_greeting and len(text_tokens) <= 10 and _text_clean and toxic_txt < CNN_TOXIC_THRESHOLD:
             if image_is_off_topic:
-                # Image hors-sujet ou insuffisamment éco → ne pas publier automatiquement
+                # Image présente mais hors-sujet → ne pas publier automatiquement
                 result.score  = max(result.score, 0.45)
                 result.status = ModerationStatus.PENDING_REVIEW.value
                 off_img_reason = "Salutation avec image hors sujet : publication envoyee a l'administrateur pour validation"
@@ -307,6 +312,7 @@ class EcoCNNModerator(AIModerator):
                     result.reasons.append(off_img_reason)
                 result.processing_time_ms = round((time.time() - t0) * 1000, 2)
                 return result
+            # Salutation propre (avec ou sans image éco) → publié directement
             result.score  = min(result.score, 0.10)
             result.status = ModerationStatus.PUBLISHED.value
             result.reasons = [r for r in result.reasons if "précaution" not in r.lower()]

@@ -704,10 +704,10 @@ class _SectionTestimonialsState extends State<SectionTestimonials>
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(20),
                   gradient: LinearGradient(
-                    colors: [
-                      const Color(0xFF1A1A2E),
-                      const Color(0xFF16213E),
-                      const Color(0xFF1A1A2E),
+                    colors: const [
+                      Color(0xFF1A1A2E),
+                      Color(0xFF16213E),
+                      Color(0xFF1A1A2E),
                     ],
                     stops: [
                       0.0,

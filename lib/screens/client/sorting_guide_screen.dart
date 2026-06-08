@@ -43,7 +43,7 @@ class SortingGuideScreen extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // Image principale du guide
-                   Animate(
+                  Animate(
                     effects: const [FadeEffect(), ScaleEffect(begin: Offset(0.9, 0.9))],
                     child: Container(
                       width: double.infinity,
@@ -55,29 +55,51 @@ class SortingGuideScreen extends StatelessWidget {
                         borderRadius: BorderRadius.circular(32),
                         child: Container(
                           color: Colors.white,
-                          child: Image.network(
-                            'https://www.cy-clope.com/wp-content/uploads/2024/06/Tri-selectif-1.png.webp',
+                          child: Image.asset(
+                            'assets/images/onboarding.png',
                             fit: BoxFit.contain,
                             height: 300,
                             width: double.infinity,
-                            loadingBuilder: (context, child, loadingProgress) {
-                              if (loadingProgress == null) return child;
-                              return Container(
-                                height: 300,
-                                color: Colors.grey.shade100,
-                                child: const Center(child: CircularProgressIndicator(color: AppTheme.primaryGreen)),
-                              );
-                            },
                             errorBuilder: (context, error, stackTrace) => Container(
                               height: 300,
-                              color: Colors.white,
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  const Icon(Icons.image_outlined, size: 60, color: AppTheme.textMuted),
-                                  const SizedBox(height: 16),
-                                  Text('Erreur de chargement', style: GoogleFonts.inter(color: AppTheme.textMuted)),
-                                ],
+                              decoration: const BoxDecoration(
+                                gradient: LinearGradient(
+                                  colors: [Color(0xFF0F172A), Color(0xFF0F2D24)],
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                ),
+                              ),
+                              child: Center(
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.all(16),
+                                      decoration: BoxDecoration(
+                                        color: AppTheme.primaryGreen.withOpacity(0.15),
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: const Icon(Icons.auto_awesome_rounded, size: 48, color: AppTheme.accentTeal),
+                                    ),
+                                    const SizedBox(height: 16),
+                                    Text(
+                                      'Guide du Tri Écologique',
+                                      style: GoogleFonts.spaceGrotesk(
+                                        color: Colors.white,
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.w800,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      'Suivez les règles ci-dessous pour trier vos déchets',
+                                      style: GoogleFonts.inter(
+                                        color: Colors.white.withOpacity(0.5),
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
                             ),
                           ),
@@ -111,13 +133,63 @@ class SortingGuideScreen extends StatelessWidget {
                   const SizedBox(height: 16),
                   Container(
                     width: double.infinity,
-                    height: 200,
+                    padding: const EdgeInsets.all(24),
                     decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(24),
-                      image: const DecorationImage(
-                        image: NetworkImage('https://png.pngtree.com/thumb_back/fw800/background/20251102/pngtree-recycling-concept-with-cute-cartoon-characters-and-colorful-bins-promoting-environmental-image_20141563.webp'),
-                        fit: BoxFit.cover,
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFFFEF3C7), Color(0xFFFDE68A)],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
                       ),
+                      borderRadius: BorderRadius.circular(24),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.amber.withOpacity(0.1),
+                          blurRadius: 15,
+                          offset: const Offset(0, 8),
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                'Apprendre en s\'amusant ! 🎮',
+                                style: GoogleFonts.outfit(
+                                  color: const Color(0xFF92400E),
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                'Découvre nos quiz interactifs pour devenir un super-héros de la planète.',
+                                style: GoogleFonts.inter(
+                                  color: const Color(0xFFB45309),
+                                  fontSize: 13,
+                                  height: 1.4,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.3),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.videogame_asset_rounded,
+                            size: 40,
+                            color: Color(0xFFD97706),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                   const SizedBox(height: 48),
@@ -152,7 +224,14 @@ class SortingGuideScreen extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: Colors.grey.shade100),
+        border: Border.all(color: Colors.grey.shade100, width: 1.5),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.02),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,

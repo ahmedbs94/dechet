@@ -121,7 +121,7 @@ class _EducatorTabState extends State<EducatorTab> {
       coverImage: wrapper,
     );
     if (res['success'] == true && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: const Text('Dossier créé !'), backgroundColor: AppTheme.primaryGreen, behavior: SnackBarBehavior.floating));
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Dossier créé !'), backgroundColor: AppTheme.primaryGreen, behavior: SnackBarBehavior.floating));
       _loadCategories();
     }
   }
@@ -196,7 +196,7 @@ class _EducatorTabState extends State<EducatorTab> {
     );
     setState(() => _isPublishingVideo = false);
     if (res['success'] == true && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: const Text('Vidéo publiée !'), backgroundColor: AppTheme.primaryGreen, behavior: SnackBarBehavior.floating));
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Vidéo publiée !'), backgroundColor: AppTheme.primaryGreen, behavior: SnackBarBehavior.floating));
       _loadMyVideos();
       _loadCategories();
     } else if (mounted) {
@@ -398,7 +398,7 @@ class _EducatorTabState extends State<EducatorTab> {
                             CircleAvatar(
                               radius: 20,
                               backgroundColor: color.withOpacity(0.1),
-                              child: Text('${score.toStringAsFixed(1)}', style: GoogleFonts.outfit(color: color, fontWeight: FontWeight.bold, fontSize: 14)),
+                              child: Text(score.toStringAsFixed(1), style: GoogleFonts.outfit(color: color, fontWeight: FontWeight.bold, fontSize: 14)),
                             ),
                             const SizedBox(width: 14),
                             Expanded(child: Column(

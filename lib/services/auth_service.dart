@@ -7,6 +7,7 @@ import 'package:http_parser/http_parser.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../constants.dart';
 import '../models/user_model.dart';
 
@@ -55,6 +56,8 @@ class AuthService {
         if (data['refresh_token'] != null) {
           await _saveRefreshToken(data['refresh_token']);
         }
+        // Connexion Firebase pour que les Security Rules reconnaissent l'utilisateur
+        await _signInToFirebase(data['firebase_token']);
         return {
           'success': true,
           'token': data['access_token'],
@@ -124,7 +127,12 @@ class AuthService {
         body: json.encode({'identifier': identifier, 'code': code}),
       );
       if (response.statusCode == 200) {
-        return json.decode(utf8.decode(response.bodyBytes));
+        final data = json.decode(utf8.decode(response.bodyBytes));
+        // Si le backend retourne un firebase_token (compte vérifié avec token JWT)
+        if (data['firebase_token'] != null) {
+          await _signInToFirebase(data['firebase_token']);
+        }
+        return data;
       }
       final error = json.decode(response.body);
       return {'success': false, 'message': error['detail'] ?? 'Code invalide'};
@@ -166,6 +174,8 @@ class AuthService {
       if (response.statusCode == 200) {
         final data = json.decode(utf8.decode(response.bodyBytes));
         await _saveToken(data['access_token']);
+        // Connexion Firebase pour que les Security Rules reconnaissent l'utilisateur
+        await _signInToFirebase(data['firebase_token']);
         return {
           'success': true,
           'token': data['access_token'],
@@ -300,6 +310,8 @@ class AuthService {
       if (response.statusCode == 200) {
         final data = json.decode(utf8.decode(response.bodyBytes));
         await _saveToken(data['access_token']);
+        // Connexion Firebase pour que les Security Rules reconnaissent l'utilisateur
+        await _signInToFirebase(data['firebase_token']);
         developer.log('[FB-AUTH] ✅ Connexion Facebook réussie pour ${data["email"]}', name: 'FacebookAuth');
         return {
           'success': true,
@@ -420,6 +432,44 @@ class AuthService {
   }
 
   // ===========================================
+  // FIREBASE AUTH — CUSTOM TOKEN
+  // ===========================================
+
+  /// Connecte l'utilisateur à Firebase via un Custom Token généré par FastAPI.
+  ///
+  /// Pourquoi : Firebase Realtime Database Security Rules utilisent auth.uid
+  /// pour identifier l'utilisateur. Sans cette étape, Flutter ne peut pas lire
+  /// /scores/{user_id} (les règles refusent les requêtes non authentifiées).
+  ///
+  /// Le firebase_token est généré par FastAPI (Admin SDK) lors du login et
+  /// correspond à uid = str(user_id) dans PostgreSQL.
+  ///
+  /// Mode noop : si firebase_token est null (Firebase indisponible côté backend),
+  /// on log un avertissement mais l'app continue normalement.
+  Future<void> _signInToFirebase(String? firebaseToken) async {
+    if (firebaseToken == null || firebaseToken.isEmpty) {
+      developer.log(
+        '[Firebase] Custom token absent — scores temps réel désactivés',
+        name: 'AuthService',
+      );
+      return;
+    }
+    try {
+      await FirebaseAuth.instance.signInWithCustomToken(firebaseToken);
+      developer.log(
+        '[Firebase] ✅ signInWithCustomToken réussi — uid: ${FirebaseAuth.instance.currentUser?.uid}',
+        name: 'AuthService',
+      );
+    } catch (e) {
+      developer.log(
+        '[Firebase] ⚠️ signInWithCustomToken échoué (mode dégradé) : $e',
+        name: 'AuthService',
+      );
+      // On ne throw pas — l'app continue sans temps réel Firebase
+    }
+  }
+
+  // ===========================================
   // STOCKAGE DU TOKEN
   // ===========================================
 
@@ -500,12 +550,20 @@ class AuthService {
     return response;
   }
 
-  /// Supprime tous les tokens (déconnexion)
+  /// Supprime tous les tokens (déconnexion JWT + Firebase)
   Future<void> clearTokens() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('jwt_token');
     await prefs.remove('refresh_token');
+    // Déconnexion Firebase : les Security Rules refuseront toute lecture ultérieure
+    try {
+      await FirebaseAuth.instance.signOut();
+      developer.log('[Firebase] ✅ Déconnexion Firebase réussie', name: 'AuthService');
+    } catch (e) {
+      developer.log('[Firebase] ⚠️ Erreur déconnexion Firebase : $e', name: 'AuthService');
+    }
   }
+
 
   /// Recupere les details de l'utilisateur actuel depuis le backend
   Future<Map<String, dynamic>> getCurrentUserDetails() async {

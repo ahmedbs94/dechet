@@ -10,19 +10,15 @@
 ///   3. Appelle POST /qr/scan-bin avec le qr_code du citoyen
 ///   4. Affiche le résultat animé (+X points)
 
-import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
-import 'package:http/http.dart' as http;
 import '../../models/user_model.dart';
 import '../../theme/app_theme.dart';
-
-import '../../constants.dart';
-
-final String _baseUrl = ApiConstants.baseUrl;
+import '../../features/scan/scan_service.dart';
+import '../../features/scan/scan_history_screen.dart';
 
 /// Types de déchets supportés par les poubelles intelligentes
 const Map<String, Map<String, dynamic>> _wasteTypes = {
@@ -74,59 +70,47 @@ class _BinScannerScreenState extends State<BinScannerScreen>
     super.dispose();
   }
 
-  // ── Appel API scan-bin ──────────────────────────────────────────────────────
+  // ── Appel API scan-bin via ScanService ─────────────────────────────────────
 
   Future<void> _processScan(String scannedQr) async {
     if (!_scanning || _loading) return;
     setState(() { _scanning = false; _loading = true; });
     HapticFeedback.heavyImpact();
 
-    // Le citoyen peut scanner le QR de la poubelle (bin_id) ou afficher le sien
-    // Dans ce flow : scannedQr = bin_id de la poubelle
-    // Le backend identifie le citoyen via son JWT (qr_code dans DB)
+    // scannedQr = bin_code de la poubelle (ex: "BIN-PLASTIQUE-001")
+    // Le backend identifie le citoyen via son qr_code personnel
     final userQr = AuthState.currentUser?.qrCode ?? '';
     if (userQr.isEmpty) {
       _showError('QR code citoyen introuvable. Reconnectez-vous.');
       return;
     }
 
-    try {
-      final response = await http.post(
-        Uri.parse('$_baseUrl/qr/scan-bin'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'qr_code': userQr,
-          'waste_type': _selectedWaste,
-          'bin_id': scannedQr,
-        }),
-      ).timeout(const Duration(seconds: 10));
+    final result = await ScanService().scanBin(
+      binCode: scannedQr,
+      qrCode: userQr,
+    );
 
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body) as Map<String, dynamic>;
-        setState(() {
-          _loading = false;
-          _lastResult = _ScanResult(
-            success: true,
-            pointsEarned: (data['points_earned'] as num).toDouble(),
-            scoreAfter: (data['score_after'] as num).toDouble(),
-            scoreBefore: (data['score_before'] as num).toDouble(),
-            wasteType: data['waste_type'] as String,
-            userName: data['user_name'] as String,
-          );
-        });
-        _resultController.forward(from: 0);
-        // Mettre à jour le score en cache local
-        if (AuthState.currentUser != null) {
-          AuthState.currentUser = AuthState.currentUser!.copyWithScore(
-            _lastResult!.scoreAfter,
-          );
-        }
-      } else {
-        final err = jsonDecode(response.body);
-        _showError(err['detail'] ?? 'Erreur serveur');
+    if (result.success) {
+      setState(() {
+        _loading = false;
+        _lastResult = _ScanResult(
+          success: true,
+          pointsEarned: result.pointsEarned,
+          scoreAfter: result.scoreAfter,
+          scoreBefore: result.scoreBefore,
+          wasteType: result.binType ?? _selectedWaste,
+          userName: result.userName ?? '',
+        );
+      });
+      _resultController.forward(from: 0);
+      // Mettre à jour le score en cache local
+      if (AuthState.currentUser != null) {
+        AuthState.currentUser = AuthState.currentUser!.copyWithScore(
+          _lastResult!.scoreAfter,
+        );
       }
-    } catch (e) {
-      _showError('Impossible de contacter le serveur.\nVérifiez votre connexion.');
+    } else {
+      _showError(result.error ?? result.message);
     }
   }
 
@@ -304,7 +288,7 @@ class _BinScannerScreenState extends State<BinScannerScreen>
           ),
           const SizedBox(height: 12),
           SizedBox(
-            height: 72,
+            height: 78,
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
               itemCount: _wasteTypes.length,
@@ -345,7 +329,7 @@ class _BinScannerScreenState extends State<BinScannerScreen>
                         Text(
                           info['label'] as String,
                           style: GoogleFonts.inter(
-                            fontSize: 9,
+                            fontSize: 11,
                             color: isSelected ? Colors.white : Colors.white38,
                           ),
                           textAlign: TextAlign.center,
@@ -491,6 +475,29 @@ class _BinScannerScreenState extends State<BinScannerScreen>
                     ),
                   ),
                   const SizedBox(height: 12),
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const ScanHistoryScreen(),
+                        ),
+                      ),
+                      icon: const Icon(Icons.history_rounded, size: 18),
+                      label: Text(
+                        'Voir mon historique',
+                        style: GoogleFonts.outfit(fontWeight: FontWeight.w700),
+                      ),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.white70,
+                        side: BorderSide(color: Colors.white.withOpacity(0.2)),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
                   SizedBox(
                     width: double.infinity,
                     child: TextButton(

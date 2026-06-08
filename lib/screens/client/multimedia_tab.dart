@@ -85,8 +85,8 @@ class _MultimediaTabState extends State<MultimediaTab> {
     if (id != null && _completedQuizIds.contains(id)) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Row(
-            children: const [
+          content: const Row(
+            children: [
               Icon(Icons.check_circle, color: Colors.white, size: 18),
               SizedBox(width: 10),
               Expanded(child: Text('Vous avez déjà complété ce quiz. Chaque quiz ne peut être passé qu\'une seule fois.')),

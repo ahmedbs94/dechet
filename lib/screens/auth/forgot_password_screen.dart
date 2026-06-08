@@ -45,8 +45,8 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     _emailController.dispose();
     _newPasswordController.dispose();
     _confirmPasswordController.dispose();
-    for (final c in _otpControllers) c.dispose();
-    for (final f in _otpFocusNodes) f.dispose();
+    for (final c in _otpControllers) { c.dispose(); }
+    for (final f in _otpFocusNodes) { f.dispose(); }
     super.dispose();
   }
 
@@ -208,7 +208,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                     isLoading: _isLoading,
                     onVerify: _verifyCode,
                     onResend: () {
-                      for (final c in _otpControllers) c.clear();
+                      for (final c in _otpControllers) { c.clear(); }
                       _goToStep(0);
                     },
                   ),
@@ -268,7 +268,6 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   }
 
   Widget _stepIndicator() {
-    const labels = ['Email', 'Code', 'Mot de passe'];
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 32),
       child: Row(

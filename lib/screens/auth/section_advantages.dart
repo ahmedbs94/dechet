@@ -102,7 +102,7 @@ class SectionAdvantages extends StatelessWidget {
         icon: Icons.bolt_rounded,
         title: 'Ultra Rapide',
         description:
-            'Scanner vos déchets en moins de 2 secondes grâce à notre technologie de pointe. Pas de délai, pas d\'attente.',
+            'Scannez le QR code des poubelles intelligentes en un instant et cumulez vos éco-points automatiquement.',
         color: const Color(0xFF6366F1),
       ),
       _AdvantageData(

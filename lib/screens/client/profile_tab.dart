@@ -9,9 +9,9 @@ import '../../theme/app_theme.dart';
 import '../../models/user_model.dart';
 import '../../widgets/premium_widgets.dart';
 import '../../services/auth_service.dart';
+import '../../services/l10n_service.dart';
 import 'notifications_screen.dart';
 import 'post_detail_screen.dart';
-import 'community_screen.dart';
 
 class ProfileTab extends StatefulWidget {
   const ProfileTab({Key? key}) : super(key: key);
@@ -32,9 +32,20 @@ class ProfileTabState extends State<ProfileTab> {
   @override
   void initState() {
     super.initState();
+    L10n.addListener(_onLocaleChange);
     _loadUnreadCount();
     _loadMyStats();
     refreshScore(); // Charge le score au premier montage
+  }
+
+  @override
+  void dispose() {
+    L10n.removeListener(_onLocaleChange);
+    super.dispose();
+  }
+
+  void _onLocaleChange() {
+    if (mounted) setState(() {});
   }
 
   /// Méthode publique appelée par le shell quand on arrive sur cet onglet
@@ -297,7 +308,7 @@ class ProfileTabState extends State<ProfileTab> {
     final showStats = user?.role == UserRole.user;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F7F5),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
         bottom: false,
         child: SingleChildScrollView(
@@ -344,30 +355,30 @@ class ProfileTabState extends State<ProfileTab> {
 
             const SizedBox(height: 40),
 
-            _buildMenuSection('SÉCURITÉ ET DONNÉES', [
+            _buildMenuSection(L10n.tr('menu_sec_security'), [
               _MenuAction(
                 icon: FontAwesomeIcons.userShield,
-                title: 'Authentification forte',
-                subtitle: _mfaEnabled ? 'Activée' : 'Désactivée',
+                title: L10n.tr('menu_mfa'),
+                subtitle: _mfaEnabled ? L10n.tr('menu_mfa_enabled') : L10n.tr('menu_mfa_disabled'),
                 onTap: _showMfaDialog,
               ),
               _MenuAction(
                 icon: FontAwesomeIcons.key,
-                title: 'Changer le mot de passe',
-                subtitle: 'Mis à jour il y a 3 mois',
+                title: L10n.tr('menu_change_pass'),
+                subtitle: L10n.tr('menu_change_pass_sub'),
                 onTap: _showPasswordDialog,
               ),
               _MenuAction(
                 // New menu item for saved posts
                 icon: FontAwesomeIcons.bookmark,
-                title: 'Publications enregistrées',
-                subtitle: 'Accédez à votre bibliothèque éco',
+                title: L10n.tr('menu_saved_posts'),
+                subtitle: L10n.tr('menu_saved_posts_sub'),
                 onTap: () => _viewSavedPosts(context),
               ),
               _MenuAction(
                 icon: FontAwesomeIcons.bell,
-                title: 'Notifications',
-                subtitle: _unreadNotifCount > 0 ? '$_unreadNotifCount non lue${_unreadNotifCount > 1 ? 's' : ''}' : 'Aucune nouvelle',
+                title: L10n.tr('menu_notifications'),
+                subtitle: _unreadNotifCount > 0 ? '$_unreadNotifCount ${_unreadNotifCount > 1 ? L10n.tr('menu_notif_unreads') : L10n.tr('menu_notif_unread')}' : L10n.tr('menu_notif_none'),
                 trailing: _unreadNotifCount > 0 ? Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(color: const Color(0xFFFF6B8A), borderRadius: BorderRadius.circular(12)),
@@ -383,10 +394,19 @@ class ProfileTabState extends State<ProfileTab> {
 
             const SizedBox(height: 32),
 
-            _buildMenuSection('PRÉFÉRENCES', [
+            _buildMenuSection(L10n.tr('menu_sec_preferences'), [
+              _MenuAction(
+                icon: FontAwesomeIcons.language,
+                title: L10n.tr('menu_lang'),
+                subtitle: L10n.locale == 'fr' ? 'Français' : 'العربية',
+                onTap: () {
+                  final newLang = L10n.locale == 'fr' ? 'ar' : 'fr';
+                  L10n.setLocale(newLang);
+                },
+              ),
               _MenuAction(
                 icon: FontAwesomeIcons.bell,
-                title: 'Notifications push',
+                title: L10n.tr('menu_push_notif'),
                 trailing: Switch(
                     value: _pushNotifications,
                     onChanged: (v) => setState(() => _pushNotifications = v),
@@ -394,8 +414,8 @@ class ProfileTabState extends State<ProfileTab> {
               ),
               _MenuAction(
                 icon: FontAwesomeIcons.moon,
-                title: 'Mode Sombre',
-                subtitle: 'Système par défaut',
+                title: L10n.tr('menu_dark_mode'),
+                subtitle: L10n.tr('menu_dark_mode_sub'),
                 onTap: () {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(content: Text('Thème : Basculement en cours...')),
@@ -421,7 +441,7 @@ class ProfileTabState extends State<ProfileTab> {
                   child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
                     Icon(Icons.logout_rounded, color: Colors.red.shade400, size: 18),
                     const SizedBox(width: 10),
-                    Text('Déconnexion', style: GoogleFonts.outfit(color: Colors.red.shade400, fontWeight: FontWeight.w700, fontSize: 15)),
+                    Text(L10n.tr('menu_logout'), style: GoogleFonts.outfit(color: Colors.red.shade400, fontWeight: FontWeight.w700, fontSize: 15)),
                   ]),
                 ),
               ),
@@ -460,11 +480,11 @@ class ProfileTabState extends State<ProfileTab> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Espace Professionnel',
+                Text(L10n.tr('prof_badge_title'),
                     style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
                 const SizedBox(height: 4),
-                const Text('Vous avez accès aux outils d\'administration avancés.',
-                    style: TextStyle(color: Colors.white70, fontSize: 12)),
+                Text(L10n.tr('prof_badge_desc'),
+                    style: const TextStyle(color: Colors.white70, fontSize: 12)),
               ],
             ),
           ),
@@ -547,7 +567,10 @@ class ProfileTabState extends State<ProfileTab> {
         ),
         const SizedBox(height: 24),
         Text(user?.name ?? 'Admin',
-            style: GoogleFonts.outfit(fontSize: 28, fontWeight: FontWeight.bold, color: AppTheme.deepSlate)),
+            style: GoogleFonts.outfit(
+                fontSize: 28,
+                fontWeight: FontWeight.bold,
+                color: Theme.of(context).textTheme.titleLarge?.color ?? AppTheme.deepSlate)),
         Text(user?.email ?? 'admin@ecorewind.com',
             style: GoogleFonts.inter(color: AppTheme.textMuted, fontWeight: FontWeight.w500)),
         const SizedBox(height: 20),
@@ -560,7 +583,7 @@ class ProfileTabState extends State<ProfileTab> {
             borderRadius: BorderRadius.circular(30),
             border: Border.all(color: AppTheme.primaryGreen.withOpacity(0.2)),
           ),
-          child: Text(user?.role == UserRole.admin ? 'DIRECTEUR TECHNIQUE' : 'USER ENGAGÉ',
+          child: Text(user?.role == UserRole.admin ? L10n.tr('prof_role_admin') : L10n.tr('prof_role_user'),
               style: GoogleFonts.outfit(
                   color: AppTheme.primaryGreen, fontWeight: FontWeight.w900, fontSize: 10, letterSpacing: 1.5)),
         ),
@@ -577,7 +600,7 @@ class ProfileTabState extends State<ProfileTab> {
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(AppTheme.borderRadiusLarge),
         boxShadow: AppTheme.premiumShadow,
       ),
@@ -598,9 +621,9 @@ class ProfileTabState extends State<ProfileTab> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.emoji_events_rounded, color: AppTheme.primaryGreen, size: 24),
+                const Icon(Icons.emoji_events_rounded, color: AppTheme.primaryGreen, size: 24),
                 const SizedBox(width: 12),
-                Text('SCORE GLOBAL', style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w900, color: AppTheme.textMuted, letterSpacing: 1)),
+                Text(L10n.tr('prof_stats_score'), style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w900, color: AppTheme.textMuted, letterSpacing: 1)),
                 const SizedBox(width: 12),
                 Text(globalScore.toStringAsFixed(1), style: GoogleFonts.outfit(fontSize: 26, fontWeight: FontWeight.bold, color: AppTheme.primaryGreen)),
                 const SizedBox(width: 4),
@@ -611,11 +634,11 @@ class ProfileTabState extends State<ProfileTab> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              _buildStatItem('POSTS', '$postsCount', Icons.photo_library_rounded),
+              _buildStatItem(L10n.tr('prof_stats_posts'), '$postsCount', Icons.photo_library_rounded),
               _buildDivider(),
-              _buildStatItem('LIKES', '$likesReceived', Icons.favorite_rounded),
+              _buildStatItem(L10n.tr('prof_stats_likes'), '$likesReceived', Icons.favorite_rounded),
               _buildDivider(),
-              _buildStatItem('COMMENTAIRES', '$commentsCount', Icons.chat_bubble_rounded),
+              _buildStatItem(L10n.tr('prof_stats_comments'), '$commentsCount', Icons.chat_bubble_rounded),
             ],
           ),
         ],
@@ -623,14 +646,14 @@ class ProfileTabState extends State<ProfileTab> {
     );
   }
 
-  Widget _buildDivider() => Container(height: 40, width: 1, color: Colors.grey.shade100);
+  Widget _buildDivider() => Container(height: 40, width: 1, color: Theme.of(context).dividerColor);
 
   Widget _buildStatItem(String label, String value, IconData icon) {
     return Column(
       children: [
         Icon(icon, color: AppTheme.primaryGreen.withOpacity(0.5), size: 20),
         const SizedBox(height: 8),
-        Text(value, style: GoogleFonts.outfit(fontSize: 22, fontWeight: FontWeight.bold, color: AppTheme.deepSlate)),
+        Text(value, style: GoogleFonts.outfit(fontSize: 22, fontWeight: FontWeight.bold, color: Theme.of(context).textTheme.titleLarge?.color ?? AppTheme.deepSlate)),
         Text(label,
             style: const TextStyle(
                 fontSize: 10, fontWeight: FontWeight.w900, color: AppTheme.textMuted, letterSpacing: 1)),
@@ -673,7 +696,7 @@ class ProfileTabState extends State<ProfileTab> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Mon Eco-Badge',
+                    L10n.tr('prof_btn_eco_badge'),
                     style: GoogleFonts.outfit(
                       fontSize: 18,
                       fontWeight: FontWeight.w800,
@@ -681,7 +704,7 @@ class ProfileTabState extends State<ProfileTab> {
                     ),
                   ),
                   Text(
-                    'Scannez pour ouvrir une borne de tri',
+                    L10n.tr('prof_btn_eco_badge_sub'),
                     style: GoogleFonts.inter(
                       fontSize: 13,
                       color: Colors.white.withOpacity(0.7),
@@ -738,7 +761,7 @@ class ProfileTabState extends State<ProfileTab> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Scanner une Poubelle',
+                    L10n.tr('prof_btn_scan_bin'),
                     style: GoogleFonts.outfit(
                       fontSize: 17,
                       fontWeight: FontWeight.w800,
@@ -746,7 +769,7 @@ class ProfileTabState extends State<ProfileTab> {
                     ),
                   ),
                   Text(
-                    'Gagnez des points en recyclant',
+                    L10n.tr('prof_btn_scan_bin_sub'),
                     style: GoogleFonts.inter(
                       fontSize: 12,
                       color: Colors.white.withOpacity(0.8),
@@ -862,9 +885,13 @@ class ProfileTabState extends State<ProfileTab> {
         ),
         const SizedBox(height: 16),
         Container(
-          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(24), boxShadow: [
-            BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 20, offset: const Offset(0, 8))
-          ]),
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.surface,
+            borderRadius: BorderRadius.circular(24),
+            boxShadow: [
+              BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 20, offset: const Offset(0, 8))
+            ],
+          ),
           child: Column(children: children),
         ),
       ],

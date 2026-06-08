@@ -17,6 +17,7 @@ from auth import (
 )
 from database import get_db
 from core.deps import get_current_user
+from services.firebase_service import generate_custom_token
 
 router = APIRouter(tags=["auth"])
 
@@ -147,6 +148,7 @@ async def verify_otp(request: models.OTPVerifyRequest, db: Session = Depends(get
             "access_token": access_token, "token_type": "bearer",
             "role": user.role, "id": user.id,
             "email": user.email, "full_name": user.full_name, "qr_code": user.qr_code,
+            "firebase_token": generate_custom_token(user.id),  # pour signInWithCustomToken() Flutter
         }
     return {"success": True, "message": "Code vérifié"}
 
@@ -166,6 +168,7 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = 
         "token_type": "bearer", "role": user.role,
         "id": user.id, "email": user.email,
         "full_name": user.full_name, "qr_code": user.qr_code,
+        "firebase_token": generate_custom_token(user.id),  # pour signInWithCustomToken() Flutter
     }
 
 
@@ -220,7 +223,8 @@ async def google_auth(google_data: models.GoogleAuth, db: Session = Depends(get_
         return {"access_token": create_access_token({"sub": email}),
                 "token_type": "bearer", "role": user.role,
                 "id": user.id, "email": user.email,
-                "full_name": user.full_name, "qr_code": user.qr_code}
+                "full_name": user.full_name, "qr_code": user.qr_code,
+                "firebase_token": generate_custom_token(user.id)}  # pour signInWithCustomToken() Flutter
     except Exception as e:
         raise HTTPException(status_code=401, detail=f"Erreur Google: {str(e)}")
 
@@ -264,7 +268,8 @@ async def facebook_auth(fb_data: models.FacebookAuth, db: Session = Depends(get_
         return {"access_token": create_access_token({"sub": user.email}),
                 "token_type": "bearer", "role": user.role,
                 "id": user.id, "email": user.email,
-                "full_name": user.full_name, "qr_code": user.qr_code}
+                "full_name": user.full_name, "qr_code": user.qr_code,
+                "firebase_token": generate_custom_token(user.id)}  # pour signInWithCustomToken() Flutter
     except HTTPException:
         raise
     except Exception as e:

@@ -6,13 +6,26 @@ main.py est maintenant réduit à son strict minimum :
   - Configuration CORS & fichiers statiques
   - Inclusion des routers modulaires
 
-Routes organisées dans backend/routers/ :
+Architecture feature-based (app/) :
+  app/users/       → User (SQLAlchemy) + UserOut, UserCreate… (Pydantic)
+  app/auth/        → OTPCode + Token, ResetPassword… + service JWT
+  app/posts/       → Post, Like, Comment… + schemas
+  app/notifications/ → Notification + schemas
+  app/collection_points/ → CollectionPoint + schemas
+  app/community/   → Testimonial, CenterProposal + schemas
+  app/quiz/        → Quiz, QuizSubmission + schemas
+  app/education/   → VideoCategory, EducatorVideo, CitizenGroup… + schemas
+  app/qr_bins/     → SmartBin, BinScan + schemas
+  app/firebase/    → service Firebase Admin SDK
+
+Routers (conservés dans routers/ — Phase 3 future) :
   auth.py            → /register, /token, /otp/*, /auth/*, /forgot-password…
   users.py           → /users, /admin/users/*, /users/me*
   posts.py           → /posts/*, /upload, /comments/*, /users/me/saved-posts
   notifications.py   → /notifications/*
   collection_points.py → /collection-points, /admin/collection-points/*
-  community.py       → /testimonials/*, /center-proposals/*, /stats, /qr/*, /tips/*
+  community.py       → /testimonials/*, /center-proposals/*, /stats…
+  qr_bins.py         → /qr/scan-bin, /qr/scan-history, /qr/smart-bins…
 """
 
 from dotenv import load_dotenv
@@ -23,11 +36,10 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
-from database import engine
-import db_models as db_models
-
-# ── Create all DB tables ───────────────────────────────────────────────────────
-db_models.Base.metadata.create_all(bind=engine)
+# ── Schéma DB géré par Alembic ────────────────────────────────────────────────
+# Les tables sont créées/migrées via : alembic upgrade head
+# NE PAS appeler Base.metadata.create_all() ici — cela contourne les migrations.
+import db_models  # noqa: F401 — importe tous les modèles pour que Base.metadata les connaisse
 
 # ── App factory ────────────────────────────────────────────────────────────────
 app = FastAPI(
@@ -62,7 +74,7 @@ app.add_middleware(
 )
 
 # ── Include routers ────────────────────────────────────────────────────────────
-from routers import auth, users, posts, notifications, collection_points, community, moderation, quiz, educator_videos, qr_bins, meetings, groups, analytics  # noqa: E402
+from routers import auth, users, posts, notifications, collection_points, community, moderation, quiz, educator_videos, qr_bins, meetings, groups, analytics, admin_dashboard  # noqa: E402
 
 app.include_router(auth.router)
 app.include_router(users.router)
@@ -77,36 +89,89 @@ app.include_router(qr_bins.router)
 app.include_router(meetings.router)
 app.include_router(groups.router)
 app.include_router(analytics.router)
+app.include_router(admin_dashboard.router)  # GET /admin/dashboard
 
 # Note: /uploads est déjà monté ci-dessus (ligne 44). Pas de doublon.
 
 
-# ── Startup : pré-chargement des modèles IA ────────────────────────────────────
+# ── NOTE : Modèles IA ─────────────────────────────────────────────────────────
+# Les modèles IA NE sont plus chargés dans FastAPI.
+# Ils tournent dans un processus séparé : backend/ai_worker/worker.py
+#
+# Démarrage du worker IA :
+#   python -m ai_worker.worker
+#
+# Avantage : avec --workers 4, les modèles ne sont chargés qu'UNE SEULE FOIS
+# au lieu de 4 fois (évite 4x la RAM).
+
+
+# ── Startup : vérification des migrations Alembic ─────────────────────────────
 @app.on_event("startup")
-async def _preload_ai_models():
+async def _check_migrations():
     """
-    Charge tous les modèles IA au démarrage du serveur (une seule fois).
-    Sans ça, le premier utilisateur qui publie attend 2-3 minutes (CLIP 2.4 GB).
-    Avec ça, le chargement se fait invisiblement pendant le démarrage de uvicorn.
+    Vérifie au démarrage que la DB est à la dernière migration Alembic.
+    Évite les crashs silencieux causés par des tables/colonnes manquantes
+    quand quelqu'un déploie sans exécuter 'alembic upgrade head'.
     """
-    import asyncio
-    import threading
+    try:
+        from alembic.config import Config
+        from alembic.runtime.migration import MigrationContext
+        from alembic.script import ScriptDirectory
+        from database import engine
 
-    def _load():
-        try:
-            # Charge EcoCNNModerator (Text CNN + ResNet18 + Detoxify + regles)
-            from moderation_ai.eco_moderator import get_cnn_moderator
-            get_cnn_moderator()
-            print("[STARTUP] [OK] Modeles IA pre-charges -- moderation prete")
-        except Exception as e:
-            print(f"[STARTUP] [WARN] Pre-chargement IA echoue (mode regles actif) : {e}")
+        alembic_cfg_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "alembic.ini")
+        alembic_cfg = Config(alembic_cfg_path)
+        script = ScriptDirectory.from_config(alembic_cfg)
 
-    # Lancer dans un thread séparé pour ne pas bloquer la boucle asyncio
-    thread = threading.Thread(target=_load, daemon=True, name="ai-preload")
-    thread.start()
+        with engine.connect() as conn:
+            context = MigrationContext.configure(conn)
+            current_rev = set(context.get_current_heads())
+            head_rev    = set(script.get_heads())
+
+        if current_rev == head_rev:
+            print(f"[STARTUP] [OK] Migrations Alembic à jour — revision : {', '.join(head_rev)}")
+        else:
+            print(f"[STARTUP] [WARN] ⚠️  Migrations en retard !")
+            print(f"  DB actuelle : {current_rev or 'aucune'}")
+            print(f"  Head requis : {head_rev}")
+            print(f"  → Exécuter : migrate.bat up  (ou alembic upgrade head)")
+    except Exception as e:
+        print(f"[STARTUP] [WARN] Vérification migrations impossible : {e}")
 
 
 # ── Health check ───────────────────────────────────────────────────────────────
 @app.get("/", tags=["health"])
 async def root():
     return {"status": "ok", "service": "EcoRewind API", "version": "2.0.0"}
+
+
+@app.get("/health", tags=["health"])
+async def health():
+    """Health check enrichi : DB + statut migrations."""
+    try:
+        from alembic.config import Config
+        from alembic.runtime.migration import MigrationContext
+        from alembic.script import ScriptDirectory
+        from database import engine
+
+        alembic_cfg_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "alembic.ini")
+        alembic_cfg = Config(alembic_cfg_path)
+        script = ScriptDirectory.from_config(alembic_cfg)
+
+        with engine.connect() as conn:
+            context = MigrationContext.configure(conn)
+            current_rev = list(context.get_current_heads())
+            head_rev    = list(script.get_heads())
+
+        migrations_ok = set(current_rev) == set(head_rev)
+        return {
+            "status":          "ok" if migrations_ok else "degraded",
+            "service":         "EcoRewind API",
+            "version":         "2.0.0",
+            "db":              "connected",
+            "migrations":      "up-to-date" if migrations_ok else "PENDING",
+            "current_rev":     current_rev,
+            "head_rev":        head_rev,
+        }
+    except Exception as e:
+        return {"status": "error", "detail": str(e)}

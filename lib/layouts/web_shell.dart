@@ -4,13 +4,14 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../theme/app_theme.dart';
 import '../theme/web_theme.dart';
 import '../models/user_model.dart';
+import '../services/l10n_service.dart';
 
 // ════════════════════════════════════════════════════════════════════════════
 // WEB SHELL — Sidebar gauche fixe + contenu principal
 // Design: dark sidebar premium (Linear / Vercel style)
 // ════════════════════════════════════════════════════════════════════════════
 
-class WebShell extends StatelessWidget {
+class WebShell extends StatefulWidget {
   final int currentIndex;
   final ValueChanged<int> onTabSelected;
   final List<Widget> pages;
@@ -25,6 +26,27 @@ class WebShell extends StatelessWidget {
   }) : super(key: key);
 
   @override
+  State<WebShell> createState() => _WebShellState();
+}
+
+class _WebShellState extends State<WebShell> {
+  @override
+  void initState() {
+    super.initState();
+    L10n.addListener(_onLocaleChange);
+  }
+
+  @override
+  void dispose() {
+    L10n.removeListener(_onLocaleChange);
+    super.dispose();
+  }
+
+  void _onLocaleChange() {
+    if (mounted) setState(() {});
+  }
+
+  @override
   Widget build(BuildContext context) {
     final role = AuthState.currentUser?.role ?? UserRole.user;
     final items = _getNavItems(role);
@@ -36,20 +58,20 @@ class WebShell extends StatelessWidget {
           // ── Dark Sidebar ───────────────────────────────────────────────
           _Sidebar(
             items: items,
-            currentIndex: currentIndex,
-            onItemSelected: onTabSelected,
-            isLoggedIn: isLoggedIn,
+            currentIndex: widget.currentIndex,
+            onItemSelected: widget.onTabSelected,
+            isLoggedIn: widget.isLoggedIn,
           ),
 
           // ── Contenu principal ──────────────────────────────────────────
           Expanded(
             child: Column(
               children: [
-                _TopBar(currentIndex: currentIndex, items: items),
+                _TopBar(currentIndex: widget.currentIndex, items: items),
                 Expanded(
                   child: IndexedStack(
-                    index: currentIndex,
-                    children: pages,
+                    index: widget.currentIndex,
+                    children: widget.pages,
                   ),
                 ),
               ],
@@ -61,38 +83,44 @@ class WebShell extends StatelessWidget {
   }
 
   List<_NavItem> _getNavItems(UserRole role) {
+    final principalSec = L10n.isArabic ? 'الرئيسية' : 'PRINCIPAL';
+    final decouvrirSec = L10n.isArabic ? 'اكتشف' : 'DÉCOUVRIR';
+    final espaceProSec = L10n.isArabic ? 'المساحة المهنية' : 'ESPACE PRO';
+    final communauteSec = L10n.isArabic ? 'المجتمع' : 'COMMUNAUTÉ';
+    final compteSec = L10n.isArabic ? 'الحساب' : 'COMPTE';
+
     // ── Visiteur non connecté ──
-    if (!isLoggedIn) {
-      return const [
-        _NavItem(icon: FontAwesomeIcons.house, label: 'Fil d\'actualités', section: 'PRINCIPAL'),
-        _NavItem(icon: FontAwesomeIcons.graduationCap, label: 'Formation'),
-        _NavItem(icon: FontAwesomeIcons.chartLine, label: 'Impact', section: 'DÉCOUVRIR'),
-        _NavItem(icon: FontAwesomeIcons.mapLocationDot, label: 'Carte'),
+    if (!widget.isLoggedIn) {
+      return [
+        _NavItem(icon: FontAwesomeIcons.house, label: L10n.tr('tab_feed'), section: principalSec),
+        _NavItem(icon: FontAwesomeIcons.graduationCap, label: L10n.tr('tab_multimedia')),
+        _NavItem(icon: FontAwesomeIcons.chartLine, label: L10n.tr('tab_rewards'), section: decouvrirSec),
+        _NavItem(icon: FontAwesomeIcons.mapLocationDot, label: L10n.tr('tab_map')),
       ];
     }
     if (role == UserRole.educator) {
-      return const [
-        _NavItem(icon: FontAwesomeIcons.house, label: 'Fil d\'actualités', section: 'PRINCIPAL'),
-        _NavItem(icon: FontAwesomeIcons.chalkboardUser, label: 'Éducateur', section: 'ESPACE PRO'),
-        _NavItem(icon: FontAwesomeIcons.user, label: 'Profil'),
+      return [
+        _NavItem(icon: FontAwesomeIcons.house, label: L10n.tr('tab_feed'), section: principalSec),
+        _NavItem(icon: FontAwesomeIcons.chalkboardUser, label: L10n.tr('tab_educator'), section: espaceProSec),
+        _NavItem(icon: FontAwesomeIcons.user, label: L10n.tr('tab_profile')),
       ];
     }
     if (role == UserRole.user) {
-      return const [
-        _NavItem(icon: FontAwesomeIcons.house, label: 'Fil d\'actualités', section: 'PRINCIPAL'),
-        _NavItem(icon: FontAwesomeIcons.graduationCap, label: 'Formation'),
-        _NavItem(icon: FontAwesomeIcons.chartLine, label: 'Impact', section: 'COMMUNAUTÉ'),
-        _NavItem(icon: FontAwesomeIcons.mapLocationDot, label: 'Carte'),
-        _NavItem(icon: FontAwesomeIcons.comments, label: 'Communauté'),
-        _NavItem(icon: FontAwesomeIcons.user, label: 'Profil', section: 'COMPTE'),
+      return [
+        _NavItem(icon: FontAwesomeIcons.house, label: L10n.tr('tab_feed'), section: principalSec),
+        _NavItem(icon: FontAwesomeIcons.graduationCap, label: L10n.tr('tab_multimedia')),
+        _NavItem(icon: FontAwesomeIcons.chartLine, label: L10n.tr('tab_rewards'), section: communauteSec),
+        _NavItem(icon: FontAwesomeIcons.mapLocationDot, label: L10n.tr('tab_map')),
+        _NavItem(icon: FontAwesomeIcons.comments, label: L10n.tr('tab_community')),
+        _NavItem(icon: FontAwesomeIcons.user, label: L10n.tr('tab_profile'), section: compteSec),
       ];
     }
-    return const [
-      _NavItem(icon: FontAwesomeIcons.house, label: 'Fil d\'actualités', section: 'PRINCIPAL'),
-      _NavItem(icon: FontAwesomeIcons.graduationCap, label: 'Formation'),
-      _NavItem(icon: FontAwesomeIcons.chartLine, label: 'Impact', section: 'COMMUNAUTÉ'),
-      _NavItem(icon: FontAwesomeIcons.mapLocationDot, label: 'Carte'),
-      _NavItem(icon: FontAwesomeIcons.user, label: 'Profil', section: 'COMPTE'),
+    return [
+      _NavItem(icon: FontAwesomeIcons.house, label: L10n.tr('tab_feed'), section: principalSec),
+      _NavItem(icon: FontAwesomeIcons.graduationCap, label: L10n.tr('tab_multimedia')),
+      _NavItem(icon: FontAwesomeIcons.chartLine, label: L10n.tr('tab_rewards'), section: communauteSec),
+      _NavItem(icon: FontAwesomeIcons.mapLocationDot, label: L10n.tr('tab_map')),
+      _NavItem(icon: FontAwesomeIcons.user, label: L10n.tr('tab_profile'), section: compteSec),
     ];
   }
 }

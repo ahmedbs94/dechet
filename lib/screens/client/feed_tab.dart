@@ -54,8 +54,14 @@ class _FeedTabState extends State<FeedTab> with SingleTickerProviderStateMixin {
   }
 
   void _onScroll() {
-    if (_scroll.offset > 80) { _fabCtrl.forward(); } else { _fabCtrl.reverse(); }
-    if (_scroll.position.pixels >= _scroll.position.maxScrollExtent - 400) { _loadMore(); }
+    if (_scroll.offset > 80) {
+      _fabCtrl.forward();
+    } else {
+      _fabCtrl.reverse();
+    }
+    if (_scroll.position.pixels >= _scroll.position.maxScrollExtent - 400) {
+      _loadMore();
+    }
   }
 
   Future<void> _loadPosts() async {
@@ -93,7 +99,7 @@ class _FeedTabState extends State<FeedTab> with SingleTickerProviderStateMixin {
   Widget build(BuildContext context) {
     final top = MediaQuery.of(context).padding.top;
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F7F5),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: RefreshIndicator(
         onRefresh: _loadPosts,
         color: AppTheme.primaryGreen,
@@ -107,12 +113,14 @@ class _FeedTabState extends State<FeedTab> with SingleTickerProviderStateMixin {
               pinned: true,
               floating: false,
               expandedHeight: 110 + top,
-              backgroundColor: Colors.white,
+              backgroundColor: Theme.of(context).colorScheme.surface,
               surfaceTintColor: Colors.transparent,
               elevation: 0,
-              systemOverlayStyle: SystemUiOverlayStyle.dark,
+              systemOverlayStyle: Theme.of(context).brightness == Brightness.dark
+                  ? SystemUiOverlayStyle.light
+                  : SystemUiOverlayStyle.dark,
               flexibleSpace: FlexibleSpaceBar(
-                titlePadding: EdgeInsets.fromLTRB(20, 0, 20, 14),
+                titlePadding: const EdgeInsets.fromLTRB(20, 0, 20, 14),
                 title: Row(
                   children: [
                     Container(
@@ -124,7 +132,14 @@ class _FeedTabState extends State<FeedTab> with SingleTickerProviderStateMixin {
                       child: const Icon(Icons.eco_rounded, color: Colors.white, size: 16),
                     ),
                     const SizedBox(width: 8),
-                    Text('Fil', style: GoogleFonts.outfit(fontSize: 20, fontWeight: FontWeight.w900, color: const Color(0xFF0F172A))),
+                    Text(
+                      'Fil',
+                      style: GoogleFonts.outfit(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w900,
+                        color: Theme.of(context).textTheme.titleLarge?.color ?? const Color(0xFF0F172A),
+                      ),
+                    ),
                     const Spacer(),
                     GestureDetector(
                       onTap: _showCreatePost,
@@ -145,12 +160,18 @@ class _FeedTabState extends State<FeedTab> with SingleTickerProviderStateMixin {
                   ],
                 ),
               ),
-              bottom: PreferredSize(preferredSize: const Size.fromHeight(1), child: Container(height: 1, color: const Color(0xFFE2E8F0))),
+              bottom: PreferredSize(
+                preferredSize: const Size.fromHeight(1),
+                child: Container(
+                  height: 1,
+                  color: Theme.of(context).dividerColor,
+                ),
+              ),
             ),
 
             // ── Contenu ──
-            if (_loading && _posts.isEmpty)
-              SliverFillRemaining(child: Center(child: CircularProgressIndicator(color: AppTheme.primaryGreen, strokeWidth: 2)))
+            if (_loading)
+              const SliverFillRemaining(child: Center(child: CircularProgressIndicator(color: AppTheme.primaryGreen, strokeWidth: 2)))
             else if (_error != null)
               SliverFillRemaining(child: _ErrorView(message: _error!, onRetry: _loadPosts))
             else if (_posts.isEmpty)
@@ -230,15 +251,15 @@ class _PinCardState extends State<_PinCard> {
     if (!AuthState.isLoggedIn) { AuthPromptDialog.show(context: context); return; }
     setState(() { _liked = !_liked; _liked ? _likes++ : _likes = (_likes - 1).clamp(0, 9999); });
     final r = await widget.auth.toggleLikePost(widget.post['id'].toString());
-    if (r['success'] == true && mounted) setState(() { _liked = r['liked'] ?? _liked; _likes = r['count'] ?? _likes; });
+    if (r['success'] == true && mounted) { setState(() { _liked = r['liked'] ?? _liked; _likes = r['count'] ?? _likes; }); }
   }
 
   Future<void> _toggleSave() async {
     if (!AuthState.isLoggedIn) { AuthPromptDialog.show(context: context); return; }
     setState(() => _saved = !_saved);
     final r = await widget.auth.toggleSavePost(widget.post['id'].toString());
-    if (r['success'] == true && mounted) setState(() => _saved = r['saved'] ?? _saved);
-    else if (mounted) setState(() => _saved = !_saved);
+    if (r['success'] == true && mounted) { setState(() => _saved = r['saved'] ?? _saved); }
+    else if (mounted) { setState(() => _saved = !_saved); }
   }
 
   @override
@@ -255,7 +276,7 @@ class _PinCardState extends State<_PinCard> {
       onTap: () => setState(() => _actionsVisible = !_actionsVisible),
       child: Container(
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: Theme.of(context).colorScheme.surface,
           borderRadius: BorderRadius.circular(20),
           boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.06), blurRadius: 12, offset: const Offset(0, 4))],
         ),
@@ -325,7 +346,16 @@ class _PinCardState extends State<_PinCard> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   if (desc.isNotEmpty) ...[
-                    Text(desc, style: GoogleFonts.inter(fontSize: 12.5, height: 1.45, color: const Color(0xFF1E293B)), maxLines: hasImage ? 2 : 5, overflow: TextOverflow.ellipsis),
+                    Text(
+                      desc,
+                      style: GoogleFonts.inter(
+                        fontSize: 12.5,
+                        height: 1.45,
+                        color: Theme.of(context).textTheme.bodyLarge?.color?.withOpacity(0.9) ?? const Color(0xFF1E293B),
+                      ),
+                      maxLines: hasImage ? 2 : 5,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                     const SizedBox(height: 8),
                   ],
                   // Si pas d'image, afficher les likes ici
@@ -348,7 +378,15 @@ class _PinCardState extends State<_PinCard> {
                       CircleAvatar(radius: 11, backgroundColor: AppTheme.primaryGreen.withOpacity(0.15), child: Text(name.isNotEmpty ? name[0].toUpperCase() : '?', style: GoogleFonts.outfit(fontSize: 10, fontWeight: FontWeight.bold, color: AppTheme.primaryGreen))),
                     const SizedBox(width: 6),
                     Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                      Text(name, style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w600, color: const Color(0xFF334155)), overflow: TextOverflow.ellipsis),
+                      Text(
+                        name,
+                        style: GoogleFonts.inter(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: Theme.of(context).textTheme.bodyLarge?.color?.withOpacity(0.8) ?? const Color(0xFF334155),
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
                       if (timeStr.isNotEmpty)
                         Text(timeStr, style: GoogleFonts.inter(fontSize: 9.5, color: Colors.grey.shade400)),
                     ])),
@@ -453,14 +491,25 @@ class _CreatePostSheetState extends State<_CreatePostSheet> {
   @override
   Widget build(BuildContext context) {
     final kb = MediaQuery.of(context).viewInsets.bottom;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       padding: EdgeInsets.fromLTRB(20, 20, 20, 20 + kb),
-      decoration: const BoxDecoration(color: Colors.white, borderRadius: BorderRadius.vertical(top: Radius.circular(28))),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+      ),
       child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-        Center(child: Container(width: 36, height: 4, decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(2)))),
+        Center(child: Container(width: 36, height: 4, decoration: BoxDecoration(color: isDark ? Colors.grey.shade700 : Colors.grey.shade300, borderRadius: BorderRadius.circular(2)))),
         const SizedBox(height: 16),
         Row(children: [
-          Text('Nouvelle publication', style: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.w800, color: const Color(0xFF0F172A))),
+          Text(
+            'Nouvelle publication',
+            style: GoogleFonts.outfit(
+              fontSize: 18,
+              fontWeight: FontWeight.w800,
+              color: Theme.of(context).textTheme.titleLarge?.color ?? const Color(0xFF0F172A),
+            ),
+          ),
           const Spacer(),
           IconButton(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.close_rounded), color: Colors.grey.shade500),
         ]),
@@ -472,7 +521,8 @@ class _CreatePostSheetState extends State<_CreatePostSheet> {
           decoration: InputDecoration(
             hintText: 'Partagez votre geste écologique...',
             hintStyle: GoogleFonts.inter(color: Colors.grey.shade400),
-            filled: true, fillColor: const Color(0xFFF8F7F5),
+            filled: true,
+            fillColor: isDark ? Colors.white.withOpacity(0.05) : const Color(0xFFF8F7F5),
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
             contentPadding: const EdgeInsets.all(14),
           ),
@@ -488,7 +538,7 @@ class _CreatePostSheetState extends State<_CreatePostSheet> {
             ),
             Positioned(top: 8, right: 8, child: GestureDetector(
               onTap: () => setState(() => _image = null),
-              child: Container(padding: const EdgeInsets.all(4), decoration: BoxDecoration(color: Colors.black54, shape: BoxShape.circle), child: const Icon(Icons.close, color: Colors.white, size: 16)),
+              child: Container(padding: const EdgeInsets.all(4), decoration: const BoxDecoration(color: Colors.black54, shape: BoxShape.circle), child: const Icon(Icons.close, color: Colors.white, size: 16)),
             )),
           ])
         else
@@ -502,7 +552,7 @@ class _CreatePostSheetState extends State<_CreatePostSheet> {
                 borderRadius: BorderRadius.circular(16),
               ),
               child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                Icon(Icons.add_photo_alternate_rounded, color: AppTheme.primaryGreen, size: 22),
+                const Icon(Icons.add_photo_alternate_rounded, color: AppTheme.primaryGreen, size: 22),
                 const SizedBox(width: 8),
                 Text('Ajouter une photo', style: GoogleFonts.inter(color: AppTheme.primaryGreen, fontWeight: FontWeight.w600, fontSize: 13)),
               ]),

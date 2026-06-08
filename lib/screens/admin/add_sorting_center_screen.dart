@@ -35,7 +35,7 @@ class _AddSortingCenterScreenState extends State<AddSortingCenterScreen> {
   Timer? _debounce;
 
   List<String> _availableTypes = [];
-  Map<String, List<String>> _categorizedTypes = {
+  final Map<String, List<String>> _categorizedTypes = {
     "disponible": [],
     "sature": [],
     "maintenance": []
@@ -55,10 +55,15 @@ class _AddSortingCenterScreenState extends State<AddSortingCenterScreen> {
     _hoursController = TextEditingController(text: existing?['hours'] ?? '');
     
     String rawStatus = existing?['status']?.toString().toLowerCase() ?? 'disponible';
-    if (rawStatus == 'disponible') _selectedStatus = 'Disponible';
-    else if (rawStatus == 'saturé') _selectedStatus = 'Saturé';
-    else if (rawStatus == 'maintenance') _selectedStatus = 'Maintenance';
-    else _selectedStatus = 'Disponible';
+    if (rawStatus == 'disponible') {
+      _selectedStatus = 'Disponible';
+    } else if (rawStatus == 'saturé') {
+      _selectedStatus = 'Saturé';
+    } else if (rawStatus == 'maintenance') {
+      _selectedStatus = 'Maintenance';
+    } else {
+      _selectedStatus = 'Disponible';
+    }
     
     if (existing != null && existing['types_detail'] != null && existing['types_detail'] is Map) {
       final detail = existing['types_detail'] as Map<String, dynamic>;
@@ -473,17 +478,27 @@ class _AddSortingCenterScreenState extends State<AddSortingCenterScreen> {
                             runSpacing: 8,
                             children: _availableTypes.map((type) {
                               String state = "none";
-                              if (_categorizedTypes["disponible"]!.contains(type)) state = "disponible";
-                              else if (_categorizedTypes["sature"]!.contains(type)) state = "sature";
-                              else if (_categorizedTypes["maintenance"]!.contains(type)) state = "maintenance";
+                              if (_categorizedTypes["disponible"]!.contains(type)) { state = "disponible"; }
+                              else if (_categorizedTypes["sature"]!.contains(type)) { state = "sature"; }
+                              else if (_categorizedTypes["maintenance"]!.contains(type)) { state = "maintenance"; }
 
                               Color color = Colors.grey.shade400;
                               Color bgColor = Colors.transparent;
                               IconData? icon;
                               
-                              if (state == "disponible") { color = Colors.green; bgColor = Colors.green.withOpacity(0.15); icon = Icons.check_circle; }
-                              else if (state == "sature") { color = Colors.red; bgColor = Colors.red.withOpacity(0.15); icon = Icons.warning_rounded; }
-                              else if (state == "maintenance") { color = Colors.orange; bgColor = Colors.orange.withOpacity(0.15); icon = Icons.build_circle; }
+                              if (state == "disponible") {
+                                color = Colors.green;
+                                bgColor = Colors.green.withOpacity(0.15);
+                                icon = Icons.check_circle;
+                              } else if (state == "sature") {
+                                color = Colors.red;
+                                bgColor = Colors.red.withOpacity(0.15);
+                                icon = Icons.warning_rounded;
+                              } else if (state == "maintenance") {
+                                color = Colors.orange;
+                                bgColor = Colors.orange.withOpacity(0.15);
+                                icon = Icons.build_circle;
+                              }
 
                               return InkWell(
                                 onTap: () {
@@ -492,10 +507,14 @@ class _AddSortingCenterScreenState extends State<AddSortingCenterScreen> {
                                     _categorizedTypes["sature"]!.remove(type);
                                     _categorizedTypes["maintenance"]!.remove(type);
                                     
-                                    if (state == "none") _categorizedTypes["disponible"]!.add(type);
-                                    else if (state == "disponible") _categorizedTypes["sature"]!.add(type);
-                                    else if (state == "sature") _categorizedTypes["maintenance"]!.add(type);
-                                    else if (state == "maintenance") { /* stays removed */ }
+                                    if (state == "none") {
+                                      _categorizedTypes["disponible"]!.add(type);
+                                    } else if (state == "disponible") {
+                                      _categorizedTypes["sature"]!.add(type);
+                                    } else if (state == "sature") {
+                                      _categorizedTypes["maintenance"]!.add(type);
+                                    }
+                                    // state == "maintenance" stays removed
                                   });
                                 },
                                 borderRadius: BorderRadius.circular(20),

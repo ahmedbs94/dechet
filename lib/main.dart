@@ -15,7 +15,7 @@ import 'screens/auth/section_testimonials.dart';
 import 'screens/auth/section_advantages.dart';
 import 'screens/client/client_home.dart';
 import 'screens/admin/admin_dashboard.dart';
-import 'screens/client/waste_scanner_screen.dart';
+
 import 'screens/client/sorting_guide_screen.dart';
 import 'screens/client/bin_scanner_screen.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
@@ -23,11 +23,13 @@ import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
 import 'models/post_model.dart';
 import 'models/user_model.dart';
 import 'services/auth_service.dart';
+import 'services/l10n_service.dart';
 
 import 'firebase_options.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await L10n.init();
 
   // ── Initialisation Firebase (Score temps réel — QR Poubelle) ──────────────
   // DefaultFirebaseOptions fournit la config correcte selon la plateforme
@@ -211,8 +213,7 @@ class EcoRewindApp extends StatelessWidget {
             return buildRoute((_) => const SignUpScreen());
           case '/admin':
             return buildRoute((_) => const AdminDashboardScreen());
-          case '/scanner':
-            return buildRoute((_) => const WasteScannerScreen());
+
           case '/guide':
             return buildRoute((_) => const SortingGuideScreen());
           case '/how-it-works':

@@ -9,8 +9,19 @@ from typing import Optional
 import db_models as db_models
 from database import get_db
 from core.deps import get_admin_user
+from services import admin_analytics_service as svc
+from schemas.admin_analytics import (
+    ScanStatsResponse,
+    EducationStatsResponse,
+    ModerationStatsResponse,
+    CollectionPointStats,
+    AnomaliesResponse,
+    UserStatsResponse,
+)
 
 router = APIRouter(prefix="/admin/analytics", tags=["analytics"])
+
+_VALID_PERIODS = {"today", "yesterday", "last_7_days", "last_30_days", "current_month", "all_time"}
 
 
 # ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -381,3 +392,149 @@ async def recent_activity(
         }
         for p in posts
     ]
+
+
+@router.get(
+    "/users",
+    response_model=UserStatsResponse,
+    summary="Statistiques utilisateurs unifiées avec filtres temporels",
+)
+async def analytics_users(
+    period: str = Query("all_time", description="today|last_7_days|last_30_days|current_month|all_time"),
+    db: Session = Depends(get_db),
+    _admin=Depends(get_admin_user),
+) -> UserStatsResponse:
+    """
+    Statistiques utilisateurs agrégées :
+    - total utilisateurs actifs
+    - répartition par rôle (user, educator, admin, collector, pointManager)
+    - nouveaux inscrits sur la période
+    - utilisateurs actifs (ayant scanné) sur la période
+    - score moyen global
+    - top 5 scoreurs
+    """
+    if period not in _VALID_PERIODS:
+        period = "all_time"
+    return svc.get_user_stats_with_period(db, period)
+
+
+@router.get(
+    "/scans/by-day",
+    summary="Tendance des scans par jour (courbe temporelle)",
+)
+async def analytics_scans_by_day(
+    days: int = Query(7, ge=1, le=30, description="Nombre de jours à retourner (1-30)"),
+    db: Session = Depends(get_db),
+    _admin=Depends(get_admin_user),
+):
+    """
+    Retourne le nombre de scans et points distribués par jour.
+    Les jours sans scan sont inclus avec count=0 pour des courbes continues.
+    Format : [{"day": "2026-06-01", "count": 12, "points": 240.0}, ...]
+    """
+    return svc.get_scan_trend(db, days)
+
+
+# ─── Endpoints couche service ───────────────────────────────────────────────
+
+
+@router.get(
+    "/scans",
+    response_model=ScanStatsResponse,
+    summary="Statistiques QR scans avec filtres temporels",
+)
+async def analytics_scans(
+    period: str = Query("all_time", description="today|last_7_days|last_30_days|current_month|all_time"),
+    db: Session = Depends(get_db),
+    _admin=Depends(get_admin_user),
+) -> ScanStatsResponse:
+    """
+    Statistiques détaillées des scans QR :
+    - total scans, scans sur la période
+    - points distribués
+    - répartition par type de déchet
+    - top smart bins
+    - scans non synchronisés Firebase
+    """
+    if period not in _VALID_PERIODS:
+        period = "all_time"
+    return svc.get_scan_stats(db, period)
+
+
+@router.get(
+    "/education",
+    response_model=EducationStatsResponse,
+    summary="Statistiques quiz et éducation",
+)
+async def analytics_education(
+    period: str = Query("all_time", description="today|last_7_days|last_30_days|current_month|all_time"),
+    db: Session = Depends(get_db),
+    _admin=Depends(get_admin_user),
+) -> EducationStatsResponse:
+    """
+    Statistiques éducatives :
+    - total quiz créés
+    - total soumissions
+    - score moyen
+    - taux de réussite (score >= 5/10)
+    - quiz les plus tentés
+    """
+    if period not in _VALID_PERIODS:
+        period = "all_time"
+    return svc.get_education_stats(db, period)
+
+
+@router.get(
+    "/community",
+    response_model=ModerationStatsResponse,
+    summary="Statistiques communauté et modération",
+)
+async def analytics_community(
+    db: Session = Depends(get_db),
+    _admin=Depends(get_admin_user),
+) -> ModerationStatsResponse:
+    """
+    Statistiques de modération et communauté :
+    - posts par statut (pending_ai, pending_review, published, rejected)
+    - témoignages en attente d'approbation
+    - propositions de centres en attente
+    - taux d'auto-approbation
+    - état du worker IA
+    """
+    return svc.get_moderation_stats(db)
+
+
+@router.get(
+    "/collection-points",
+    response_model=CollectionPointStats,
+    summary="Statistiques points de collecte",
+)
+async def analytics_collection_points(
+    db: Session = Depends(get_db),
+    _admin=Depends(get_admin_user),
+) -> CollectionPointStats:
+    """
+    Statistiques des points de collecte :
+    - total, actifs, saturés, maintenance
+    - points jamais utilisés
+    - taux de disponibilité
+    """
+    return svc.get_collection_point_stats(db)
+
+
+@router.get(
+    "/anomalies",
+    response_model=AnomaliesResponse,
+    summary="Détection d'anomalies et comportements suspects",
+)
+async def analytics_anomalies(
+    db: Session = Depends(get_db),
+    _admin=Depends(get_admin_user),
+) -> AnomaliesResponse:
+    """
+    Détecte les comportements anormaux :
+    - SCAN_RATE_LIMIT : >20 scans/heure par utilisateur
+    - REPEATED_BIN_SCAN : même bin scanné >10x/jour par le même user
+    - FIREBASE_UNSYNCED : >20 scans non synchronisés avec Firebase
+    """
+    return svc.get_anomalies(db)

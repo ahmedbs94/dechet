@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:lottie/lottie.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../theme/app_theme.dart';
+import '../../services/l10n_service.dart';
 
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({Key? key}) : super(key: key);
@@ -16,29 +16,29 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   int _currentPage = 0;
 
   final List<OnboardingData> _data = [
-    OnboardingData(
+    const OnboardingData(
       title: 'Tri Intelligent',
       description: 'Simplifiez votre gestion des déchets grâce à notre IA de reconnaissance visuelle.',
-      lottieUrl: 'https://assets9.lottiefiles.com/packages/lf20_m6cu9k02.json',
-      accentColor: const Color(0xFF4CAF50),
+      assetPath: 'assets/images/onboarding_1_new.png',
+      accentColor: Color(0xFF4CAF50),
     ),
-    OnboardingData(
+    const OnboardingData(
       title: 'Impact Réel',
       description: 'Visualisez vos économies de CO2 et gagnez des points éco-citoyens à chaque geste.',
-      lottieUrl: 'https://assets10.lottiefiles.com/packages/lf20_xlmz9r6z.json',
-      accentColor: const Color(0xFF00BCD4),
+      assetPath: 'assets/images/onboarding_2_new.png',
+      accentColor: Color(0xFF00BCD4),
     ),
-    OnboardingData(
+    const OnboardingData(
       title: 'Communauté Active',
       description: 'Rejoignez des milliers de Tunisiens engagés pour un environnement plus propre.',
-      lottieUrl: 'https://assets2.lottiefiles.com/packages/lf20_u8o7ocbc.json',
-      accentColor: const Color(0xFFFF9800),
+      assetPath: 'assets/images/onboarding_3_new.png',
+      accentColor: Color(0xFFFF9800),
     ),
-    OnboardingData(
+    const OnboardingData(
       title: 'Guide du Tri',
       description: 'Apprenez les gestes simples pour trier vos déchets comme un expert.',
-      assetPath: 'https://www.cy-clope.com/wp-content/uploads/2024/06/Tri-selectif-1.png.webp',
-      accentColor: const Color(0xFF43A047),
+      assetPath: 'assets/images/onboarding_4_new.png',
+      accentColor: Color(0xFF43A047),
     ),
   ];
 
@@ -115,29 +115,18 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                             ),
                           ),
                           // The Visual Content
-                          _data[index].lottieUrl != null
-                              ? Lottie.network(
-                                  _data[index].lottieUrl!,
-                                  height: 320,
-                                  fit: BoxFit.contain,
-                                  errorBuilder: (context, error, stackTrace) {
-                                    return Icon(
-                                      _getIconForIndex(index),
-                                      size: 180,
-                                      color: _data[index].accentColor,
-                                    ).animate(onPlay: (c) => c.repeat(reverse: true)).shimmer(duration: 2.seconds);
-                                  },
-                                )
-                              : Image.network(
-                                  _data[index].assetPath!,
-                                  height: 280,
-                                  fit: BoxFit.contain,
-                                  errorBuilder: (context, error, stackTrace) => Icon(
-                                    _getIconForIndex(index),
-                                    size: 180,
-                                    color: _data[index].accentColor,
-                                  ),
-                                ),
+                          Image.asset(
+                            _data[index].assetPath,
+                            height: 280,
+                            fit: BoxFit.contain,
+                            errorBuilder: (context, error, stackTrace) {
+                              return Icon(
+                                _getIconForIndex(index),
+                                size: 180,
+                                color: _data[index].accentColor,
+                              ).animate(onPlay: (c) => c.repeat(reverse: true)).shimmer(duration: 2.seconds);
+                            },
+                          ),
                         ],
                       ),
                     ),
@@ -146,7 +135,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                       key: ValueKey('title_$index'),
                       effects: const [FadeEffect(), SlideEffect(begin: Offset(0, 0.2))],
                       child: Text(
-                        _data[index].title,
+                        L10n.tr('onboarding_title_${index + 1}'),
                         style: GoogleFonts.outfit(
                           fontSize: 34,
                           fontWeight: FontWeight.bold,
@@ -160,7 +149,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                       key: ValueKey('desc_$index'),
                       effects: const [FadeEffect(delay: Duration(milliseconds: 200)), SlideEffect(begin: Offset(0, 0.1))],
                       child: Text(
-                        _data[index].description,
+                        L10n.tr('onboarding_desc_${index + 1}'),
                         style: GoogleFonts.inter(
                           fontSize: 17,
                           height: 1.6,
@@ -225,7 +214,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                       shadowColor: _data[_currentPage].accentColor.withOpacity(0.5),
                     ),
                     child: Text(
-                      _currentPage == _data.length - 1 ? 'COMMENCER' : 'SUIVANT',
+                      _currentPage == _data.length - 1 ? L10n.tr('btn_start') : L10n.tr('btn_next'),
                       style: GoogleFonts.outfit(fontWeight: FontWeight.bold, letterSpacing: 1),
                     ),
                   ),
@@ -252,15 +241,13 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 class OnboardingData {
   final String title;
   final String description;
-  final String? lottieUrl;
-  final String? assetPath;
+  final String assetPath;
   final Color accentColor;
 
-  OnboardingData({
+  const OnboardingData({
     required this.title,
     required this.description,
-    this.lottieUrl,
-    this.assetPath,
+    required this.assetPath,
     required this.accentColor,
   });
 }

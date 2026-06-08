@@ -410,8 +410,8 @@ class _GroupDetailScreenState extends State<_GroupDetailScreen> {
             style: GoogleFonts.inter(color: Colors.white),
             onChanged: (v) {
               setState(() => _search = v);
-              if (v.length > 1) _loadCitizens(q: v);
-              else if (v.isEmpty) _loadCitizens();
+              if (v.length > 1) { _loadCitizens(q: v); }
+              else if (v.isEmpty) { _loadCitizens(); }
             },
             decoration: InputDecoration(
               hintText: 'Rechercher un citoyen...',

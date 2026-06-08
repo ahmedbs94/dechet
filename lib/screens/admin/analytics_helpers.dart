@@ -111,7 +111,7 @@ class IndicateurPrincipal extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [couleur.withOpacity(alerte ? 0.12 : 0.06), couleur.withOpacity(0.02)],
@@ -122,21 +122,29 @@ class IndicateurPrincipal extends StatelessWidget {
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-          Icon(icone, color: couleur, size: 20),
+          Icon(icone, color: couleur, size: 18),
           if (alerte)
             Container(width: 8, height: 8,
               decoration: BoxDecoration(color: couleur, shape: BoxShape.circle)),
         ]),
-        const SizedBox(height: 12),
-        Text(valeur, style: GoogleFonts.outfit(
-          fontWeight: FontWeight.w900, fontSize: 28,
-          color: alerte ? couleur : AppTheme.deepSlate, height: 1)),
+        const SizedBox(height: 10),
+        FittedBox(
+          alignment: Alignment.centerLeft,
+          fit: BoxFit.scaleDown,
+          child: Text(valeur, style: GoogleFonts.outfit(
+            fontWeight: FontWeight.w900, fontSize: 22,
+            color: alerte ? couleur : AppTheme.deepSlate, height: 1)),
+        ),
         const SizedBox(height: 4),
-        Text(etiquette, style: GoogleFonts.inter(
-          fontSize: 12, fontWeight: FontWeight.w700, color: AppTheme.deepSlate)),
+        FittedBox(
+          alignment: Alignment.centerLeft,
+          fit: BoxFit.scaleDown,
+          child: Text(etiquette, style: GoogleFonts.inter(
+            fontSize: 11, fontWeight: FontWeight.w700, color: AppTheme.deepSlate)),
+        ),
         const SizedBox(height: 2),
         Text(sousTitre, style: GoogleFonts.inter(
-          fontSize: 10, color: AppTheme.textMuted), maxLines: 1, overflow: TextOverflow.ellipsis),
+          fontSize: 9, color: AppTheme.textMuted), maxLines: 1, overflow: TextOverflow.ellipsis),
       ]),
     );
   }
@@ -193,22 +201,27 @@ class FiltrePeriode extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(mainAxisSize: MainAxisSize.min, children: [
-      Text('Période : ', style: GoogleFonts.inter(fontSize: 11, color: AppTheme.textMuted)),
-      ...List.generate(_options.length, (i) => GestureDetector(
-        onTap: () => onChangement(_options[i]),
-        child: Container(
-          margin: const EdgeInsets.only(left: 4),
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-          decoration: BoxDecoration(
-            color: valeur == _options[i] ? couleur : Colors.grey.shade100,
-            borderRadius: BorderRadius.circular(8),
+    return Wrap(
+      alignment: WrapAlignment.start,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      spacing: 4,
+      runSpacing: 4,
+      children: [
+        Text('Période : ', style: GoogleFonts.inter(fontSize: 11, color: AppTheme.textMuted)),
+        ...List.generate(_options.length, (i) => GestureDetector(
+          onTap: () => onChangement(_options[i]),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+            decoration: BoxDecoration(
+              color: valeur == _options[i] ? couleur : Colors.grey.shade100,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Text(_labels[i], style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w700,
+              color: valeur == _options[i] ? Colors.white : AppTheme.textMuted)),
           ),
-          child: Text(_labels[i], style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w700,
-            color: valeur == _options[i] ? Colors.white : AppTheme.textMuted)),
-        ),
-      )),
-    ]);
+        )),
+      ],
+    );
   }
 }
 
@@ -310,7 +323,7 @@ class _PeintreAnneau extends CustomPainter {
     }
     final tp = TextPainter(
       text: TextSpan(text: '${total.toInt()}',
-        style: TextStyle(fontWeight: FontWeight.w900, fontSize: 15,
+        style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15,
           color: AppTheme.deepSlate)),
       textDirection: TextDirection.ltr)..layout();
     tp.paint(canvas, Offset(c.dx - tp.width / 2, c.dy - tp.height / 2));
@@ -318,3 +331,193 @@ class _PeintreAnneau extends CustomPainter {
 
   @override bool shouldRepaint(_PeintreAnneau o) => true;
 }
+
+// ── Graphique en ligne (courbe temporelle) ────────────────────────────────────
+class GraphiqueLigne extends StatelessWidget {
+  final List<Map<String, dynamic>> donnees; // [{day, count, points}]
+  final Color couleur;
+  final String labelY;
+
+  const GraphiqueLigne({
+    Key? key,
+    required this.donnees,
+    this.couleur = AppTheme.primaryGreen,
+    this.labelY = 'scans',
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    if (donnees.isEmpty) {
+      return Container(
+        height: 120,
+        decoration: BoxDecoration(
+          color: Colors.grey.shade50,
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: Center(child: Text('Aucune donnée', style: GoogleFonts.inter(color: AppTheme.textMuted, fontSize: 12))),
+      );
+    }
+    final max = donnees.map((d) => (d['count'] as num).toDouble()).reduce((a, b) => a > b ? a : b);
+    return SizedBox(
+      height: 120,
+      child: CustomPaint(
+        painter: _PeintreLigne(donnees: donnees, couleur: couleur, max: max),
+        child: Padding(
+          padding: const EdgeInsets.only(top: 4),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: donnees.map((d) {
+              final label = (d['day'] as String).substring(5); // MM-DD
+              return Text(label, style: GoogleFonts.inter(fontSize: 8, color: AppTheme.textMuted));
+            }).toList(),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _PeintreLigne extends CustomPainter {
+  final List<Map<String, dynamic>> donnees;
+  final Color couleur;
+  final double max;
+  _PeintreLigne({required this.donnees, required this.couleur, required this.max});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (donnees.isEmpty || max == 0) return;
+    final h = size.height - 20; // réserver espace labels bas
+    final w = size.width;
+    final step = w / (donnees.length - 1).clamp(1, 999);
+
+    // Zone remplie sous la courbe
+    final fillPath = Path();
+    fillPath.moveTo(0, h);
+    for (var i = 0; i < donnees.length; i++) {
+      final x = i * step;
+      final y = h - (donnees[i]['count'] as num).toDouble() / max * h * 0.85;
+      if (i == 0) {
+        fillPath.lineTo(x, y);
+      } else {
+        fillPath.lineTo(x, y);
+      }
+    }
+    fillPath.lineTo((donnees.length - 1) * step, h);
+    fillPath.close();
+    canvas.drawPath(fillPath, Paint()
+      ..shader = LinearGradient(
+        colors: [couleur.withOpacity(0.25), couleur.withOpacity(0.0)],
+        begin: Alignment.topCenter, end: Alignment.bottomCenter,
+      ).createShader(Rect.fromLTWH(0, 0, w, h))
+      ..style = PaintingStyle.fill);
+
+    // Ligne courbe
+    final linePaint = Paint()
+      ..color = couleur
+      ..strokeWidth = 2.5
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round;
+
+    final linePath = Path();
+    for (var i = 0; i < donnees.length; i++) {
+      final x = i * step;
+      final y = h - (donnees[i]['count'] as num).toDouble() / max * h * 0.85;
+      if (i == 0) {
+        linePath.moveTo(x, y);
+      } else {
+        linePath.lineTo(x, y);
+      }
+    }
+    canvas.drawPath(linePath, linePaint);
+
+    // Points
+    for (var i = 0; i < donnees.length; i++) {
+      final x = i * step;
+      final y = h - (donnees[i]['count'] as num).toDouble() / max * h * 0.85;
+      canvas.drawCircle(Offset(x, y), 3.5, Paint()..color = Colors.white..style = PaintingStyle.fill);
+      canvas.drawCircle(Offset(x, y), 3.5, Paint()..color = couleur..style = PaintingStyle.stroke..strokeWidth = 2);
+    }
+  }
+
+  @override bool shouldRepaint(_PeintreLigne o) => true;
+}
+
+// ── Filtre période (string: today/last_7_days/last_30_days/all_time) ──────────
+class FiltrePeriodeString extends StatelessWidget {
+  final String valeur;
+  final ValueChanged<String> onChangement;
+  final Color couleur;
+
+  static const _options = ['today', 'yesterday', 'last_7_days', 'last_30_days', 'current_month', 'all_time'];
+  static const _labels  = ["Auj.", "Hier", "7 jours", "30 jours", "Ce mois", "Tout"];
+
+  const FiltrePeriodeString({
+    Key? key,
+    required this.valeur,
+    required this.onChangement,
+    this.couleur = AppTheme.primaryGreen,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Wrap(
+      alignment: WrapAlignment.start,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      spacing: 4,
+      runSpacing: 4,
+      children: [
+        Text('Période : ', style: GoogleFonts.inter(fontSize: 11, color: AppTheme.textMuted)),
+        ...List.generate(_options.length, (i) => GestureDetector(
+          onTap: () => onChangement(_options[i]),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 180),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+            decoration: BoxDecoration(
+              color: valeur == _options[i] ? couleur : Colors.grey.shade100,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Text(_labels[i], style: GoogleFonts.inter(
+              fontSize: 10, fontWeight: FontWeight.w700,
+              color: valeur == _options[i] ? Colors.white : AppTheme.textMuted)),
+          ),
+        )),
+      ],
+    );
+  }
+}
+
+// ── Badge statut (anomalie / alerte) ─────────────────────────────────────────
+class BadgeStatut extends StatelessWidget {
+  final String label;
+  final Color couleur;
+  final IconData? icone;
+
+  const BadgeStatut({
+    Key? key,
+    required this.label,
+    required this.couleur,
+    this.icone,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: couleur.withOpacity(0.12),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: couleur.withOpacity(0.3)),
+      ),
+      child: Row(mainAxisSize: MainAxisSize.min, children: [
+        if (icone != null) ...[
+          Icon(icone, size: 12, color: couleur),
+          const SizedBox(width: 4),
+        ],
+        Text(label, style: GoogleFonts.inter(
+          fontSize: 10, fontWeight: FontWeight.w800, color: couleur)),
+      ]),
+    );
+  }
+}
+

@@ -22,8 +22,6 @@ class _MeetingsSectionState extends State<MeetingsSection> {
   bool _loading = true;
 
   static const _kGreen  = Color(0xFF00C896);
-  static const _kBg     = Color(0xFF1A2634);
-  static const _kCard   = Color(0xFF1E2D3D);
 
   @override
   void initState() {
@@ -150,7 +148,6 @@ class _MeetingCard extends StatelessWidget {
     final scheduledAt  = DateTime.tryParse(meeting['scheduled_at'] ?? '') ?? DateTime.now();
     final duration     = meeting['duration_minutes'] ?? 60;
     final myStatus     = meeting['my_status'] ?? 'invited';
-    final isConfirmed  = myStatus == 'confirmed';
     final isNow = DateTime.now().isAfter(scheduledAt.subtract(const Duration(minutes: 15)))
                && DateTime.now().isBefore(scheduledAt.add(Duration(minutes: duration)));
 
