@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../theme/app_theme.dart';
 import '../models/user_model.dart';
+import '../services/l10n_service.dart';
 
 /// Wrapper widget qui affiche le dialogue d'auth après l'ouverture de la page.
 /// Utilisation : Enveloppez n'importe quelle page avec ce widget.
@@ -53,188 +54,196 @@ class AuthPromptDialog {
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
-      builder: (ctx) => Container(
-        padding: const EdgeInsets.fromLTRB(28, 8, 28, 40),
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Drag handle
-            Container(
-              width: 40,
-              height: 4,
-              margin: const EdgeInsets.only(bottom: 28),
-              decoration: BoxDecoration(
-                color: Colors.grey.shade300,
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
+      builder: (ctx) {
+        final isDark = Theme.of(context).brightness == Brightness.dark;
+        String t(String fr, String ar) => L10n.isArabic ? ar : fr;
 
-            // Icon with gradient glow
-            Container(
-              padding: const EdgeInsets.all(18),
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [Color(0xFF059669), Color(0xFF2DD4BF)],
+        return Container(
+          padding: const EdgeInsets.fromLTRB(28, 8, 28, 40),
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.surface,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Drag handle
+              Container(
+                width: 40,
+                height: 4,
+                margin: const EdgeInsets.only(bottom: 28),
+                decoration: BoxDecoration(
+                  color: isDark ? Colors.grey.shade700 : Colors.grey.shade300,
+                  borderRadius: BorderRadius.circular(2),
                 ),
-                shape: BoxShape.circle,
-                boxShadow: [
-                  BoxShadow(
-                    color: const Color(0xFF059669).withOpacity(0.3),
-                    blurRadius: 20,
-                    offset: const Offset(0, 8),
+              ),
+
+              // Icon with gradient glow
+              Container(
+                padding: const EdgeInsets.all(18),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF059669), Color(0xFF2DD4BF)],
                   ),
-                ],
-              ),
-              child: ClipOval(
-                child: Image.asset(
-                  'assets/images/ecorewind_logo.png',
-                  width: 32,
-                  height: 32,
-                  fit: BoxFit.cover,
-                ),
-              ),
-            ),
-            const SizedBox(height: 24),
-
-            // Title
-            Text(
-              'Bienvenue sur EcoRewind',
-              textAlign: TextAlign.center,
-              style: GoogleFonts.spaceGrotesk(
-                fontSize: 22,
-                fontWeight: FontWeight.w900,
-                color: AppTheme.deepNavy,
-              ),
-            ),
-            const SizedBox(height: 8),
-
-            // Description
-            Text(
-              'Connectez-vous pour profiter pleinement de toutes les fonctionnalités.',
-              textAlign: TextAlign.center,
-              style: GoogleFonts.inter(
-                fontSize: 14,
-                color: AppTheme.textMuted,
-                height: 1.5,
-              ),
-            ),
-            const SizedBox(height: 30),
-
-            // ─── Button 1: Créer un compte ───
-            SizedBox(
-              width: double.infinity,
-              height: 54,
-              child: ElevatedButton(
-                onPressed: () {
-                  Navigator.pop(ctx);
-                  Navigator.pushNamed(context, '/signup');
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppTheme.primaryGreen,
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  elevation: 0,
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Icon(Icons.person_add_rounded, size: 20),
-                    const SizedBox(width: 10),
-                    Text(
-                      'CRÉER UN COMPTE',
-                      style: GoogleFonts.outfit(
-                        fontWeight: FontWeight.w800,
-                        fontSize: 15,
-                        letterSpacing: 0.5,
-                      ),
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFF059669).withOpacity(0.3),
+                      blurRadius: 20,
+                      offset: const Offset(0, 8),
                     ),
                   ],
                 ),
-              ),
-            ),
-            const SizedBox(height: 12),
-
-            // ─── Button 2: Se connecter ───
-            SizedBox(
-              width: double.infinity,
-              height: 54,
-              child: OutlinedButton(
-                onPressed: () {
-                  Navigator.pop(ctx);
-                  Navigator.pushNamed(context, '/login');
-                },
-                style: OutlinedButton.styleFrom(
-                  side: BorderSide(
-                      color: AppTheme.primaryGreen.withOpacity(0.3),
-                      width: 1.5),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
+                child: ClipOval(
+                  child: Image.asset(
+                    'assets/images/ecorewind_logo.png',
+                    width: 32,
+                    height: 32,
+                    fit: BoxFit.cover,
                   ),
                 ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Icon(Icons.login_rounded,
-                        size: 20, color: AppTheme.primaryGreen),
-                    const SizedBox(width: 10),
-                    Text(
-                      'J\'AI DÉJÀ UN COMPTE',
-                      style: GoogleFonts.outfit(
-                        fontWeight: FontWeight.w800,
-                        fontSize: 15,
-                        color: AppTheme.primaryGreen,
-                        letterSpacing: 0.5,
-                      ),
-                    ),
-                  ],
+              ),
+              const SizedBox(height: 24),
+
+              // Title
+              Text(
+                t('Bienvenue sur EcoRewind', 'مرحباً بكم في EcoRewind'),
+                textAlign: TextAlign.center,
+                style: GoogleFonts.spaceGrotesk(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w900,
+                  color: Theme.of(context).textTheme.titleLarge?.color ?? AppTheme.deepNavy,
                 ),
               ),
-            ),
-            const SizedBox(height: 12),
+              const SizedBox(height: 8),
 
-            // ─── Button 3: Continuer sans compte ───
-            SizedBox(
-              width: double.infinity,
-              height: 48,
-              child: TextButton(
-                onPressed: () {
-                  Navigator.pop(ctx);
-                },
-                style: TextButton.styleFrom(
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
+              // Description
+              Text(
+                t(
+                  'Connectez-vous pour profiter pleinement de toutes les fonctionnalités.',
+                  'قم بتسجيل الدخول للاستفادة الكاملة من جميع الميزات.',
+                ),
+                textAlign: TextAlign.center,
+                style: GoogleFonts.inter(
+                  fontSize: 14,
+                  color: isDark ? Colors.grey.shade400 : AppTheme.textMuted,
+                  height: 1.5,
+                ),
+              ),
+              const SizedBox(height: 30),
+
+              // ─── Button 1: Créer un compte ───
+              SizedBox(
+                width: double.infinity,
+                height: 54,
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.pop(ctx);
+                    Navigator.pushNamed(context, '/signup');
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppTheme.primaryGreen,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    elevation: 0,
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.person_add_rounded, size: 20),
+                      const SizedBox(width: 10),
+                      Text(
+                        t('CRÉER UN COMPTE', 'إنشاء حساب'),
+                        style: GoogleFonts.outfit(
+                          fontWeight: FontWeight.w800,
+                          fontSize: 15,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Icon(Icons.visibility_rounded,
-                        size: 18, color: AppTheme.textMuted),
-                    const SizedBox(width: 8),
-                    Text(
-                      'Continuer sans compte',
-                      style: GoogleFonts.inter(
-                        fontWeight: FontWeight.w600,
-                        fontSize: 14,
-                        color: AppTheme.textMuted,
-                      ),
+              ),
+              const SizedBox(height: 12),
+
+              // ─── Button 2: Se connecter ───
+              SizedBox(
+                width: double.infinity,
+                height: 54,
+                child: OutlinedButton(
+                  onPressed: () {
+                    Navigator.pop(ctx);
+                    Navigator.pushNamed(context, '/login');
+                  },
+                  style: OutlinedButton.styleFrom(
+                    side: BorderSide(
+                        color: AppTheme.primaryGreen.withOpacity(0.3),
+                        width: 1.5),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
                     ),
-                    const SizedBox(width: 4),
-                    const Icon(Icons.arrow_forward_rounded,
-                        size: 16, color: AppTheme.textMuted),
-                  ],
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.login_rounded,
+                          size: 20, color: AppTheme.primaryGreen),
+                      const SizedBox(width: 10),
+                      Text(
+                        t('J\'AI DÉJÀ UN COMPTE', 'لدي حساب بالفعل'),
+                        style: GoogleFonts.outfit(
+                          fontWeight: FontWeight.w800,
+                          fontSize: 15,
+                          color: AppTheme.primaryGreen,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ),
-          ],
-        ),
-      ),
+              const SizedBox(height: 12),
+
+              // ─── Button 3: Continuer sans compte ───
+              SizedBox(
+                width: double.infinity,
+                height: 48,
+                child: TextButton(
+                  onPressed: () {
+                    Navigator.pop(ctx);
+                  },
+                  style: TextButton.styleFrom(
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.visibility_rounded,
+                          size: 18, color: isDark ? Colors.grey.shade400 : AppTheme.textMuted),
+                      const SizedBox(width: 8),
+                      Text(
+                        t('Continuer sans compte', 'المتابعة بدون حساب'),
+                        style: GoogleFonts.inter(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 14,
+                          color: isDark ? Colors.grey.shade400 : AppTheme.textMuted,
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      Icon(Icons.arrow_forward_rounded,
+                          size: 16, color: isDark ? Colors.grey.shade400 : AppTheme.textMuted),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }
