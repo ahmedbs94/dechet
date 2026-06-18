@@ -6,6 +6,7 @@ import '../../theme/app_theme.dart';
 import '../../theme/platform_ui.dart';
 import '../../models/user_model.dart';
 import '../../services/auth_service.dart';
+import '../../services/l10n_service.dart';
 import 'web_login.dart';
 import 'pinterest_bg.dart';
 class LoginScreen extends StatefulWidget {
@@ -40,7 +41,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
     final password = _passwordController.text.trim();
 
     if (email.isEmpty || password.isEmpty) {
-      setState(() => _errorMessage = 'Veuillez remplir tous les champs');
+      setState(() => _errorMessage = L10n.isArabic ? 'يرجى ملء جميع الحقول' : 'Veuillez remplir tous les champs');
       return;
     }
 
@@ -51,67 +52,68 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
       if (!mounted) return;
 
       if (result['success'] == true) {
-        final role = result['role'] as String? ?? 'user';
-        final fullName = result['full_name'] as String? ?? 'Utilisateur';
-        final userEmail = result['email'] as String? ?? email;
-
-        UserRole userRole;
-        switch (role) {
-          case 'admin': userRole = UserRole.admin; break;
-          case 'educator': userRole = UserRole.educator; break;
-          case 'intercommunality': userRole = UserRole.intercommunality; break;
-          case 'pointManager': userRole = UserRole.pointManager; break;
-          case 'collector': userRole = UserRole.collector; break;
-          default: userRole = UserRole.user;
+        // Tenter de charger le profil complet depuis /users/me
+        final userDetailsResult = await _authService.getCurrentUserDetails();
+        if (userDetailsResult['success'] == true && mounted) {
+          final userData = userDetailsResult['user'] as Map<String, dynamic>;
+          AuthState.currentUser = User.fromBackend(userData);
+        } else {
+          AuthState.currentUser = User.fromBackend({
+            'id': result['id'],
+            'full_name': result['full_name'],
+            'email': result['email'],
+            'role': result['role'] ?? 'user',
+            'points': 0,
+            'qr_code': result['qr_code'] ?? '',
+            'avatar_url': result['avatar_url'] ?? '',
+          });
         }
 
-        AuthState.currentUser = User(
-          id: (result['id'] ?? 0).toString(), name: fullName, email: userEmail, role: userRole, points: 0,
-          qrCode: result['qr_code'] as String? ?? '',
-        );
-
+        if (!mounted) return;
+        final userRole = AuthState.currentUser?.role ?? UserRole.user;
         if (userRole == UserRole.admin) {
           Navigator.pushReplacementNamed(context, '/admin');
         } else {
           Navigator.pushReplacementNamed(context, '/home');
         }
       } else {
-        setState(() => _errorMessage = result['message'] ?? 'Email ou mot de passe incorrect');
+        setState(() => _errorMessage = result['message'] ?? (L10n.isArabic ? 'بريد إلكتروني أو كلمة مرور خاطئة' : 'Email ou mot de passe incorrect'));
       }
     } catch (e) {
-      if (mounted) setState(() => _errorMessage = 'Erreur de connexion. Vérifiez votre réseau.');
+      if (mounted) setState(() => _errorMessage = L10n.isArabic ? 'خطأ في الاتصال. تحقق من شبكتك.' : 'Erreur de connexion. Vérifiez votre réseau.');
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
   }
 
-  void _handleSocialAuthResult(Map<String, dynamic> result) {
+  void _handleSocialAuthResult(Map<String, dynamic> result) async {
     if (!mounted) return;
     if (result['success'] == true) {
-      final role = result['role'] as String? ?? 'user';
-      UserRole userRole;
-      switch (role) {
-        case 'admin': userRole = UserRole.admin; break;
-        case 'educator': userRole = UserRole.educator; break;
-        case 'intercommunality': userRole = UserRole.intercommunality; break;
-        case 'pointManager': userRole = UserRole.pointManager; break;
-        case 'collector': userRole = UserRole.collector; break;
-        default: userRole = UserRole.user;
+      // Tenter de charger le profil complet depuis /users/me
+      final userDetailsResult = await _authService.getCurrentUserDetails();
+      if (userDetailsResult['success'] == true && mounted) {
+        final userData = userDetailsResult['user'] as Map<String, dynamic>;
+        AuthState.currentUser = User.fromBackend(userData);
+      } else {
+        AuthState.currentUser = User.fromBackend({
+          'id': result['id'],
+          'full_name': result['full_name'] ?? 'Utilisateur',
+          'email': result['email'] ?? '',
+          'role': result['role'] ?? 'user',
+          'points': 0,
+          'qr_code': result['qr_code'] ?? '',
+          'avatar_url': result['avatar_url'] ?? '',
+        });
       }
-      AuthState.currentUser = User(
-        id: (result['id'] ?? 0).toString(),
-        name: result['full_name'] as String? ?? 'Utilisateur',
-        email: result['email'] as String? ?? '',
-        role: userRole, points: 0,
-        qrCode: result['qr_code'] as String? ?? '',
-      );
+      if (!mounted) return;
+      final userRole = AuthState.currentUser?.role ?? UserRole.user;
       if (userRole == UserRole.admin) {
         Navigator.pushReplacementNamed(context, '/admin');
       } else {
         Navigator.pushReplacementNamed(context, '/home');
       }
     } else {
-      setState(() => _errorMessage = result['message'] ?? 'Erreur d\'authentification');
+      setState(() => _errorMessage = result['message'] ?? (L10n.isArabic ? 'خطأ في المصادقة' : 'Erreur d\'authentification'));
     }
   }
 
@@ -219,7 +221,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
 
                     const SizedBox(height: 8),
 
-                    Text('Votre impact commence ici', style: GoogleFonts.inter(color: Colors.white.withOpacity(0.8), fontSize: 14, fontWeight: FontWeight.w500)).animate().fadeIn(delay: 300.ms),
+                    Text(L10n.isArabic ? 'تأثيرك يبدأ هنا' : 'Votre impact commence ici', style: GoogleFonts.inter(color: Colors.white.withOpacity(0.8), fontSize: 14, fontWeight: FontWeight.w500)).animate().fadeIn(delay: 300.ms),
 
                     const SizedBox(height: 40),
 
@@ -265,7 +267,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                           // Password field
                           _buildTextField(
                             controller: _passwordController,
-                            label: 'Mot de passe',
+                            label: L10n.isArabic ? 'كلمة المرور' : 'Mot de passe',
                             icon: Icons.lock_outline_rounded,
                             obscure: _obscurePassword,
                             suffixIcon: IconButton(
@@ -280,7 +282,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                             child: TextButton(
                               onPressed: _navigateToForgotPassword,
                               style: TextButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 8)),
-                              child: Text('Mot de passe oublié ?', style: GoogleFonts.inter(fontSize: 12, color: Colors.white, fontWeight: FontWeight.w600)),
+                              child: Text(L10n.isArabic ? 'نسيت كلمة المرور ؟' : 'Mot de passe oublié ?', style: GoogleFonts.inter(fontSize: 12, color: Colors.white, fontWeight: FontWeight.w600)),
                             ),
                           ),
 
@@ -307,7 +309,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                                 ),
                                 child: _isLoading
                                     ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2.5, valueColor: AlwaysStoppedAnimation<Color>(Colors.white)))
-                                    : Text('SE CONNECTER', style: GoogleFonts.outfit(fontWeight: FontWeight.w900, letterSpacing: 2, fontSize: 15, color: Colors.white)),
+                                    : Text(L10n.isArabic ? 'تسجيل الدخول' : 'SE CONNECTER', style: GoogleFonts.outfit(fontWeight: FontWeight.w900, letterSpacing: 2, fontSize: 15, color: Colors.white)),
                               ),
                             ),
                           ),
@@ -319,7 +321,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                             Expanded(child: Container(height: 1, color: Colors.white.withOpacity(0.15))),
                             Padding(
                               padding: const EdgeInsets.symmetric(horizontal: 16),
-                              child: Text('OU', style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w800, color: Colors.white.withOpacity(0.5), letterSpacing: 2)),
+                              child: Text(L10n.isArabic ? 'أو' : 'OU', style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w800, color: Colors.white.withOpacity(0.5), letterSpacing: 2)),
                             ),
                             Expanded(child: Container(height: 1, color: Colors.white.withOpacity(0.15))),
                           ]),
@@ -355,10 +357,10 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                     TextButton(
                       onPressed: () => Navigator.pushNamed(context, '/signup'),
                       child: RichText(text: TextSpan(
-                        text: 'Pas encore de compte ? ',
+                        text: L10n.isArabic ? 'ليس لديك حساب ؟ ' : 'Pas encore de compte ? ',
                         style: GoogleFonts.inter(color: Colors.white.withOpacity(0.8), fontSize: 14),
                         children: [
-                          TextSpan(text: 'S\'inscrire', style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.w900)),
+                          TextSpan(text: L10n.isArabic ? 'إنشاء حساب' : 'S\'inscrire', style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.w900)),
                         ],
                       )),
                     ).animate().fadeIn(delay: 700.ms),
@@ -400,6 +402,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
           labelStyle: GoogleFonts.inter(color: const Color(0xFF94A3B8), fontSize: 13),
           prefixIcon: Icon(icon, size: 20, color: AppTheme.primaryGreen),
           suffixIcon: suffixIcon,
+          filled: false,
           border: InputBorder.none,
           contentPadding: const EdgeInsets.symmetric(vertical: 18, horizontal: 16),
           floatingLabelStyle: GoogleFonts.inter(color: AppTheme.primaryGreen, fontSize: 13, fontWeight: FontWeight.w600),
@@ -477,23 +480,17 @@ class _ForgotPasswordDialogState extends State<_ForgotPasswordDialog> {
           final loginResult = await widget.authService.login(email, newPassword);
           if (mounted) {
             if (loginResult['success'] == true) {
-              final role = loginResult['role'] as String? ?? 'user';
-              UserRole userRole;
-              switch (role) {
-                case 'admin': userRole = UserRole.admin; break;
-                case 'educator': userRole = UserRole.educator; break;
-                case 'intercommunality': userRole = UserRole.intercommunality; break;
-                case 'pointManager': userRole = UserRole.pointManager; break;
-                case 'collector': userRole = UserRole.collector; break;
-                default: userRole = UserRole.user;
-              }
-              AuthState.currentUser = User(
-                id: (loginResult['id'] ?? 0).toString(),
-                name: loginResult['full_name'] as String? ?? 'Utilisateur',
-                email: loginResult['email'] as String? ?? email,
-                role: userRole, points: 0,
-                qrCode: loginResult['qr_code'] as String? ?? '',
-              );
+              // Utiliser directement les données du login (avatar_url inclus)
+              AuthState.currentUser = User.fromBackend({
+                'id': loginResult['id'],
+                'full_name': loginResult['full_name'] ?? 'Utilisateur',
+                'email': loginResult['email'] ?? email,
+                'role': loginResult['role'] ?? 'user',
+                'points': 0,
+                'qr_code': loginResult['qr_code'] ?? '',
+                'avatar_url': loginResult['avatar_url'] ?? '',
+              });
+              final userRole = AuthState.currentUser?.role ?? UserRole.user;
               Navigator.pop(context);
               if (userRole == UserRole.admin) { Navigator.pushReplacementNamed(context, '/admin'); } else { Navigator.pushReplacementNamed(context, '/home'); }
               return;
@@ -518,20 +515,20 @@ class _ForgotPasswordDialogState extends State<_ForgotPasswordDialog> {
         if (_step == 1) const SizedBox(width: 8),
         Icon(_step == 2 ? Icons.check_circle_rounded : Icons.lock_reset_rounded, color: AppTheme.primaryGreen, size: 28),
         const SizedBox(width: 10),
-        Expanded(child: Text(_step == 0 ? 'Mot de passe oublié' : _step == 1 ? 'Réinitialisation' : 'Mot de passe modifié !', style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 18))),
+        Expanded(child: Text(_step == 0 ? (L10n.isArabic ? 'نسيت كلمة المرور' : 'Mot de passe oublié') : _step == 1 ? (L10n.isArabic ? 'إعادة تعيين' : 'Réinitialisation') : (L10n.isArabic ? 'تم تغيير كلمة المرور !' : 'Mot de passe modifié !'), style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 18))),
       ]),
       content: AnimatedSwitcher(
         duration: const Duration(milliseconds: 300),
         child: _step == 0 ? _buildStepEmail() : _step == 1 ? _buildStepCode() : _buildStepSuccess(),
       ),
       actions: _step == 2
-          ? [ElevatedButton(onPressed: () => Navigator.pop(context), style: ElevatedButton.styleFrom(backgroundColor: AppTheme.primaryGreen, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12)), child: Text('Retour à la connexion', style: GoogleFonts.outfit(fontWeight: FontWeight.bold)))]
+          ? [ElevatedButton(onPressed: () => Navigator.pop(context), style: ElevatedButton.styleFrom(backgroundColor: AppTheme.primaryGreen, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12)), child: Text(L10n.isArabic ? 'العودة إلى تسجيل الدخول' : 'Retour à la connexion', style: GoogleFonts.outfit(fontWeight: FontWeight.bold)))]
           : [
-              TextButton(onPressed: () => Navigator.pop(context), child: Text('Annuler', style: GoogleFonts.inter(color: AppTheme.textMuted))),
+              TextButton(onPressed: () => Navigator.pop(context), child: Text(L10n.isArabic ? 'إلغاء' : 'Annuler', style: GoogleFonts.inter(color: AppTheme.textMuted))),
               ElevatedButton(
                 onPressed: _isLoading ? null : (_step == 0 ? _sendResetEmail : _resetPassword),
                 style: ElevatedButton.styleFrom(backgroundColor: AppTheme.primaryGreen, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
-                child: _isLoading ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) : Text(_step == 0 ? 'Envoyer le code' : 'Changer le mot de passe', style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
+                child: _isLoading ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) : Text(_step == 0 ? (L10n.isArabic ? 'إرسال الرمز' : 'Envoyer le code') : (L10n.isArabic ? 'تغيير كلمة المرور' : 'Changer le mot de passe'), style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
               ),
             ],
     );
@@ -539,7 +536,7 @@ class _ForgotPasswordDialogState extends State<_ForgotPasswordDialog> {
 
   Widget _buildStepEmail() {
     return Column(key: const ValueKey('step_email'), mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Text('Entrez votre email pour recevoir un code de réinitialisation.', style: GoogleFonts.inter(fontSize: 13, color: AppTheme.textMuted)),
+      Text(L10n.isArabic ? 'أدخل بريدك الإلكتروني لتلقي رمز إعادة التعيين.' : 'Entrez votre email pour recevoir un code de réinitialisation.', style: GoogleFonts.inter(fontSize: 13, color: AppTheme.textMuted)),
       const SizedBox(height: 16),
       TextField(controller: _emailController, keyboardType: TextInputType.emailAddress, decoration: InputDecoration(labelText: 'Email', prefixIcon: const Icon(Icons.email_outlined, color: AppTheme.primaryGreen), border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)))),
       if (_message != null) ...[const SizedBox(height: 12), _buildMessage()],
@@ -549,13 +546,13 @@ class _ForgotPasswordDialogState extends State<_ForgotPasswordDialog> {
   Widget _buildStepCode() {
     return Column(key: const ValueKey('step_code'), mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
       Container(padding: const EdgeInsets.all(12), decoration: BoxDecoration(color: AppTheme.primaryGreen.withOpacity(0.08), borderRadius: BorderRadius.circular(12), border: Border.all(color: AppTheme.primaryGreen.withOpacity(0.2))),
-        child: Row(children: [const Icon(Icons.mark_email_read_rounded, color: AppTheme.primaryGreen, size: 20), const SizedBox(width: 10), Expanded(child: Text('Code envoyé à ${_emailController.text.trim()}', style: GoogleFonts.inter(fontSize: 12, color: AppTheme.primaryGreen, fontWeight: FontWeight.w600)))])),
+        child: Row(children: [const Icon(Icons.mark_email_read_rounded, color: AppTheme.primaryGreen, size: 20), const SizedBox(width: 10), Expanded(child: Text('${L10n.isArabic ? 'تم إرسال الرمز إلى' : 'Code envoyé à'} ${_emailController.text.trim()}', style: GoogleFonts.inter(fontSize: 12, color: AppTheme.primaryGreen, fontWeight: FontWeight.w600)))])),
       const SizedBox(height: 20),
-      TextField(controller: _codeController, decoration: InputDecoration(labelText: 'Code de vérification', prefixIcon: const Icon(Icons.pin_rounded, color: AppTheme.primaryGreen), border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)))),
+      TextField(controller: _codeController, decoration: InputDecoration(labelText: L10n.isArabic ? 'رمز التحقق' : 'Code de vérification', prefixIcon: const Icon(Icons.pin_rounded, color: AppTheme.primaryGreen), border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)))),
       const SizedBox(height: 16),
-      TextField(controller: _newPasswordController, obscureText: _obscureNew, decoration: InputDecoration(labelText: 'Nouveau mot de passe', prefixIcon: const Icon(Icons.lock_outline_rounded, color: AppTheme.primaryGreen), border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)), suffixIcon: IconButton(icon: Icon(_obscureNew ? Icons.visibility_off : Icons.visibility, size: 20), onPressed: () => setState(() => _obscureNew = !_obscureNew)))),
+      TextField(controller: _newPasswordController, obscureText: _obscureNew, decoration: InputDecoration(labelText: L10n.isArabic ? 'كلمة مرور جديدة' : 'Nouveau mot de passe', prefixIcon: const Icon(Icons.lock_outline_rounded, color: AppTheme.primaryGreen), border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)), suffixIcon: IconButton(icon: Icon(_obscureNew ? Icons.visibility_off : Icons.visibility, size: 20), onPressed: () => setState(() => _obscureNew = !_obscureNew)))),
       const SizedBox(height: 16),
-      TextField(controller: _confirmPasswordController, obscureText: _obscureConfirm, decoration: InputDecoration(labelText: 'Confirmer le mot de passe', prefixIcon: const Icon(Icons.lock_reset_rounded, color: AppTheme.primaryGreen), border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)), suffixIcon: IconButton(icon: Icon(_obscureConfirm ? Icons.visibility_off : Icons.visibility, size: 20), onPressed: () => setState(() => _obscureConfirm = !_obscureConfirm)))),
+      TextField(controller: _confirmPasswordController, obscureText: _obscureConfirm, decoration: InputDecoration(labelText: L10n.isArabic ? 'تأكيد كلمة المرور' : 'Confirmer le mot de passe', prefixIcon: const Icon(Icons.lock_reset_rounded, color: AppTheme.primaryGreen), border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)), suffixIcon: IconButton(icon: Icon(_obscureConfirm ? Icons.visibility_off : Icons.visibility, size: 20), onPressed: () => setState(() => _obscureConfirm = !_obscureConfirm)))),
       if (_message != null) ...[const SizedBox(height: 12), _buildMessage()],
     ]);
   }
@@ -564,7 +561,7 @@ class _ForgotPasswordDialogState extends State<_ForgotPasswordDialog> {
     return Column(key: const ValueKey('step_success'), mainAxisSize: MainAxisSize.min, children: [
       const Icon(Icons.check_circle_rounded, color: AppTheme.primaryGreen, size: 60),
       const SizedBox(height: 16),
-      Text('Votre mot de passe a été modifié avec succès !', textAlign: TextAlign.center, style: GoogleFonts.inter(fontSize: 14, color: AppTheme.deepSlate)),
+      Text(L10n.isArabic ? 'تم تغيير كلمة المرور بنجاح !' : 'Votre mot de passe a été modifié avec succès !', textAlign: TextAlign.center, style: GoogleFonts.inter(fontSize: 14, color: AppTheme.deepSlate)),
     ]);
   }
 

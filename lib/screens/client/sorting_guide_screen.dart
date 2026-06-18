@@ -11,7 +11,7 @@ class SortingGuideScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.backgroundLight,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: CustomScrollView(
         physics: const BouncingScrollPhysics(),
         // Utilisation d'un CustomScrollView pour l'effet de parallaxe sur l'AppBar
@@ -54,7 +54,7 @@ class SortingGuideScreen extends StatelessWidget {
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(32),
                         child: Container(
-                          color: Colors.white,
+                          color: Theme.of(context).colorScheme.surface,
                           child: Image.asset(
                             'assets/images/onboarding.png',
                             fit: BoxFit.contain,
@@ -112,18 +112,21 @@ class SortingGuideScreen extends StatelessWidget {
                   const SizedBox(height: 24),
                   // Cartes des règles d'or
                   _buildRuleCard(
+                    context,
                     Icons.water_drop_outlined, 
                     'Videz et rincez', 
                     'Pas besoin de laver à fond, mais les contenants doivent être vides de restes alimentaires.'
                   ),
                   const SizedBox(height: 16),
                   _buildRuleCard(
+                    context,
                     Icons.unfold_less_rounded, 
                     'Ne pas emboîter', 
                     'Laissez les déchets séparés pour qu\'ils puissent être reconnus par les machines de tri.'
                   ),
                   const SizedBox(height: 16),
                   _buildRuleCard(
+                    context,
                     Icons.check_circle_outline_rounded, 
                     'En vrac', 
                     'Déposez vos déchets directement dans le bac, pas dans des sacs fermés (sauf avis contraire).'
@@ -218,16 +221,17 @@ class SortingGuideScreen extends StatelessWidget {
   }
 
   // Widget utilitaire pour créer une carte de règle uniformisée
-  Widget _buildRuleCard(IconData icon, String title, String desc) {
+  Widget _buildRuleCard(BuildContext context, IconData icon, String title, String desc) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: Colors.grey.shade100, width: 1.5),
+        border: Border.all(color: Theme.of(context).dividerColor, width: 1.5),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.02),
+            color: Colors.black.withOpacity(isDark ? 0.2 : 0.02),
             blurRadius: 12,
             offset: const Offset(0, 4),
           ),

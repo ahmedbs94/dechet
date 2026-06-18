@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../theme/app_theme.dart';
-import '../theme/web_theme.dart';
 import '../models/user_model.dart';
 import '../services/l10n_service.dart';
 
@@ -52,7 +51,7 @@ class _WebShellState extends State<WebShell> {
     final items = _getNavItems(role);
 
     return Scaffold(
-      backgroundColor: WebTheme.bgLight,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: Row(
         children: [
           // ── Dark Sidebar ───────────────────────────────────────────────
@@ -100,9 +99,8 @@ class _WebShellState extends State<WebShell> {
     }
     if (role == UserRole.educator) {
       return [
-        _NavItem(icon: FontAwesomeIcons.house, label: L10n.tr('tab_feed'), section: principalSec),
         _NavItem(icon: FontAwesomeIcons.chalkboardUser, label: L10n.tr('tab_educator'), section: espaceProSec),
-        _NavItem(icon: FontAwesomeIcons.user, label: L10n.tr('tab_profile')),
+        _NavItem(icon: FontAwesomeIcons.user, label: L10n.tr('tab_profile'), section: compteSec),
       ];
     }
     if (role == UserRole.user) {
@@ -474,8 +472,8 @@ class _TopBar extends StatelessWidget {
       height: 64,
       padding: const EdgeInsets.symmetric(horizontal: 28),
       decoration: BoxDecoration(
-        color: Colors.white,
-        border: const Border(bottom: BorderSide(color: Color(0xFFE2E8F0))),
+        color: Theme.of(context).colorScheme.surface,
+        border: Border(bottom: BorderSide(color: Theme.of(context).brightness == Brightness.dark ? Theme.of(context).dividerColor : const Color(0xFFE2E8F0))),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.02),
@@ -496,7 +494,7 @@ class _TopBar extends StatelessWidget {
             child: Icon(Icons.chevron_right_rounded, size: 16, color: Color(0xFFCBD5E1)),
           ),
           Text(pageName, style: GoogleFonts.outfit(
-            fontSize: 14, fontWeight: FontWeight.w700, color: AppTheme.deepSlate)),
+            fontSize: 14, fontWeight: FontWeight.w700, color: Theme.of(context).brightness == Brightness.dark ? Colors.white : AppTheme.deepSlate)),
         ]),
 
         const Spacer(),
@@ -504,7 +502,7 @@ class _TopBar extends StatelessWidget {
         // ── Notifications ────────────────────────────────────────────
         Container(
           decoration: BoxDecoration(
-            border: Border.all(color: const Color(0xFFE2E8F0)),
+            border: Border.all(color: Theme.of(context).brightness == Brightness.dark ? Theme.of(context).dividerColor : const Color(0xFFE2E8F0)),
             borderRadius: BorderRadius.circular(8),
           ),
           child: IconButton(
@@ -526,7 +524,7 @@ class _TopBar extends StatelessWidget {
         // ── User chip ou bouton connexion ──────────────────────────────
         user == null
             ? _buildLoginChip(context)
-            : _buildUserChip(initial, firstName),
+            : _buildUserChip(context, initial, firstName),
       ]),
     );
   }
@@ -554,12 +552,12 @@ class _TopBar extends StatelessWidget {
     );
   }
 
-  Widget _buildUserChip(String initial, String firstName) {
+  Widget _buildUserChip(BuildContext context, String initial, String firstName) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: const Color(0xFFF8FAFC),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
+        color: Theme.of(context).brightness == Brightness.dark ? Theme.of(context).colorScheme.surface : const Color(0xFFF8FAFC),
+        border: Border.all(color: Theme.of(context).brightness == Brightness.dark ? Theme.of(context).dividerColor : const Color(0xFFE2E8F0)),
         borderRadius: BorderRadius.circular(20),
       ),
       child: Row(children: [
@@ -589,7 +587,7 @@ class _TopBar extends StatelessWidget {
           style: GoogleFonts.inter(
             fontSize: 13,
             fontWeight: FontWeight.w600,
-            color: AppTheme.deepSlate,
+            color: Theme.of(context).brightness == Brightness.dark ? Colors.white : AppTheme.deepSlate,
           ),
         ),
       ]),

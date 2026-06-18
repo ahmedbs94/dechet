@@ -186,7 +186,7 @@ class _QuizPlayScreenState extends State<QuizPlayScreen> {
     final progress = (_currentQuestion + 1) / _total;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
+      backgroundColor: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
       body: Stack(
         children: [
           // Background floating elements for WOW effect
@@ -217,17 +217,17 @@ class _QuizPlayScreenState extends State<QuizPlayScreen> {
                   child: Row(
                     children: [
                       IconButton(
-                        icon: const Icon(Icons.arrow_back_ios_new_rounded, color: AppTheme.deepSlate),
+                        icon: Icon(Icons.arrow_back_ios_new_rounded, color: Theme.of(context).brightness == Brightness.dark ? Colors.white : AppTheme.deepSlate),
                         onPressed: () => _showExitDialog(),
                       ),
                       const Spacer(),
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.8),
+                          color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF1E293B).withOpacity(0.8) : Colors.white.withOpacity(0.8),
                           borderRadius: BorderRadius.circular(20),
                           boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4))],
-                          border: Border.all(color: Colors.white, width: 2),
+                          border: Border.all(color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF334155) : Colors.white, width: 2),
                         ),
                         child: Row(
                           children: [
@@ -251,7 +251,7 @@ class _QuizPlayScreenState extends State<QuizPlayScreen> {
                     borderRadius: BorderRadius.circular(10),
                     child: LinearProgressIndicator(
                       value: progress,
-                      backgroundColor: Colors.grey.shade200,
+                      backgroundColor: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF1E293B) : Colors.grey.shade200,
                       valueColor: const AlwaysStoppedAnimation<Color>(AppTheme.primaryGreen),
                       minHeight: 6,
                     ),
@@ -274,16 +274,16 @@ class _QuizPlayScreenState extends State<QuizPlayScreen> {
                               width: double.infinity,
                               padding: const EdgeInsets.all(32),
                               decoration: BoxDecoration(
-                                color: Colors.white.withOpacity(0.7),
+                                color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF1E293B).withOpacity(0.7) : Colors.white.withOpacity(0.7),
                                 borderRadius: BorderRadius.circular(32),
-                                border: Border.all(color: Colors.white.withOpacity(0.5), width: 2),
+                                border: Border.all(color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF334155).withOpacity(0.5) : Colors.white.withOpacity(0.5), width: 2),
                                 boxShadow: AppTheme.premiumShadow,
                               ),
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(qText,
-                                    style: GoogleFonts.outfit(fontSize: 26, fontWeight: FontWeight.w800, color: AppTheme.deepSlate, height: 1.3, letterSpacing: -0.5)),
+                                    style: GoogleFonts.outfit(fontSize: 26, fontWeight: FontWeight.w800, color: Theme.of(context).brightness == Brightness.dark ? Colors.white : AppTheme.deepSlate, height: 1.3, letterSpacing: -0.5)),
                                 ],
                               ),
                             ),
@@ -310,10 +310,10 @@ class _QuizPlayScreenState extends State<QuizPlayScreen> {
                                 decoration: BoxDecoration(
                                   gradient: isSelected 
                                       ? const LinearGradient(colors: [AppTheme.primaryGreen, Color(0xFF00D2A8)]) 
-                                      : const LinearGradient(colors: [Colors.white, Colors.white]),
+                                      : LinearGradient(colors: [Theme.of(context).colorScheme.surface, Theme.of(context).colorScheme.surface]),
                                   borderRadius: BorderRadius.circular(24),
                                   border: Border.all(
-                                    color: isSelected ? Colors.transparent : Colors.grey.shade200,
+                                    color: isSelected ? Colors.transparent : (Theme.of(context).brightness == Brightness.dark ? const Color(0xFF334155) : Colors.grey.shade200),
                                     width: 2,
                                   ),
                                   boxShadow: isSelected
@@ -325,7 +325,7 @@ class _QuizPlayScreenState extends State<QuizPlayScreen> {
                                     Container(
                                       width: 48, height: 48,
                                       decoration: BoxDecoration(
-                                        color: isSelected ? Colors.white.withOpacity(0.25) : Colors.grey.shade100,
+                                        color: isSelected ? Colors.white.withOpacity(0.25) : Colors.white.withOpacity(0.12),
                                         shape: BoxShape.circle,
                                       ),
                                       child: Center(
@@ -341,7 +341,7 @@ class _QuizPlayScreenState extends State<QuizPlayScreen> {
                                         style: GoogleFonts.inter(
                                           fontSize: 16, 
                                           fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                                          color: isSelected ? Colors.white : AppTheme.deepSlate,
+                                          color: isSelected ? Colors.white : (Theme.of(context).brightness == Brightness.dark ? Colors.white : AppTheme.deepSlate),
                                           height: 1.4)),
                                     ),
                                     if (isSelected)
@@ -358,14 +358,14 @@ class _QuizPlayScreenState extends State<QuizPlayScreen> {
                           TextField(
                             onChanged: (val) => _answers['${_currentQuestion + 1}'] = val,
                             maxLines: 5,
-                            style: GoogleFonts.inter(fontSize: 16, color: AppTheme.deepSlate),
+                            style: GoogleFonts.inter(fontSize: 16, color: Theme.of(context).brightness == Brightness.dark ? Colors.white : AppTheme.deepSlate),
                             decoration: InputDecoration(
                               hintText: 'Rédigez votre réponse détaillée ici...',
                               hintStyle: GoogleFonts.inter(color: AppTheme.textMuted),
                               filled: true,
-                              fillColor: Colors.white,
-                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(24), borderSide: BorderSide(color: Colors.grey.shade200, width: 2)),
-                              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(24), borderSide: BorderSide(color: Colors.grey.shade200, width: 2)),
+                              fillColor: Theme.of(context).colorScheme.surface,
+                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(24), borderSide: BorderSide(color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF334155) : Colors.grey.shade200, width: 2)),
+                              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(24), borderSide: BorderSide(color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF334155) : Colors.grey.shade200, width: 2)),
                               focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(24), borderSide: const BorderSide(color: AppTheme.primaryGreen, width: 2)),
                               contentPadding: const EdgeInsets.all(24),
                             ),
@@ -385,8 +385,8 @@ class _QuizPlayScreenState extends State<QuizPlayScreen> {
                     child: Container(
                       padding: const EdgeInsets.fromLTRB(24, 24, 24, 40),
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.85),
-                        border: Border(top: BorderSide(color: Colors.white.withOpacity(0.5), width: 2)),
+                        color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF1E293B).withOpacity(0.85) : Colors.white.withOpacity(0.85),
+                        border: Border(top: BorderSide(color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF334155).withOpacity(0.5) : Colors.white.withOpacity(0.5), width: 2)),
                         boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 30, offset: const Offset(0, -10))],
                       ),
                       child: Row(
@@ -397,10 +397,10 @@ class _QuizPlayScreenState extends State<QuizPlayScreen> {
                               child: OutlinedButton(
                                 onPressed: _prevQuestion,
                                 style: OutlinedButton.styleFrom(
-                                  foregroundColor: AppTheme.textMuted,
+                                  foregroundColor: Theme.of(context).brightness == Brightness.dark ? Colors.white60 : AppTheme.textMuted,
                                   padding: const EdgeInsets.symmetric(vertical: 22),
                                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-                                  side: BorderSide(color: Colors.grey.shade300, width: 2),
+                                  side: BorderSide(color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF334155) : Colors.grey.shade300, width: 2),
                                 ),
                                 child: const Icon(Icons.arrow_back_rounded, size: 28),
                               ),
@@ -414,8 +414,8 @@ class _QuizPlayScreenState extends State<QuizPlayScreen> {
                                     style: ElevatedButton.styleFrom(
                                       backgroundColor: AppTheme.primaryGreen,
                                       foregroundColor: Colors.white,
-                                      disabledBackgroundColor: Colors.grey.shade200,
-                                      disabledForegroundColor: Colors.grey.shade400,
+                                      disabledBackgroundColor: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF1E293B) : Colors.grey.shade200,
+                                      disabledForegroundColor: Theme.of(context).brightness == Brightness.dark ? Colors.white30 : Colors.grey.shade400,
                                       padding: const EdgeInsets.symmetric(vertical: 22),
                                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
                                       elevation: currentAnswer != null ? 10 : 0,
@@ -435,8 +435,8 @@ class _QuizPlayScreenState extends State<QuizPlayScreen> {
                                     style: ElevatedButton.styleFrom(
                                       backgroundColor: Colors.deepPurple,
                                       foregroundColor: Colors.white,
-                                      disabledBackgroundColor: Colors.grey.shade200,
-                                      disabledForegroundColor: Colors.grey.shade400,
+                                      disabledBackgroundColor: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF1E293B) : Colors.grey.shade200,
+                                      disabledForegroundColor: Theme.of(context).brightness == Brightness.dark ? Colors.white30 : Colors.grey.shade400,
                                       padding: const EdgeInsets.symmetric(vertical: 22),
                                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
                                       elevation: currentAnswer != null ? 15 : 0,

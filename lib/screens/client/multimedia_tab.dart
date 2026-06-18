@@ -9,6 +9,7 @@ import '../../constants.dart';
 import '../../widgets/meetings_section.dart';
 import '../../widgets/auth_prompt_dialog.dart';
 import '../../models/user_model.dart';
+import '../../services/l10n_service.dart';
 import 'quiz_play_screen.dart';
 
 // Écran principal gérant l'affichage des contenus éducatifs (Vidéos, Articles, Quiz)
@@ -39,9 +40,20 @@ class _MultimediaTabState extends State<MultimediaTab> {
   @override
   void initState() {
     super.initState();
+    L10n.addListener(_onLocaleChange);
     _loadApiQuizzes();
     _loadEducatorVideos();
     _loadVideoCategories();
+  }
+
+  void _onLocaleChange() {
+    if (mounted) setState(() {});
+  }
+
+  @override
+  void dispose() {
+    L10n.removeListener(_onLocaleChange);
+    super.dispose();
   }
 
   Future<void> _loadApiQuizzes() async {
@@ -115,19 +127,20 @@ class _MultimediaTabState extends State<MultimediaTab> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF4F7F6),
+      backgroundColor: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF0F172A) : const Color(0xFFF4F7F6),
       body: CustomScrollView(
         physics: const BouncingScrollPhysics(),
         slivers: [
           // En-tête Premium
           SliverAppBar(
+            automaticallyImplyLeading: false,
             expandedHeight: 180,
             floating: false,
             pinned: true,
             backgroundColor: AppTheme.primaryGreen,
             flexibleSpace: FlexibleSpaceBar(
               titlePadding: const EdgeInsets.only(left: 24, bottom: 16),
-              title: Text('Formation Éco', style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 24, color: Colors.white)),
+              title: Text(L10n.tr('tab_multimedia_title'), style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 24, color: Colors.white)),
               background: Container(
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
@@ -185,7 +198,7 @@ class _MultimediaTabState extends State<MultimediaTab> {
                         children: [
                           Icon(Icons.video_library_rounded, size: 20, color: Colors.teal.shade600),
                           const SizedBox(width: 8),
-                          Text('VIDÉOS ÉDUCATIVES', style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w900, letterSpacing: 1.2, color: Colors.teal.shade800)),
+                          Text(L10n.tr('VIDÉOS ÉDUCATIVES'), style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w900, letterSpacing: 1.2, color: Colors.teal.shade800)),
                         ],
                       ),
                       const SizedBox(height: 16),
@@ -203,7 +216,7 @@ class _MultimediaTabState extends State<MultimediaTab> {
                       ],
                       // Uncategorized videos
                       if (_educatorVideos.where((v) => v['category_id'] == null).isNotEmpty) ...[
-                        Text('AUTRES VIDÉOS', style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w800, color: AppTheme.textMuted, letterSpacing: 1)),
+                        Text(L10n.tr('AUTRES VIDÉOS'), style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w800, color: AppTheme.textMuted, letterSpacing: 1)),
                         const SizedBox(height: 12),
                         ..._educatorVideos.where((v) => v['category_id'] == null).map((v) => _buildEducatorVideoCard(v)).toList(),
                       ],
@@ -224,12 +237,12 @@ class _MultimediaTabState extends State<MultimediaTab> {
                         children: [
                           Icon(Icons.auto_awesome, size: 20, color: Colors.purple.shade500),
                           const SizedBox(width: 8),
-                          Text('QUIZ IA', style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w900, letterSpacing: 1.2, color: Colors.purple.shade700)),
+                          Text(L10n.tr('QUIZ IA'), style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w900, letterSpacing: 1.2, color: Colors.purple.shade700)),
                           const Spacer(),
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                             decoration: BoxDecoration(color: Colors.purple.withOpacity(0.1), borderRadius: BorderRadius.circular(10)),
-                            child: Text('${_apiQuizzes.length} quiz', style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w700, color: Colors.purple)),
+                            child: Text(L10n.isArabic ? '${_apiQuizzes.length} اختبارات' : '${_apiQuizzes.length} quiz', style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w700, color: Colors.purple)),
                           ),
                         ],
                       ),
@@ -249,9 +262,9 @@ class _MultimediaTabState extends State<MultimediaTab> {
                     children: [
                       Icon(Icons.quiz_outlined, size: 64, color: Colors.grey.shade300),
                       const SizedBox(height: 16),
-                      Text('Aucun quiz', style: GoogleFonts.outfit(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.grey.shade500)),
+                      Text(L10n.tr('Aucun quiz'), style: GoogleFonts.outfit(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.grey.shade500)),
                       const SizedBox(height: 8),
-                      Text('Revenez plus tard pour de nouveaux défis', style: GoogleFonts.inter(color: Colors.grey.shade400)),
+                      Text(L10n.tr('Revenez plus tard pour de nouveaux défis'), style: GoogleFonts.inter(color: Colors.grey.shade400)),
                     ],
                   ),
                 ),
@@ -281,13 +294,13 @@ class _MultimediaTabState extends State<MultimediaTab> {
               margin: const EdgeInsets.only(right: 12),
               padding: const EdgeInsets.symmetric(horizontal: 24),
               decoration: BoxDecoration(
-                gradient: isSelected ? LinearGradient(colors: [Colors.teal.shade500, Colors.teal.shade700]) : const LinearGradient(colors: [Colors.white, Colors.white]),
+                gradient: isSelected ? LinearGradient(colors: [Colors.teal.shade500, Colors.teal.shade700]) : LinearGradient(colors: [Theme.of(context).colorScheme.surface, Theme.of(context).colorScheme.surface]),
                 borderRadius: BorderRadius.circular(20),
                 boxShadow: isSelected ? [BoxShadow(color: Colors.teal.withOpacity(0.3), blurRadius: 10, offset: const Offset(0, 4))] : [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 4, offset: const Offset(0, 2))],
               ),
               child: Center(
                 child: Text(
-                  category,
+                  L10n.tr(category),
                   style: GoogleFonts.inter(
                     color: isSelected ? Colors.white : AppTheme.textMuted,
                     fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
@@ -355,8 +368,8 @@ class _MultimediaTabState extends State<MultimediaTab> {
                   const SizedBox(height: 4),
                   Text(
                     isCompleted
-                        ? 'Quiz complété ✓  •  Score enregistré'
-                        : (desc.isNotEmpty ? desc : '$totalQ questions • Corrigé par IA'),
+                        ? (L10n.isArabic ? 'اكتمل الاختبار ✓ • تم تسجيل النتيجة' : 'Quiz complété ✓  •  Score enregistré')
+                        : (desc.isNotEmpty ? desc : (L10n.isArabic ? '$totalQ أسئلة • مصحح بالذكاء الاصطناعي' : '$totalQ questions • Corrigé par IA')),
                     style: GoogleFonts.inter(
                       color: Colors.white.withOpacity(0.75),
                       fontSize: 12,
@@ -372,7 +385,7 @@ class _MultimediaTabState extends State<MultimediaTab> {
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Text(
-                isCompleted ? 'TERMINÉ' : 'JOUER',
+                isCompleted ? (L10n.isArabic ? 'مكتمل' : 'TERMINÉ') : (L10n.isArabic ? 'لعب' : 'JOUER'),
                 style: GoogleFonts.outfit(
                   color: Colors.white,
                   fontWeight: FontWeight.w800,
@@ -477,7 +490,7 @@ class _MultimediaTabState extends State<MultimediaTab> {
       child: Container(
         margin: const EdgeInsets.only(bottom: 14),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: Theme.of(context).colorScheme.surface,
           borderRadius: BorderRadius.circular(20),
           boxShadow: AppTheme.tightShadow,
         ),
@@ -509,7 +522,7 @@ class _MultimediaTabState extends State<MultimediaTab> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(title, style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 16, color: AppTheme.deepSlate), maxLines: 2, overflow: TextOverflow.ellipsis),
+                  Text(title, style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 16, color: Theme.of(context).brightness == Brightness.dark ? Colors.white : AppTheme.deepSlate), maxLines: 2, overflow: TextOverflow.ellipsis),
                   if (description.isNotEmpty) ...[
                     const SizedBox(height: 6),
                     Text(description, style: GoogleFonts.inter(fontSize: 12, color: AppTheme.textMuted, height: 1.4), maxLines: 2, overflow: TextOverflow.ellipsis),
@@ -523,7 +536,7 @@ class _MultimediaTabState extends State<MultimediaTab> {
                         child: const Icon(Icons.person, size: 16, color: Colors.teal),
                       ),
                       const SizedBox(width: 8),
-                      Expanded(child: Text(educatorName, style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600, color: AppTheme.deepSlate), overflow: TextOverflow.ellipsis)),
+                      Expanded(child: Text(educatorName, style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600, color: Theme.of(context).brightness == Brightness.dark ? Colors.white : AppTheme.deepSlate), overflow: TextOverflow.ellipsis)),
                       const Icon(Icons.access_time_rounded, size: 13, color: AppTheme.textMuted),
                       const SizedBox(width: 4),
                       Text(dateLabel, style: GoogleFonts.inter(fontSize: 11, color: AppTheme.textMuted)),
@@ -737,7 +750,7 @@ class _CategoryDetailPageState extends State<_CategoryDetailPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F7FA),
+      backgroundColor: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF0F172A) : const Color(0xFFF5F7FA),
       body: CustomScrollView(slivers: [
         SliverAppBar(
           expandedHeight: 200,
@@ -785,7 +798,7 @@ class _CategoryDetailPageState extends State<_CategoryDetailPage> {
                 child: Container(
                   margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 7),
                   padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18), boxShadow: AppTheme.tightShadow),
+                  decoration: BoxDecoration(color: Theme.of(context).colorScheme.surface, borderRadius: BorderRadius.circular(18), boxShadow: AppTheme.tightShadow),
                   child: Row(children: [
                     Container(
                       width: 52, height: 52,
@@ -808,8 +821,8 @@ class _CategoryDetailPageState extends State<_CategoryDetailPage> {
                     ])),
                     if (duration.isNotEmpty) Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(color: Colors.grey.shade100, borderRadius: BorderRadius.circular(8)),
-                      child: Text(duration, style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w700, color: AppTheme.deepSlate)),
+                      decoration: BoxDecoration(color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF1E293B) : Colors.grey.shade100, borderRadius: BorderRadius.circular(8)),
+                      child: Text(duration, style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w700, color: Theme.of(context).colorScheme.onSurface)),
                     ),
                   ]),
                 ),

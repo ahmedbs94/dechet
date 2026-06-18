@@ -10,11 +10,29 @@
       ".read": "auth != null",
       ".write": false
     },
-    "admin_dashboard": {
-      ".read": false,
+    "utilisateurs": {
+      "$user_id": {
+        ".read": "auth != null && auth.uid == $user_id",
+        ".write": false
+      }
+    },
+    "poubelles": {
+      ".read": "auth != null",
       ".write": false
     },
+    "collector_logs": {
+      "$log_id": {
+        ".read": "auth != null",
+        ".write": false
+      }
+    },
     "notifications": {
+      "$user_id": {
+        ".read": "auth != null && auth.uid == $user_id",
+        ".write": false
+      }
+    },
+    "admin_dashboard": {
       ".read": false,
       ".write": false
     },

@@ -123,16 +123,16 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
     final mismatch    = confirmPass.isNotEmpty && confirmPass != newPass;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: Text('Changer le mot de passe',
             style: GoogleFonts.spaceGrotesk(
-                color: AppTheme.deepNavy, fontWeight: FontWeight.bold)),
+                color: Theme.of(context).colorScheme.onSurface, fontWeight: FontWeight.bold)),
         backgroundColor: Colors.transparent,
         elevation: 0,
         centerTitle: true,
         leading: webLeading(IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: AppTheme.deepNavy),
+          icon: Icon(Icons.arrow_back_ios_new_rounded, color: Theme.of(context).colorScheme.onSurface),
           onPressed: () => Navigator.pop(context),
         )),
       ),
@@ -212,7 +212,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
 
   Widget _fieldLabel(String label) => Text(label,
       style: GoogleFonts.inter(
-          fontSize: 13, fontWeight: FontWeight.w700, color: AppTheme.deepNavy));
+          fontSize: 13, fontWeight: FontWeight.w700, color: Theme.of(context).colorScheme.onSurface));
 
   Widget _buildField({
     required TextEditingController controller,
@@ -226,7 +226,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
       controller: controller,
       obscureText: !show,
       onChanged: onChanged,
-      style: GoogleFonts.inter(fontSize: 15, color: AppTheme.deepNavy),
+      style: GoogleFonts.inter(fontSize: 15, color: Theme.of(context).colorScheme.onSurface),
       decoration: InputDecoration(
         hintText: hint,
         hintStyle: GoogleFonts.inter(color: AppTheme.textMuted, fontSize: 13),
@@ -239,14 +239,14 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
         errorText: errorText,
         errorStyle: GoogleFonts.inter(fontSize: 11, color: Colors.red),
         filled: true,
-        fillColor: Colors.white,
+        fillColor: Theme.of(context).colorScheme.surface,
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(14),
             borderSide: BorderSide.none),
         enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(14),
-            borderSide: BorderSide(color: Colors.grey.shade200)),
+            borderSide: BorderSide(color: Theme.of(context).dividerColor)),
         focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(14),
             borderSide: const BorderSide(color: AppTheme.primaryGreen, width: 2)),

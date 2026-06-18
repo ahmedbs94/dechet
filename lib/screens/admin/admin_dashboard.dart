@@ -12,6 +12,7 @@ import '../client/profile_tab.dart';
 import 'user_management_screen.dart';
 import 'admin_proposals_screen.dart';
 import 'admin_analytics_tab.dart';
+import '../../services/l10n_service.dart';
 
 
 class AdminDashboardScreen extends StatefulWidget {
@@ -31,7 +32,12 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> with Single
   void initState() {
     super.initState();
     _tabController = TabController(length: 7, vsync: this);
+    L10n.addListener(_onLocaleChange);
     _loadStats();
+  }
+
+  void _onLocaleChange() {
+    if (mounted) setState(() {});
   }
 
   Future<void> _loadStats() async {
@@ -40,6 +46,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> with Single
 
   @override
   void dispose() {
+    L10n.removeListener(_onLocaleChange);
     _tabController.dispose();
     super.dispose();
   }
@@ -47,7 +54,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> with Single
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.backgroundLight,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: NestedScrollView(
         headerSliverBuilder: (context, innerBoxIsScrolled) => [
           SliverAppBar(
@@ -67,7 +74,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> with Single
                 child: const Icon(Icons.eco_rounded, color: Colors.white, size: 18),
               ),
               const SizedBox(width: 10),
-              Text('EcoRewind Admin',
+              Text(L10n.tr('admin_app_bar_title'),
                 style: GoogleFonts.outfit(
                   color: Colors.white, fontWeight: FontWeight.w800, fontSize: 16)),
             ]),
@@ -89,14 +96,14 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> with Single
                   indicatorPadding: const EdgeInsets.symmetric(horizontal: 2),
                   labelStyle: GoogleFonts.outfit(fontWeight: FontWeight.w800, fontSize: 12, letterSpacing: 0.8),
                   unselectedLabelStyle: GoogleFonts.outfit(fontWeight: FontWeight.w500, fontSize: 12),
-                  tabs: const [
-                    Tab(text: 'INDICATEURS'),
-                    Tab(text: 'MODÉRATION'),
-                    Tab(text: 'CONTENUS'),
-                    Tab(text: 'PROPOSITIONS'),
-                    Tab(text: 'POINTS DE TRI'),
-                    Tab(text: 'UTILISATEURS'),
-                    Tab(text: 'MON PROFIL'),
+                  tabs: [
+                    Tab(text: L10n.tr('admin_tab_indicators')),
+                    Tab(text: L10n.tr('admin_tab_moderation')),
+                    Tab(text: L10n.tr('admin_tab_content')),
+                    Tab(text: L10n.tr('admin_tab_proposals')),
+                    Tab(text: L10n.tr('admin_tab_points')),
+                    Tab(text: L10n.tr('admin_tab_users')),
+                    Tab(text: L10n.tr('admin_tab_profile')),
                   ],
                 ),
               ),
@@ -207,7 +214,7 @@ class _AdminHeaderState extends State<_AdminHeader> with SingleTickerProviderSta
           child: CustomPaint(painter: _GridPainter()))),
         // Contenu animé
         Padding(
-          padding: const EdgeInsets.fromLTRB(22, 56, 22, 10),
+          padding: const EdgeInsets.fromLTRB(22, 56, 22, 60),
           child: SlideTransition(
             position: _slide,
             child: FadeTransition(
@@ -220,14 +227,13 @@ class _AdminHeaderState extends State<_AdminHeader> with SingleTickerProviderSta
                   RichText(text: TextSpan(
                     style: GoogleFonts.outfit(
                       color: Colors.white, fontWeight: FontWeight.w900,
-                      fontSize: 22, height: 1.15, letterSpacing: -0.5),
+                      fontSize: 24, height: 1.15, letterSpacing: -0.5),
                     children: [
-                      const TextSpan(text: 'Tableau de '),
-                      TextSpan(text: 'Bord Admin',
+                      TextSpan(text: L10n.tr('admin_header_title'),
                         style: TextStyle(
                           foreground: Paint()..shader = const LinearGradient(
                             colors: [Color(0xFF16DB93), Color(0xFF00B4D8)],
-                          ).createShader(const Rect.fromLTWH(0, 0, 220, 28)),
+                          ).createShader(const Rect.fromLTWH(0, 0, 180, 28)),
                         )),
                     ],
                   )),
@@ -235,7 +241,7 @@ class _AdminHeaderState extends State<_AdminHeader> with SingleTickerProviderSta
                   // Badges info
                   Wrap(spacing: 8, runSpacing: 6, children: [
                     _pill(Icons.calendar_today_rounded, dateStr, Colors.white24, Colors.white60),
-                    _pill(Icons.circle, '● Système actif', AppTheme.primaryGreen.withOpacity(0.2),
+                    _pill(Icons.circle, L10n.tr('admin_system_active'), AppTheme.primaryGreen.withOpacity(0.2),
                       AppTheme.primaryGreen),
                   ]),
                 ],
@@ -398,10 +404,10 @@ class _TestimonialsManagementTabState extends State<_TestimonialsManagementTab> 
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: AppTheme.tightShadow,
-        border: Border.all(color: isPending ? Colors.orange.shade100 : Colors.grey.shade100),
+        boxShadow: Theme.of(context).brightness == Brightness.dark ? [] : AppTheme.tightShadow,
+        border: Border.all(color: isPending ? Colors.orange.shade100 : (Theme.of(context).brightness == Brightness.dark ? const Color(0xFF334155) : Colors.grey.shade100)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -432,7 +438,7 @@ class _TestimonialsManagementTabState extends State<_TestimonialsManagementTab> 
             ],
           ),
           const SizedBox(height: 12),
-          Text(t['content'] ?? '', style: GoogleFonts.inter(fontSize: 14, color: AppTheme.deepSlate, height: 1.5)),
+          Text(t['content'] ?? '', style: GoogleFonts.inter(fontSize: 14, color: Theme.of(context).textTheme.bodyLarge?.color ?? AppTheme.deepSlate, height: 1.5)),
           const SizedBox(height: 12),
           Row(
             mainAxisAlignment: MainAxisAlignment.end,
@@ -796,7 +802,7 @@ class _CollectionPointsManagementTabState extends State<_CollectionPointsManagem
               Text('RÉSEAU DE COLLECTE', style: GoogleFonts.outfit(
                 fontWeight: FontWeight.w900, letterSpacing: 1.5, fontSize: 11, color: AppTheme.textMuted)),
               Text('${_points.length} points recensés',
-                style: GoogleFonts.outfit(fontWeight: FontWeight.w900, fontSize: 20, color: AppTheme.deepSlate)),
+                style: GoogleFonts.outfit(fontWeight: FontWeight.w900, fontSize: 20, color: Theme.of(context).textTheme.titleLarge?.color ?? AppTheme.deepSlate)),
             ]),
           ),
           const SizedBox(width: 8),
@@ -889,9 +895,9 @@ class _CollectionPointsManagementTabState extends State<_CollectionPointsManagem
             Container(
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: Theme.of(context).colorScheme.surface,
                 borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: Colors.grey.shade100),
+                border: Border.all(color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF334155) : Colors.grey.shade100),
               ),
               child: Row(children: [
                 Icon(Icons.check_circle_outline_rounded, color: AppTheme.primaryGreen.withOpacity(0.6), size: 20),
@@ -911,10 +917,10 @@ class _CollectionPointsManagementTabState extends State<_CollectionPointsManagem
                 margin: const EdgeInsets.only(bottom: 8),
                 padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
-                  color: isRead ? Colors.white : color.withOpacity(0.04),
+                  color: isRead ? Theme.of(context).colorScheme.surface : color.withOpacity(0.04),
                   borderRadius: BorderRadius.circular(14),
                   border: Border.all(
-                    color: isRead ? Colors.grey.shade100 : color.withOpacity(0.25),
+                    color: isRead ? (Theme.of(context).brightness == Brightness.dark ? const Color(0xFF334155) : Colors.grey.shade100) : color.withOpacity(0.25),
                     width: isRead ? 1 : 1.5,
                   ),
                 ),
@@ -933,7 +939,7 @@ class _CollectionPointsManagementTabState extends State<_CollectionPointsManagem
                       Expanded(child: Text(alert['title'] ?? '',
                           style: GoogleFonts.outfit(
                             fontWeight: FontWeight.bold, fontSize: 12,
-                            color: isRead ? AppTheme.textMuted : AppTheme.deepSlate,
+                             color: isRead ? AppTheme.textMuted : (Theme.of(context).textTheme.titleLarge?.color ?? AppTheme.deepSlate),
                           ))),
                       if (!isRead) Container(width: 7, height: 7,
                           decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
@@ -964,7 +970,7 @@ class _CollectionPointsManagementTabState extends State<_CollectionPointsManagem
                 margin: const EdgeInsets.only(right: 8),
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 decoration: BoxDecoration(
-                  color: _filtreStatut == f ? _filtreColor(f) : Colors.grey.shade100,
+                  color: _filtreStatut == f ? _filtreColor(f) : (Theme.of(context).brightness == Brightness.dark ? const Color(0xFF1E293B) : Colors.grey.shade100),
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text(f, style: GoogleFonts.inter(
@@ -992,14 +998,14 @@ class _CollectionPointsManagementTabState extends State<_CollectionPointsManagem
                   margin: const EdgeInsets.only(right: 7),
                   padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 6),
                   decoration: BoxDecoration(
-                    color: _filtreType == t ? AppTheme.primaryGreen : Colors.grey.shade50,
+                    color: _filtreType == t ? AppTheme.primaryGreen : (Theme.of(context).brightness == Brightness.dark ? const Color(0xFF1E293B) : Colors.grey.shade50),
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(
-                      color: _filtreType == t ? AppTheme.primaryGreen : Colors.grey.shade200),
+                      color: _filtreType == t ? AppTheme.primaryGreen : (Theme.of(context).brightness == Brightness.dark ? const Color(0xFF334155) : Colors.grey.shade200)),
                   ),
                   child: Text(t, style: GoogleFonts.inter(
                     fontSize: 11, fontWeight: FontWeight.w700,
-                    color: _filtreType == t ? Colors.white : AppTheme.deepSlate)),
+                    color: _filtreType == t ? Colors.white : (Theme.of(context).textTheme.bodyLarge?.color ?? AppTheme.deepSlate))),
                 ),
               )
             ).toList()),
@@ -1083,7 +1089,7 @@ class _CollectionPointsManagementTabState extends State<_CollectionPointsManagem
     return Container(
       margin: const EdgeInsets.only(bottom: 14),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(20),
         border: Border(left: BorderSide(color: couleur, width: 4)),
         boxShadow: [BoxShadow(color: couleur.withOpacity(0.06), blurRadius: 16, offset: const Offset(0, 4))],
@@ -1105,7 +1111,7 @@ class _CollectionPointsManagementTabState extends State<_CollectionPointsManagem
             // Nom + statut + adresse
             Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Text(p['name'] ?? '', style: GoogleFonts.outfit(
-                fontWeight: FontWeight.w900, fontSize: 16, color: AppTheme.deepSlate)),
+                fontWeight: FontWeight.w900, fontSize: 16, color: Theme.of(context).textTheme.titleLarge?.color ?? AppTheme.deepSlate)),
               const SizedBox(height: 4),
               // Badge statut
               Container(
@@ -1136,7 +1142,7 @@ class _CollectionPointsManagementTabState extends State<_CollectionPointsManagem
                 Row(children: [
                   const Icon(Icons.access_time_rounded, size: 12, color: AppTheme.textMuted),
                   const SizedBox(width: 4),
-                  Text(hours, style: GoogleFonts.inter(color: AppTheme.textMuted, fontSize: 11)),
+                  Expanded(child: Text(hours, style: GoogleFonts.inter(color: AppTheme.textMuted, fontSize: 11), maxLines: 2, overflow: TextOverflow.ellipsis)),
                 ]),
               ],
             ])),
@@ -1174,11 +1180,11 @@ class _CollectionPointsManagementTabState extends State<_CollectionPointsManagem
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
-                  color: Colors.grey.shade50,
+                  color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF1E293B) : Colors.grey.shade50,
                   borderRadius: BorderRadius.circular(6),
-                  border: Border.all(color: Colors.grey.shade200),
+                  border: Border.all(color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF334155) : Colors.grey.shade200),
                 ),
-                child: Text(t, style: GoogleFonts.inter(fontSize: 10, color: AppTheme.deepSlate,
+                child: Text(t, style: GoogleFonts.inter(fontSize: 10, color: Theme.of(context).textTheme.bodyLarge?.color ?? AppTheme.deepSlate,
                   fontWeight: FontWeight.w600)),
               )
             ).toList()),
@@ -1470,7 +1476,7 @@ class _PostsModerationTabState extends State<_PostsModerationTab> {
             ),
             const SizedBox(height: 20),
             Text('Tout est à jour !', style: GoogleFonts.outfit(
-              fontSize: 18, fontWeight: FontWeight.w700, color: AppTheme.deepSlate)),
+              fontSize: 18, fontWeight: FontWeight.w700, color: Theme.of(context).textTheme.titleLarge?.color ?? AppTheme.deepSlate)),
             const SizedBox(height: 6),
             Text('Aucune publication en attente de validation.',
               style: GoogleFonts.inter(fontSize: 13, color: AppTheme.textMuted)),
@@ -1499,10 +1505,10 @@ class _PostsModerationTabState extends State<_PostsModerationTab> {
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(20),
-        boxShadow: AppTheme.tightShadow,
-        border: Border.all(color: Colors.orange.shade100),
+        boxShadow: Theme.of(context).brightness == Brightness.dark ? [] : AppTheme.tightShadow,
+        border: Border.all(color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF334155) : Colors.orange.shade100),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1518,7 +1524,7 @@ class _PostsModerationTabState extends State<_PostsModerationTab> {
                 fit: BoxFit.cover,
                 errorBuilder: (_, __, ___) => Container(
                   height: 100,
-                  color: Colors.grey.shade100,
+                  color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF1E293B) : Colors.grey.shade100,
                   child: const Icon(Icons.broken_image_outlined, color: Colors.grey, size: 40),
                 ),
               ),
@@ -1569,7 +1575,7 @@ class _PostsModerationTabState extends State<_PostsModerationTab> {
                 ),
                 if (description.isNotEmpty) ...[
                   const SizedBox(height: 12),
-                  Text(description, style: GoogleFonts.inter(fontSize: 13, color: AppTheme.deepSlate, height: 1.5),
+                  Text(description, style: GoogleFonts.inter(fontSize: 13, color: Theme.of(context).textTheme.bodyLarge?.color ?? AppTheme.deepSlate, height: 1.5),
                     maxLines: 3, overflow: TextOverflow.ellipsis),
                 ],
                 if (reason.isNotEmpty) ...[

@@ -168,6 +168,7 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = 
         "token_type": "bearer", "role": user.role,
         "id": user.id, "email": user.email,
         "full_name": user.full_name, "qr_code": user.qr_code,
+        "avatar_url": user.avatar_url or "",
         "firebase_token": generate_custom_token(user.id),  # pour signInWithCustomToken() Flutter
     }
 
@@ -224,6 +225,7 @@ async def google_auth(google_data: models.GoogleAuth, db: Session = Depends(get_
                 "token_type": "bearer", "role": user.role,
                 "id": user.id, "email": user.email,
                 "full_name": user.full_name, "qr_code": user.qr_code,
+                "avatar_url": user.avatar_url or "",
                 "firebase_token": generate_custom_token(user.id)}  # pour signInWithCustomToken() Flutter
     except Exception as e:
         raise HTTPException(status_code=401, detail=f"Erreur Google: {str(e)}")
@@ -269,6 +271,7 @@ async def facebook_auth(fb_data: models.FacebookAuth, db: Session = Depends(get_
                 "token_type": "bearer", "role": user.role,
                 "id": user.id, "email": user.email,
                 "full_name": user.full_name, "qr_code": user.qr_code,
+                "avatar_url": user.avatar_url or "",
                 "firebase_token": generate_custom_token(user.id)}  # pour signInWithCustomToken() Flutter
     except HTTPException:
         raise

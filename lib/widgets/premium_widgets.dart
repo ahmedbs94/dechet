@@ -563,6 +563,7 @@ class PremiumGlassTextField extends StatelessWidget {
               : null,
           suffixIcon: suffixIcon,
           border: InputBorder.none,
+          filled: false,
           contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
         ),
       ),

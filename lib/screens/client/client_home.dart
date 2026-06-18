@@ -31,8 +31,8 @@ class MainNavigationShell extends StatefulWidget {
 
 class _MainNavigationShellState extends State<MainNavigationShell> {
   late int _currentIndex;
-  late final List<Widget> _pages;
   late final bool _isLoggedIn;
+  List<Widget> get _pages => _initializePages(AuthState.currentUser?.role ?? UserRole.user);
 
 
   // GlobalKeys pour accéder aux states des tabs et appeler refresh()
@@ -43,8 +43,6 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
     super.initState();
     L10n.addListener(_onLocaleChange);
     _isLoggedIn = AuthState.currentUser != null;
-    final role = AuthState.currentUser?.role ?? UserRole.user;
-    _pages = _initializePages(role);
     _currentIndex = widget.initialTab.clamp(0, _pages.length - 1);
 
     if (!_isLoggedIn) {
@@ -70,7 +68,7 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
     if (_currentIndex == index) return;
     final role = AuthState.currentUser?.role ?? UserRole.user;
     // Rafraîchir le score quand on arrive sur l'onglet Profil
-    final profileIndex = (role == UserRole.educator) ? 2 : (role == UserRole.user ? 5 : 4);
+    final profileIndex = (role == UserRole.educator) ? 1 : (role == UserRole.user ? 5 : 4);
     if (index == profileIndex) _profileKey.currentState?.refreshScore();
     setState(() => _currentIndex = index);
   }
@@ -86,10 +84,9 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
     }
 
     switch (role) {
-      // ── Rôle Éducateur : 3 onglets uniquement (Fil, Éducateur, Profil) ──
+      // ── Rôle Éducateur : 2 onglets uniquement (Éducateur, Profil) ──
       case UserRole.educator:
         return [
-          const FeedTab(key: ValueKey('feed')),
           const EducatorTab(key: ValueKey('educator')),
           ProfileTab(key: _profileKey),
         ];
@@ -185,10 +182,9 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
       ];
     }
 
-    // ── Éducateur : 3 onglets (pas d'Impact ni de Carte) ──
+    // ── Éducateur : 2 onglets (pas de Fil, pas d'Impact ni de Carte) ──
     if (role == UserRole.educator) {
       return [
-        NavigationDestination(icon: const FaIcon(FontAwesomeIcons.house, size: 20), label: L10n.tr('tab_feed')),
         NavigationDestination(icon: _proTabIcon(role), label: _proTabLabel(role)),
         NavigationDestination(icon: const FaIcon(FontAwesomeIcons.user, size: 20), label: L10n.tr('tab_profile')),
       ];

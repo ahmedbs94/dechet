@@ -20,6 +20,7 @@
 import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
+import 'package:eco_rewind/models/bin_model.dart';
 
 class ScoreSnapshot {
   final double total;
@@ -113,5 +114,88 @@ class FirebaseScoreService {
   void dispose() {
     _subscription?.cancel();
     _subscription = null;
+  }
+}
+
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Lecture de /utilisateurs/{user_id}
+// ─────────────────────────────────────────────────────────────────────────────
+
+extension FirebaseUtilisateurReader on FirebaseScoreService {
+  /// Lit le profil Firebase d'un utilisateur UNE seule fois.
+  ///
+  /// Nœud lu : /utilisateurs/{userId}
+  /// Retourne UtilisateurSnapshot.empty() si non authentifié ou absent.
+  Future<UtilisateurSnapshot> getUtilisateur(int userId) async {
+    if (!_isFirebaseAuthenticated) return UtilisateurSnapshot.empty();
+    try {
+      final ref = _db.ref('utilisateurs/$userId');
+      final snapshot = await ref.get();
+      if (!snapshot.exists || snapshot.value == null) {
+        return UtilisateurSnapshot.empty();
+      }
+      return UtilisateurSnapshot.fromMap(
+          snapshot.value as Map<dynamic, dynamic>);
+    } catch (_) {
+      return UtilisateurSnapshot.empty();
+    }
+  }
+
+  /// Écoute les changements du profil d'un utilisateur en temps réel.
+  ///
+  /// Nœud écouté : /utilisateurs/{userId}
+  Stream<UtilisateurSnapshot> watchUtilisateur(int userId) {
+    if (!_isFirebaseAuthenticated) {
+      return Stream.value(UtilisateurSnapshot.empty());
+    }
+    final ref = _db.ref('utilisateurs/$userId');
+    return ref.onValue.map((event) {
+      final data = event.snapshot.value;
+      if (data == null) return UtilisateurSnapshot.empty();
+      if (data is Map) return UtilisateurSnapshot.fromMap(data);
+      return UtilisateurSnapshot.empty();
+    });
+  }
+}
+
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Lecture de /poubelles/{bin_id}
+// ─────────────────────────────────────────────────────────────────────────────
+
+extension FirebaseBinReader on FirebaseScoreService {
+  /// Écoute l'état d'une poubelle en temps réel.
+  ///
+  /// Nœud écouté : /poubelles/{binId}
+  /// binId = bin_code de la poubelle (ex: "BIN-PLASTIC-A3F2")
+  ///
+  /// LECTURE SEULE — seul le backend FastAPI écrit dans ce nœud.
+  Stream<BinSnapshot> watchBin(String binId) {
+    if (!_isFirebaseAuthenticated) {
+      return Stream.value(BinSnapshot.empty());
+    }
+    final ref = _db.ref('poubelles/$binId');
+    return ref.onValue.map((event) {
+      final data = event.snapshot.value;
+      if (data == null) return BinSnapshot.empty();
+      if (data is Map) return BinSnapshot.fromMap(data);
+      return BinSnapshot.empty();
+    });
+  }
+
+  /// Lit l'état d'une poubelle UNE seule fois (sans abonnement continu).
+  ///
+  /// Retourne BinSnapshot.empty() si la poubelle est absente ou non authentifié.
+  Future<BinSnapshot> getBinOnce(String binId) async {
+    if (!_isFirebaseAuthenticated) return BinSnapshot.empty();
+    try {
+      final ref = _db.ref('poubelles/$binId');
+      final snapshot = await ref.get();
+      if (!snapshot.exists || snapshot.value == null) return BinSnapshot.empty();
+      return BinSnapshot.fromMap(snapshot.value as Map<dynamic, dynamic>);
+    } catch (_) {
+      return BinSnapshot.empty();
+    }
   }
 }

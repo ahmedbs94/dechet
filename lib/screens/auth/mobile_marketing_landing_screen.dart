@@ -174,92 +174,62 @@ class _MobileMarketingLandingScreenState extends State<MobileMarketingLandingScr
           // Content
           SafeArea(
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  // Badge
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.15),
-                      borderRadius: BorderRadius.circular(30),
-                      border: Border.all(color: Colors.white.withOpacity(0.3)),
-                    ),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(30),
-                      child: BackdropFilter(
-                        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+              child: SingleChildScrollView(
+                physics: const BouncingScrollPhysics(),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    // Title
+                    Text(
+                      'Triez.\nGagnez.\nChangez le monde.',
+                      style: GoogleFonts.spaceGrotesk(
+                        color: Colors.white,
+                        fontSize: 52,
+                        fontWeight: FontWeight.w900,
+                        height: 1.05,
+                        letterSpacing: -1.5,
+                      ),
+                    ).animate().fadeIn(delay: 400.ms).slideY(begin: 0.2),
+
+                    const SizedBox(height: 20),
+
+                    // Description
+                    Text(
+                      'Transformez chaque geste de tri en récompenses réelles. Rejoignez la communauté.',
+                      style: GoogleFonts.inter(
+                        color: Colors.white.withOpacity(0.8),
+                        fontSize: 16,
+                        height: 1.5,
+                      ),
+                    ).animate().fadeIn(delay: 600.ms).slideY(begin: 0.2),
+                    
+                    const SizedBox(height: 30),
+
+                    // Scroll Down Indicator
+                    Center(
+                      child: AnimatedBuilder(
+                        animation: _bgAnimationController,
+                        builder: (context, child) {
+                          return Transform.translate(
+                            offset: Offset(0, _bgAnimationController.value * 15),
+                            child: child,
+                          );
+                        },
+                        child: Column(
                           children: [
-                            const Icon(Icons.star_rounded, color: AppTheme.secondaryGold, size: 16),
-                            const SizedBox(width: 8),
-                            Text(
-                              'Application #1 en Tunisie',
-                              style: GoogleFonts.inter(
-                                color: Colors.white,
-                                fontSize: 12,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
+                            Text('Découvrir', style: GoogleFonts.inter(color: Colors.white54, fontSize: 12, fontWeight: FontWeight.w600, letterSpacing: 1.5)),
+                            const SizedBox(height: 8),
+                            const Icon(Icons.keyboard_arrow_down_rounded, color: Colors.white54, size: 28),
                           ],
                         ),
                       ),
-                    ),
-                  ).animate().fadeIn(delay: 200.ms).slideY(begin: 0.2),
-
-                  const SizedBox(height: 24),
-
-                  // Title
-                  Text(
-                    'Triez.\nGagnez.\nChangez le monde.',
-                    style: GoogleFonts.spaceGrotesk(
-                      color: Colors.white,
-                      fontSize: 52,
-                      fontWeight: FontWeight.w900,
-                      height: 1.05,
-                      letterSpacing: -1.5,
-                    ),
-                  ).animate().fadeIn(delay: 400.ms).slideY(begin: 0.2),
-
-                  const SizedBox(height: 20),
-
-                  // Description
-                  Text(
-                    'Transformez chaque geste de tri en récompenses réelles. Rejoignez la communauté.',
-                    style: GoogleFonts.inter(
-                      color: Colors.white.withOpacity(0.8),
-                      fontSize: 16,
-                      height: 1.5,
-                    ),
-                  ).animate().fadeIn(delay: 600.ms).slideY(begin: 0.2),
-                  
-                  const SizedBox(height: 40),
-
-                  // Scroll Down Indicator
-                  Center(
-                    child: AnimatedBuilder(
-                      animation: _bgAnimationController,
-                      builder: (context, child) {
-                        return Transform.translate(
-                          offset: Offset(0, _bgAnimationController.value * 15),
-                          child: child,
-                        );
-                      },
-                      child: Column(
-                        children: [
-                          Text('Découvrir', style: GoogleFonts.inter(color: Colors.white54, fontSize: 12, fontWeight: FontWeight.w600, letterSpacing: 1.5)),
-                          const SizedBox(height: 8),
-                          const Icon(Icons.keyboard_arrow_down_rounded, color: Colors.white54, size: 28),
-                        ],
-                      ),
-                    ),
-                  ).animate().fadeIn(delay: 1000.ms),
-                  
-                  SizedBox(height: MediaQuery.of(context).size.height < 700 ? 60 : 120), // Space for bottom bar
-                ],
+                    ).animate().fadeIn(delay: 1000.ms),
+                    
+                    SizedBox(height: MediaQuery.of(context).size.height < 600 ? 20 : (MediaQuery.of(context).size.height < 700 ? 50 : 100)), // Space for bottom bar
+                  ],
+                ),
               ),
             ),
           ),
@@ -283,6 +253,7 @@ class _MobileMarketingLandingScreenState extends State<MobileMarketingLandingScr
                   imageUrl: 'https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?w=500&q=80',
                   height: 260,
                   page: const SectionImpact(),
+                  isAuthRequired: true,
                   delay: 100,
                 ),
                 const SizedBox(height: 16),

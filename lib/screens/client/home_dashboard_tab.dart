@@ -8,11 +8,14 @@ import '../../theme/app_theme.dart';
 import '../../models/user_model.dart';
 import '../../models/post_model.dart';
 import '../../services/auth_service.dart';
+import '../../services/notification_service.dart';
+import '../../services/theme_service.dart';
 import '../../constants.dart';
 import '../../widgets/auth_prompt_dialog.dart';
 import '../../screens/client/notifications_screen.dart';
 import '../../screens/client/bin_scanner_screen.dart';
 import '../../features/scan/scan_history_screen.dart';
+import '../../services/l10n_service.dart';
 
 class HomeDashboardTab extends StatefulWidget {
   final Function(int) onNavigate;
@@ -36,6 +39,8 @@ class _HomeDashboardTabState extends State<HomeDashboardTab> with SingleTickerPr
   @override
   void initState() {
     super.initState();
+    ThemeService.addListener(_onThemeChanged);
+    L10n.addListener(_onLocaleChanged);
     _counterCtrl = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1800),
@@ -45,31 +50,55 @@ class _HomeDashboardTabState extends State<HomeDashboardTab> with SingleTickerPr
     });
     _fetchStats();
     _refreshUserScore();
+    _syncUnreadNotifications();
   }
 
-  /// Synchronise le globalScore depuis le backend
+  /// Synchronise le compteur de notifications non lues depuis le backend
+  Future<void> _syncUnreadNotifications() async {
+    if (!AuthState.isLoggedIn) return;
+    try {
+      final count = await _authService.fetchUnreadCount();
+      // Injecter les entrées manquantes dans NotificationService pour aligner le badge
+      final svc = NotificationService();
+      final localUnread = svc.unreadCount;
+      if (count > localUnread) {
+        // Créer des entrées placeholder pour refléter les notifs non lues du backend
+        for (int i = 0; i < (count - localUnread); i++) {
+          svc.addNotification(
+            title: 'Notification',
+            body: '',
+            type: NotificationType.info,
+          );
+        }
+      }
+    } catch (_) {}
+  }
+
+  /// Ouvre l'écran de notifications et synchronise les données
+  Future<void> _openNotifications() async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const NotificationsScreen()),
+    );
+    // Après retour, vider le badge local (les notifs ont été marquées lues)
+    if (mounted) NotificationService().markAllRead();
+  }
+
+  void _onThemeChanged() {
+    if (mounted) setState(() {});
+  }
+
+  void _onLocaleChanged() {
+    if (mounted) setState(() {});
+  }
+
   Future<void> _refreshUserScore() async {
     if (!AuthState.isLoggedIn) return;
     try {
       final userData = await _authService.fetchUserProfile();
       if (userData != null && mounted) {
-        final u = AuthState.currentUser;
-        if (u != null) {
-          final newScore = (userData['global_score'] as num?)?.toDouble() ?? u.globalScore;
-          if (newScore != u.globalScore) {
-            AuthState.currentUser = User(
-              id: u.id,
-              name: u.name,
-              email: u.email,
-              role: u.role,
-              points: u.points,
-              globalScore: newScore,
-              avatarUrl: u.avatarUrl,
-              qrCode: u.qrCode,
-            );
-            setState(() {});
-          }
-        }
+        AuthState.currentUser = User.fromBackend(userData);
+        if (mounted) setState(() {});
       }
     } catch (_) {}
   }
@@ -106,14 +135,15 @@ class _HomeDashboardTabState extends State<HomeDashboardTab> with SingleTickerPr
   }
 
   String _getLevelBadge(double score) {
-    if (score >= 5000) return 'Légende Éco 👑';
-    if (score >= 2000) return 'Champion Vert 🏆';
-    return 'Éco-Citoyen 🪙';
+    if (score >= 5000) return L10n.isArabic ? 'أسطورة البيئة 👑' : 'Légende Éco 👑';
+    if (score >= 2000) return L10n.isArabic ? 'بطل أخضر 🏆' : 'Champion Vert 🏆';
+    return L10n.isArabic ? 'مواطن بيئي 🪙' : 'Éco-Citoyen 🪙';
   }
-
 
   @override
   void dispose() {
+    ThemeService.removeListener(_onThemeChanged);
+    L10n.removeListener(_onLocaleChanged);
     _counterCtrl.dispose();
     super.dispose();
   }
@@ -122,8 +152,9 @@ class _HomeDashboardTabState extends State<HomeDashboardTab> with SingleTickerPr
   Widget build(BuildContext context) {
     final user = AuthState.currentUser;
 
+    final isDark = ThemeService.isDarkMode;
     return Scaffold(
-      backgroundColor: AppTheme.backgroundSoft,
+      backgroundColor: isDark ? const Color(0xFF0F172A) : AppTheme.backgroundSoft,
       body: CustomScrollView(
         physics: const BouncingScrollPhysics(),
         slivers: [
@@ -145,7 +176,7 @@ class _HomeDashboardTabState extends State<HomeDashboardTab> with SingleTickerPr
       expandedHeight: 0,
       floating: true,
       pinned: true,
-      backgroundColor: Colors.white,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       surfaceTintColor: Colors.transparent,
       elevation: 0,
       shadowColor: Colors.black.withOpacity(0.06),
@@ -181,21 +212,51 @@ class _HomeDashboardTabState extends State<HomeDashboardTab> with SingleTickerPr
         ]),
       ),
       actions: [
-        // Notification bell
+        // Notification bell avec badge dynamique
         Padding(
           padding: const EdgeInsets.only(right: 4),
-          child: IconButton(
-            onPressed: () => Navigator.push(context,
-              MaterialPageRoute(builder: (_) => const NotificationsScreen())),
-            icon: Stack(clipBehavior: Clip.none, children: [
-              const Icon(Icons.notifications_outlined, color: Color(0xFF475569), size: 24),
-              Positioned(top: -2, right: -2, child: Container(
-                width: 8, height: 8,
-                decoration: const BoxDecoration(
-                  color: AppTheme.primaryGreen, shape: BoxShape.circle),
-              )),
-            ]),
-            tooltip: 'Notifications',
+          child: ValueListenableBuilder<List<AppNotification>>(
+            valueListenable: NotificationService().notifications,
+            builder: (_, notifs, __) {
+              final unread = notifs.where((n) => !n.isRead).length;
+              return IconButton(
+                onPressed: _openNotifications,
+                tooltip: 'Notifications',
+                icon: Stack(clipBehavior: Clip.none, children: [
+                  Icon(
+                    unread > 0
+                        ? Icons.notifications_rounded
+                        : Icons.notifications_outlined,
+                    color: unread > 0
+                        ? AppTheme.primaryGreen
+                        : const Color(0xFF475569),
+                    size: 24,
+                  ),
+                  if (unread > 0)
+                    Positioned(
+                      top: -4,
+                      right: -4,
+                      child: Container(
+                        constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
+                        padding: const EdgeInsets.symmetric(horizontal: 3),
+                        decoration: BoxDecoration(
+                          color: Colors.red.shade600,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: Colors.white, width: 1.2),
+                        ),
+                        child: Text(
+                          unread > 99 ? '99+' : unread.toString(),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 9,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    ),
+                ]),
+              );
+            },
           ),
         ),
         // Avatar
@@ -296,7 +357,7 @@ class _HomeDashboardTabState extends State<HomeDashboardTab> with SingleTickerPr
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Bonjour 👋',
+                            L10n.isArabic ? 'أهلاً 👋' : 'Bonjour 👋',
                             style: GoogleFonts.inter(
                               color: Colors.white.withOpacity(0.6),
                               fontSize: 13,
@@ -365,7 +426,7 @@ class _HomeDashboardTabState extends State<HomeDashboardTab> with SingleTickerPr
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'SCORE ÉCO ACTUEL',
+                            L10n.tr('home_score_label'),
                             style: GoogleFonts.inter(
                               color: AppTheme.accentTeal,
                               fontSize: 10,
@@ -388,7 +449,7 @@ class _HomeDashboardTabState extends State<HomeDashboardTab> with SingleTickerPr
                               Padding(
                                 padding: const EdgeInsets.only(bottom: 5, left: 4),
                                 child: Text(
-                                  'pts',
+                                  L10n.tr('pts'),
                                   style: GoogleFonts.inter(
                                     color: Colors.white.withOpacity(0.5),
                                     fontSize: 14,
@@ -422,7 +483,7 @@ class _HomeDashboardTabState extends State<HomeDashboardTab> with SingleTickerPr
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               Text(
-                                'Détails',
+                                L10n.tr('home_details'),
                                 style: GoogleFonts.inter(
                                   color: Colors.white,
                                   fontWeight: FontWeight.w700,
@@ -481,7 +542,7 @@ class _HomeDashboardTabState extends State<HomeDashboardTab> with SingleTickerPr
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Conseil du jour 💡',
+                      L10n.isArabic ? 'نصيحة اليوم 💡' : 'Conseil du jour 💡',
                       style: GoogleFonts.outfit(
                         fontWeight: FontWeight.w800,
                         fontSize: 14,
@@ -490,7 +551,7 @@ class _HomeDashboardTabState extends State<HomeDashboardTab> with SingleTickerPr
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      'Rincez vos contenants en plastique avant de les jeter pour un meilleur recyclage.',
+                      L10n.tr('home_tip_text'),
                       style: GoogleFonts.inter(
                         fontSize: 12,
                         color: const Color(0xFFB45309),
@@ -514,11 +575,11 @@ class _HomeDashboardTabState extends State<HomeDashboardTab> with SingleTickerPr
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Services Rapides',
+            L10n.tr('home_quick_services'),
             style: GoogleFonts.spaceGrotesk(
               fontSize: 20,
               fontWeight: FontWeight.w800,
-              color: AppTheme.deepNavy,
+              color: Theme.of(context).colorScheme.onSurface,
             ),
           ),
           const SizedBox(height: 16),
@@ -534,25 +595,25 @@ class _HomeDashboardTabState extends State<HomeDashboardTab> with SingleTickerPr
             childAspectRatio: 1.45,
             children: [
               _buildActionCard(
-                'Centres de Tri',
+                L10n.tr('home_action_centers'),
                 Icons.location_on_rounded,
                 const Color(0xFFF59E0B),
                 3,
               ),
               _buildActionCard(
-                'Quiz & Apprendre',
+                L10n.tr('home_action_quiz'),
                 Icons.school_rounded,
                 const Color(0xFF3B82F6),
                 1,
               ),
               _buildActionCard(
-                'Fil Citoyen',
+                L10n.tr('home_action_feed'),
                 Icons.people_alt_rounded,
                 const Color(0xFF8B5CF6),
                 0,
               ),
               _buildActionCard(
-                'Boutique',
+                L10n.tr('home_action_shop'),
                 Icons.shopping_bag_rounded,
                 const Color(0xFFEF4444),
                 2,
@@ -627,7 +688,7 @@ class _HomeDashboardTabState extends State<HomeDashboardTab> with SingleTickerPr
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Scanner une Poubelle',
+                    L10n.tr('home_scan_title'),
                     style: GoogleFonts.outfit(
                       color: Colors.white,
                       fontWeight: FontWeight.w900,
@@ -635,7 +696,7 @@ class _HomeDashboardTabState extends State<HomeDashboardTab> with SingleTickerPr
                     ),
                   ),
                   Text(
-                    'Gagnez des points éco instantanément',
+                    L10n.tr('home_scan_sub'),
                     style: GoogleFonts.inter(
                       color: AppTheme.accentMint.withOpacity(0.8),
                       fontSize: 11,
@@ -670,7 +731,7 @@ class _HomeDashboardTabState extends State<HomeDashboardTab> with SingleTickerPr
                     const Icon(Icons.history_rounded, color: Colors.white70, size: 16),
                     const SizedBox(height: 2),
                     Text(
-                      'Historique',
+                      L10n.tr('home_history'),
                       style: GoogleFonts.inter(
                         color: Colors.white54,
                         fontSize: 9,
@@ -701,7 +762,7 @@ class _HomeDashboardTabState extends State<HomeDashboardTab> with SingleTickerPr
           AuthPromptDialog.show(context: context);
           return;
         }
-        if (title.contains('Apprendre')) {
+        if (title == L10n.tr('home_action_quiz')) {
           Navigator.pushNamed(context, '/multimedia');
         }
         widget.onNavigate(targetTab);
@@ -709,10 +770,10 @@ class _HomeDashboardTabState extends State<HomeDashboardTab> with SingleTickerPr
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         decoration: BoxDecoration(
-          color: isSpecial ? color.withOpacity(0.06) : Colors.white,
+          color: isSpecial ? color.withOpacity(0.06) : Theme.of(context).colorScheme.surface,
           borderRadius: BorderRadius.circular(22),
           border: Border.all(
-            color: isSpecial ? color.withOpacity(0.15) : Colors.grey.shade100,
+            color: isSpecial ? color.withOpacity(0.15) : (ThemeService.isDarkMode ? const Color(0xFF334155) : Colors.grey.shade100),
             width: 1.5,
           ),
           boxShadow: isSpecial
@@ -755,7 +816,7 @@ class _HomeDashboardTabState extends State<HomeDashboardTab> with SingleTickerPr
                     style: GoogleFonts.outfit(
                       fontSize: 14,
                       fontWeight: FontWeight.w800,
-                      color: AppTheme.deepNavy,
+                      color: Theme.of(context).colorScheme.onSurface,
                     ),
                   ),
                 ),
@@ -777,11 +838,11 @@ class _HomeDashboardTabState extends State<HomeDashboardTab> with SingleTickerPr
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'Espace Éducation',
+                L10n.tr('home_education_section'),
                 style: GoogleFonts.spaceGrotesk(
                   fontSize: 20,
                   fontWeight: FontWeight.w800,
-                  color: AppTheme.deepNavy,
+                  color: Theme.of(context).colorScheme.onSurface,
                 ),
               ),
               GestureDetector(
@@ -789,7 +850,7 @@ class _HomeDashboardTabState extends State<HomeDashboardTab> with SingleTickerPr
                 child: Row(
                   children: [
                     Text(
-                      'Voir tout',
+                      L10n.tr('home_see_all'),
                       style: GoogleFonts.inter(
                         fontWeight: FontWeight.w700,
                         color: AppTheme.primaryGreen,
@@ -812,19 +873,19 @@ class _HomeDashboardTabState extends State<HomeDashboardTab> with SingleTickerPr
             physics: const BouncingScrollPhysics(),
             children: [
               _buildVlogCard(
-                'Le Futur du Recyclage',
+                L10n.isArabic ? 'مستقبل إعادة التدوير' : 'Le Futur du Recyclage',
                 'https://images.unsplash.com/photo-1532996122724-e3c354a0b15b?w=400&q=80',
-                'Vidéo • 4 min',
+                L10n.isArabic ? 'فيديو • 4 دقائق' : 'Vidéo • 4 min',
               ),
               _buildVlogCard(
-                'L\'Essentiel du Tri',
+                L10n.isArabic ? 'أساسيات الفرز' : 'L\'Essentiel du Tri',
                 'https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?w=400&q=80',
-                'Article • 3 min',
+                L10n.isArabic ? 'مقال • 3 دقائق' : 'Article • 3 min',
               ),
               _buildVlogCard(
-                'Quiz Hebdo',
+                L10n.isArabic ? 'اختبار الأسبوع' : 'Quiz Hebdo',
                 'https://images.unsplash.com/photo-1595278069441-2cf29f8005a4?w=400&q=80',
-                'Quiz • +100 pts',
+                L10n.isArabic ? 'اختبار • +100 نقطة' : 'Quiz • +100 pts',
               ),
             ],
           ),
@@ -954,7 +1015,7 @@ class _HomeDashboardTabState extends State<HomeDashboardTab> with SingleTickerPr
               ),
               const SizedBox(width: 12),
               Text(
-                'IMPACT GLOBAL ECOREWIND',
+                L10n.tr('home_global_impact'),
                 style: GoogleFonts.inter(
                   color: Colors.white,
                   fontSize: 11,
@@ -983,11 +1044,11 @@ class _HomeDashboardTabState extends State<HomeDashboardTab> with SingleTickerPr
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              Expanded(child: _buildImpactStat(_fmt(co2Val), 'CO₂ ÉVITÉ', Icons.cloud_done_rounded)),
+              Expanded(child: _buildImpactStat(_fmt(co2Val), L10n.tr('home_stat_co2'), Icons.cloud_done_rounded)),
               Container(width: 1, height: 40, color: Colors.white.withOpacity(0.08)),
-              Expanded(child: _buildImpactStat(_fmt(wasteVal, kg: true), 'TRIÉ', Icons.recycling_rounded)),
+              Expanded(child: _buildImpactStat(_fmt(wasteVal, kg: true), L10n.tr('home_stat_sorted'), Icons.recycling_rounded)),
               Container(width: 1, height: 40, color: Colors.white.withOpacity(0.08)),
-              Expanded(child: _buildImpactStat('$treesVal 🌳', 'ARBRES', Icons.forest_rounded)),
+              Expanded(child: _buildImpactStat('$treesVal 🌳', L10n.tr('home_stat_trees'), Icons.forest_rounded)),
             ],
           ),
         ],
@@ -1039,17 +1100,17 @@ class _HomeDashboardTabState extends State<HomeDashboardTab> with SingleTickerPr
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'Actualités',
+                L10n.tr('home_news_section'),
                 style: GoogleFonts.spaceGrotesk(
                   fontSize: 20,
                   fontWeight: FontWeight.w800,
-                  color: AppTheme.deepNavy,
+                  color: Theme.of(context).colorScheme.onSurface,
                 ),
               ),
               GestureDetector(
                 onTap: () => widget.onNavigate(1),
                 child: Text(
-                  'Tout voir →',
+                  L10n.tr('home_see_all_arrow'),
                   style: GoogleFonts.inter(
                     fontWeight: FontWeight.w700,
                     color: AppTheme.primaryGreen,
@@ -1070,13 +1131,13 @@ class _HomeDashboardTabState extends State<HomeDashboardTab> with SingleTickerPr
                 child: Container(
                   padding: const EdgeInsets.all(24),
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: Theme.of(context).colorScheme.surface,
                     borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: Colors.grey.shade100),
+                    border: Border.all(color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF334155) : Colors.grey.shade100),
                   ),
                   child: Center(
                     child: Text(
-                      'Aucune publication pour le moment',
+                      L10n.tr('home_no_posts'),
                       style: GoogleFonts.inter(
                         color: AppTheme.textMuted,
                         fontSize: 14,
@@ -1109,12 +1170,12 @@ class _HomeDashboardTabState extends State<HomeDashboardTab> with SingleTickerPr
       margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 12, offset: const Offset(0, 4)),
         ],
-        border: Border.all(color: Colors.grey.shade100),
+        border: Border.all(color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF334155) : Colors.grey.shade100),
       ),
       child: Row(
         children: [
@@ -1143,7 +1204,7 @@ class _HomeDashboardTabState extends State<HomeDashboardTab> with SingleTickerPr
                   post.userName,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: GoogleFonts.outfit(fontSize: 13, fontWeight: FontWeight.w800, color: AppTheme.deepNavy),
+                  style: GoogleFonts.outfit(fontSize: 13, fontWeight: FontWeight.w800, color: Theme.of(context).colorScheme.onSurface),
                 ),
                 const SizedBox(height: 2),
                 Text(

@@ -6,6 +6,7 @@ import 'package:timeago/timeago.dart' as timeago;
 import '../../theme/app_theme.dart';
 import '../../models/user_model.dart';
 import '../../services/auth_service.dart';
+import '../../widgets/safe_network_image.dart';
 
 
 /// Screen that shows a single post with all interactions.
@@ -45,7 +46,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
     if (!AuthState.isLoggedIn) return;
     setState(() { _isLiked = !_isLiked; _isLiked ? _likeCount++ : _likeCount--; });
     final result = await _authService.toggleLikePost(_post['id'].toString());
-    if (result['success'] == true) {
+    if (result['success'] == true && mounted) {
       setState(() { _isLiked = result['liked'] ?? _isLiked; _likeCount = result['count'] ?? _likeCount; });
     }
   }
@@ -54,7 +55,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
     if (!AuthState.isLoggedIn) return;
     setState(() => _isSaved = !_isSaved);
     final result = await _authService.toggleSavePost(_post['id'].toString());
-    if (result['success'] == true) setState(() => _isSaved = result['saved'] ?? _isSaved);
+    if (result['success'] == true && mounted) setState(() => _isSaved = result['saved'] ?? _isSaved);
   }
 
   void _showLikersModal() {
@@ -63,10 +64,10 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
       backgroundColor: Colors.transparent,
       builder: (context) => Container(
         height: MediaQuery.of(context).size.height * 0.5,
-        decoration: const BoxDecoration(color: Colors.white, borderRadius: BorderRadius.vertical(top: Radius.circular(32))),
+        decoration: BoxDecoration(color: Theme.of(context).colorScheme.surface, borderRadius: const BorderRadius.vertical(top: Radius.circular(32))),
         child: Column(
           children: [
-            Container(width: 40, height: 4, margin: const EdgeInsets.symmetric(vertical: 12), decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(2))),
+            Container(width: 40, height: 4, margin: const EdgeInsets.symmetric(vertical: 12), decoration: BoxDecoration(color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade800 : Colors.grey.shade300, borderRadius: BorderRadius.circular(2))),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
               child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
@@ -103,7 +104,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                       return Container(
                         margin: const EdgeInsets.only(bottom: 8),
                         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                        decoration: BoxDecoration(color: Colors.grey.shade50, borderRadius: BorderRadius.circular(16)),
+                        decoration: BoxDecoration(color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF0F172A) : Colors.grey.shade50, borderRadius: BorderRadius.circular(16)),
                         child: Row(children: [
                           CircleAvatar(
                             radius: 20,
@@ -152,9 +153,9 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) => StatefulBuilder(
-        builder: (context, setModalState) {
+        builder: (modalContext, setModalState) {
           refreshTimer ??= Timer.periodic(const Duration(seconds: 30), (_) {
-            if (context.mounted) setModalState(() {});
+            if (modalContext.mounted) setModalState(() {});
           });
 
           // Separate top-level comments and replies
@@ -195,7 +196,9 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                 Expanded(child: Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: isReply ? const Color(0xFFF0F4FF) : Colors.grey.shade50,
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? (isReply ? const Color(0xFF2D3748) : const Color(0xFF0F172A))
+                        : (isReply ? const Color(0xFFF0F4FF) : Colors.grey.shade50),
                     borderRadius: BorderRadius.circular(16),
                   ),
                   child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -209,8 +212,14 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                             onTap: () async {
                               final deleted = await _authService.deleteComment(commentId);
                               if (deleted) {
-                                setModalState(() => comments.removeWhere((c) => _commentIdAsInt(c) == commentId));
-                                setState(() {});
+                                if (modalContext.mounted) {
+                                  setModalState(() => comments.removeWhere((c) => _commentIdAsInt(c) == commentId));
+                                }
+                                if (mounted) {
+                                  setState(() {
+                                    _post['comments'] = List<dynamic>.from(comments);
+                                  });
+                                }
                               }
                             },
                             child: Icon(Icons.delete_outline, size: 14, color: Colors.red.shade300),
@@ -246,10 +255,10 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
 
           return Container(
             height: MediaQuery.of(context).size.height * 0.75,
-            decoration: const BoxDecoration(color: Colors.white, borderRadius: BorderRadius.vertical(top: Radius.circular(32))),
+            decoration: BoxDecoration(color: Theme.of(modalContext).colorScheme.surface, borderRadius: const BorderRadius.vertical(top: Radius.circular(32))),
             child: Column(
               children: [
-                Container(width: 40, height: 4, margin: const EdgeInsets.symmetric(vertical: 12), decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(2))),
+                Container(width: 40, height: 4, margin: const EdgeInsets.symmetric(vertical: 12), decoration: BoxDecoration(color: Theme.of(modalContext).brightness == Brightness.dark ? Colors.grey.shade800 : Colors.grey.shade300, borderRadius: BorderRadius.circular(2))),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
                   child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
@@ -314,7 +323,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                           hintText: replyingTo != null
                               ? 'Répondre à $replyingToName...'
                               : 'Ajouter un commentaire...',
-                          filled: true, fillColor: Colors.grey.shade100,
+                          filled: true, fillColor: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF1E293B) : Colors.grey.shade100,
                           border: OutlineInputBorder(borderRadius: BorderRadius.circular(24), borderSide: BorderSide.none),
                           contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
                         ),
@@ -344,12 +353,18 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                               if (result['success'] == true) {
                                 final newComment = Map<String, dynamic>.from(result['data'] as Map);
                                 newComment['_local_created_at'] = DateTime.now();
-                                setModalState(() {
-                                  comments.insert(0, newComment);
-                                  replyingTo = null;
-                                  replyingToName = null;
-                                });
-                                setState(() {});
+                                if (modalContext.mounted) {
+                                  setModalState(() {
+                                    comments.insert(0, newComment);
+                                    replyingTo = null;
+                                    replyingToName = null;
+                                  });
+                                }
+                                if (mounted) {
+                                  setState(() {
+                                    _post['comments'] = List<dynamic>.from(comments);
+                                  });
+                                }
                                 commentController.clear();
                               }
                             }
@@ -377,15 +392,15 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
     final commentCount = comments.length;
 
     return Scaffold(
-      backgroundColor: AppTheme.backgroundLight,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 18, color: Color(0xFF1E293B)),
+          icon: Icon(Icons.arrow_back_ios_new_rounded, size: 18, color: Theme.of(context).colorScheme.onSurface),
           onPressed: () => Navigator.pop(context),
         ),
-        title: Text('Publication', style: GoogleFonts.outfit(fontSize: 20, fontWeight: FontWeight.bold, color: const Color(0xFF1E293B))),
+        title: Text('Publication', style: GoogleFonts.outfit(fontSize: 20, fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onSurface)),
       ),
       body: SingleChildScrollView(
         physics: const BouncingScrollPhysics(),
@@ -393,7 +408,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
           effects: const [FadeEffect(duration: Duration(milliseconds: 400)), SlideEffect(begin: Offset(0, 0.05))],
           child: Container(
             margin: const EdgeInsets.all(20),
-            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(32), boxShadow: AppTheme.premiumShadow),
+            decoration: BoxDecoration(color: Theme.of(context).colorScheme.surface, borderRadius: BorderRadius.circular(32), boxShadow: AppTheme.premiumShadow),
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               // Header
               Padding(
@@ -419,7 +434,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
 
               // Description
               if (description.isNotEmpty)
-                Padding(padding: const EdgeInsets.symmetric(horizontal: 24), child: Text(description, style: GoogleFonts.inter(fontSize: 15, height: 1.6, color: AppTheme.textMain))),
+                Padding(padding: const EdgeInsets.symmetric(horizontal: 24), child: Text(description, style: GoogleFonts.inter(fontSize: 15, height: 1.6, color: Theme.of(context).brightness == Brightness.dark ? Colors.white : AppTheme.textMain))),
 
               // Image
               if (imageUrl.isNotEmpty) ...[
@@ -429,8 +444,17 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                   margin: const EdgeInsets.symmetric(horizontal: 20),
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(24),
-                    image: DecorationImage(image: NetworkImage(imageUrl), fit: BoxFit.cover),
+                    color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF1E293B) : Colors.grey.shade100,
                     boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 5))],
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(24),
+                    child: SafeNetworkImage(
+                      imageUrl,
+                      fit: BoxFit.cover,
+                      width: double.infinity,
+                      height: 340,
+                    ),
                   ),
                 ),
               ],
@@ -487,7 +511,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
               if (comments.isNotEmpty) ...[
                 Padding(
                   padding: const EdgeInsets.fromLTRB(24, 0, 24, 8),
-                  child: Text('Commentaires récents', style: GoogleFonts.outfit(fontSize: 15, fontWeight: FontWeight.bold, color: AppTheme.deepSlate)),
+                  child: Text('Commentaires récents', style: GoogleFonts.outfit(fontSize: 15, fontWeight: FontWeight.bold, color: Theme.of(context).brightness == Brightness.dark ? Colors.white : AppTheme.deepSlate)),
                 ),
                 ...comments.take(3).map((comment) {
                   final name = comment['user_name'] ?? 'Anonyme';
@@ -503,8 +527,8 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                       const SizedBox(width: 10),
                       Expanded(child: RichText(
                         text: TextSpan(children: [
-                          TextSpan(text: '$name  ', style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 13, color: AppTheme.textMain)),
-                          TextSpan(text: content, style: GoogleFonts.inter(fontSize: 13, color: AppTheme.textMain.withOpacity(0.8))),
+                          TextSpan(text: '$name  ', style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 13, color: Theme.of(context).brightness == Brightness.dark ? Colors.white : AppTheme.textMain)),
+                          TextSpan(text: content, style: GoogleFonts.inter(fontSize: 13, color: (Theme.of(context).brightness == Brightness.dark ? Colors.white : AppTheme.textMain).withOpacity(0.8))),
                         ]),
                       )),
                     ]),

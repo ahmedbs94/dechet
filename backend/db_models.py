@@ -43,4 +43,4 @@ from app.education.models import (  # noqa: F401
 )
 
 # ── QR Bins ───────────────────────────────────────────────────────────────────
-from app.qr_bins.models import SmartBin, BinScan  # noqa: F401
+from app.qr_bins.models import SmartBin, BinScan, CollectorLog  # noqa: F401

@@ -1,4 +1,5 @@
 # routers/posts.py — Publications, likes, saves, comments, upload
+# FCM Push Notifications intégrées
 import os
 import uuid
 import hashlib
@@ -585,6 +586,18 @@ async def toggle_like(post_id: int, db: Session = Depends(get_db),
             body=f"{current_user.full_name} a aimé votre publication",
             from_user_name=current_user.full_name, post_id=post_id))
         db.commit()
+        # ── Push FCM ──────────────────────────────────────────────────────────
+        try:
+            from services.fcm_push_service import send_push_to_user
+            send_push_to_user(
+                db=db,
+                user_id=db_post.user_id,
+                title="❤️ Nouveau j'aime",
+                body=f"{current_user.full_name} a aimé votre publication",
+                data={"type": "like", "post_id": str(post_id)},
+            )
+        except Exception as _e:
+            print(f"[FCM] Erreur push like : {_e}")
     return {"liked": True, "count": db_post.likes_count}
 
 
@@ -616,6 +629,18 @@ async def save_post(post_id: int, db: Session = Depends(get_db),
             body=f"{current_user.full_name} a sauvegardé votre publication",
             from_user_name=current_user.full_name, post_id=post_id))
         db.commit()
+        # ── Push FCM ──────────────────────────────────────────────────────────
+        try:
+            from services.fcm_push_service import send_push_to_user
+            send_push_to_user(
+                db=db,
+                user_id=db_post.user_id,
+                title="🔖 Publication sauvegardée",
+                body=f"{current_user.full_name} a sauvegardé votre publication",
+                data={"type": "save", "post_id": str(post_id)},
+            )
+        except Exception as _e:
+            print(f"[FCM] Erreur push save : {_e}")
     return {"message": "Publication enregistrée", "saved": True}
 
 
@@ -653,6 +678,18 @@ async def create_comment(post_id: int, comment: models.CommentCreate,
             from_user_name=current_user.full_name,
             post_id=post_id, comment_id=new_comment.id))
         db.commit()
+        # ── Push FCM ──────────────────────────────────────────────────────────
+        try:
+            from services.fcm_push_service import send_push_to_user
+            send_push_to_user(
+                db=db,
+                user_id=db_post.user_id,
+                title="💬 Nouveau commentaire",
+                body=f"{current_user.full_name} a commenté votre publication",
+                data={"type": "comment", "post_id": str(post_id), "comment_id": str(new_comment.id)},
+            )
+        except Exception as _e:
+            print(f"[FCM] Erreur push comment : {_e}")
     if comment.parent_id:
         parent = db.query(db_models.Comment).filter(
             db_models.Comment.id == comment.parent_id).first()
@@ -664,6 +701,18 @@ async def create_comment(post_id: int, comment: models.CommentCreate,
                 from_user_name=current_user.full_name,
                 post_id=post_id, comment_id=new_comment.id))
             db.commit()
+            # ── Push FCM (réponse) ─────────────────────────────────────────────
+            try:
+                from services.fcm_push_service import send_push_to_user
+                send_push_to_user(
+                    db=db,
+                    user_id=parent.user_id,
+                    title="↩️ Réponse à votre commentaire",
+                    body=f"{current_user.full_name} a répondu à votre commentaire",
+                    data={"type": "comment", "post_id": str(post_id), "comment_id": str(new_comment.id)},
+                )
+            except Exception as _e:
+                print(f"[FCM] Erreur push reply : {_e}")
     return new_comment
 
 

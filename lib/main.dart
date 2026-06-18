@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'theme/app_theme.dart';
 import 'theme/platform_ui.dart';
 import 'theme/web_theme.dart';
+import 'services/theme_service.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/auth/signup_screen.dart';
 import 'screens/auth/onboarding_screen.dart';
@@ -18,24 +19,33 @@ import 'screens/admin/admin_dashboard.dart';
 
 import 'screens/client/sorting_guide_screen.dart';
 import 'screens/client/bin_scanner_screen.dart';
+import 'screens/client/notifications_screen.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
 import 'models/post_model.dart';
 import 'models/user_model.dart';
 import 'services/auth_service.dart';
 import 'services/l10n_service.dart';
+import 'services/fcm_service.dart';
 
 import 'firebase_options.dart';
 
+/// Clé navigateur globale — permet à FcmService d'afficher des toasts
+/// en foreground même sans contexte passé explicitement.
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  await ThemeService.init();
+
   await L10n.init();
 
   // ── Initialisation Firebase (Score temps réel — QR Poubelle) ──────────────
   // DefaultFirebaseOptions fournit la config correcte selon la plateforme
   // (Web, Android, iOS). Si le Web App ID n'est pas encore configuré,
   // Firebase est ignoré silencieusement (app continue en mode dégradé).
-  try {
+    try {
     final webAppId = DefaultFirebaseOptions.web.appId;
     final webReady = !webAppId.contains('REMPLACER');
     if (!kIsWeb || webReady) {
@@ -66,6 +76,11 @@ void main() async {
   // que Flutter rende la première route. Sans cela, un reload sur /#/home
   // trouvait AuthState.currentUser == null et affichait le dialog de connexion.
   await _restoreSessionIfAvailable();
+
+  // ── Initialiser Firebase Cloud Messaging (push notifications mobile) ──────
+  // Lance FCM en arrière-plan pour ne pas bloquer le démarrage.
+  // Le token sera envoyé au backend dès que l'utilisateur est connecté.
+  FcmService.initialize();
 
   runApp(const EcoRewindApp());
 }
@@ -144,15 +159,45 @@ Future<void> _restoreSessionIfAvailable() async {
   }
 }
 
-class EcoRewindApp extends StatelessWidget {
+class EcoRewindApp extends StatefulWidget {
   const EcoRewindApp({Key? key}) : super(key: key);
+
+  @override
+  State<EcoRewindApp> createState() => _EcoRewindAppState();
+}
+
+class _EcoRewindAppState extends State<EcoRewindApp> {
+  @override
+  void initState() {
+    super.initState();
+    ThemeService.addListener(_onThemeChanged);
+    L10n.addListener(_onLocaleChanged);
+  }
+
+  @override
+  void dispose() {
+    ThemeService.removeListener(_onThemeChanged);
+    L10n.removeListener(_onLocaleChanged);
+    super.dispose();
+  }
+
+  void _onThemeChanged() {
+    if (mounted) setState(() {});
+  }
+
+  void _onLocaleChanged() {
+    if (mounted) setState(() {});
+  }
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      navigatorKey: navigatorKey,
       title: 'EcoRewind',
       debugShowCheckedModeBanner: false,
       theme: PlatformUI.isWeb ? WebTheme.theme : AppTheme.seniorTheme,
+      darkTheme: AppTheme.darkTheme,
+      themeMode: ThemeService.isDarkMode ? ThemeMode.dark : ThemeMode.light,
       initialRoute: '/',
       onGenerateRoute: (settings) {
         // ─── Sur Web : pas d'historique Flutter — Chrome gère Retour/Avancer ───
@@ -198,7 +243,7 @@ class EcoRewindApp extends StatelessWidget {
             return tabRoute(4);
           case '/profile':
             final role = AuthState.currentUser?.role ?? UserRole.user;
-            final profileIdx = role == UserRole.educator ? 2 : (role == UserRole.user ? 5 : 4);
+            final profileIdx = role == UserRole.educator ? 1 : (role == UserRole.user ? 5 : 4);
             return tabRoute(profileIdx);
 
           // ─── Routes statiques ─────────────────────────────────────────────
@@ -226,6 +271,8 @@ class EcoRewindApp extends StatelessWidget {
             return buildRoute((_) => const SectionAdvantages());
           case '/bin-scanner':
             return buildRoute((_) => const BinScannerScreen(), fullscreen: true);
+          case '/notifications':
+            return buildRoute((_) => const NotificationsScreen());
         }
 
         return null;

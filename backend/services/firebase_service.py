@@ -2,8 +2,10 @@
 services/firebase_service.py
 -----------------------------
 Service Firebase Admin SDK -- Realtime Database.
-Utilise pour synchroniser le score du citoyen en temps reel
-lors du scan QR sur la poubelle intelligente.
+Utilise pour synchroniser :
+  - /scores/{user_id}         : score du citoyen (existant)
+  - /utilisateurs/{user_id}  : role + qr_code du citoyen (NOUVEAU)
+  - /poubelles/{bin_id}      : poids + etat de la poubelle (NOUVEAU)
 
 Initialisation lazy : Firebase est initialise au premier appel.
 Si les credentials sont absents, le service fonctionne en mode "noop"
@@ -192,3 +194,132 @@ def calculate_points(waste_type: str, weight_kg: Optional[float] = None) -> floa
     if weight_kg and weight_kg > 0:
         return round(base * weight_kg, 2)
     return base
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# TABLE : /utilisateurs/{user_id}
+# ─────────────────────────────────────────────────────────────────────────────
+
+def sync_user_to_firebase(user_id: int, role: str, qr_code: str) -> bool:
+    """
+    Synchronise les donnees d'identification d'un utilisateur dans Firebase RTDB.
+
+    Structure : /utilisateurs/{user_id}/
+      - role    : str  (ex: "user", "admin", "collector"...)
+      - qr_code : str  (identifiant unique de la carte/QR code citoyen)
+
+    A appeler lors du login ou de la creation de compte.
+    Retourne True si l'ecriture a reussi, False sinon.
+    """
+    if not _init_firebase():
+        return False
+    try:
+        from firebase_admin import db as rtdb
+        ref = rtdb.reference(f"utilisateurs/{user_id}")
+        ref.set({
+            "role": role,
+            "qr_code": qr_code,
+        })
+        _safe_print(f"[Firebase] [OK] Utilisateur {user_id} synchro (role={role})")
+        return True
+    except Exception as e:
+        _safe_print(f"[Firebase] [ERREUR] sync_user_to_firebase user {user_id} : {e}")
+        traceback.print_exc()
+        return False
+
+
+def get_firebase_user(user_id: int) -> Optional[dict]:
+    """Recupere les donnees /utilisateurs/{user_id} depuis Firebase RTDB."""
+    if not _init_firebase():
+        return None
+    try:
+        from firebase_admin import db as rtdb
+        ref = rtdb.reference(f"utilisateurs/{user_id}")
+        return ref.get()
+    except Exception as e:
+        _safe_print(f"[Firebase] [ERREUR] get_firebase_user user {user_id} : {e}")
+        return None
+
+
+def get_user_id_by_qr(qr_code: str) -> Optional[int]:
+    """
+    Recherche l'user_id correspondant a un QR code dans /utilisateurs.
+    Utilise par le scanner de carte pour identifier l'utilisateur et recuperer son score.
+
+    Parcourt tous les noeuds /utilisateurs et compare le champ qr_code.
+    Retourne l'user_id (int) si trouve, None sinon.
+
+    NOTE : Pour de meilleures performances en production, maintenez un noeud
+    inverse /qr_index/{qr_code} -> user_id (voir commentaire inline).
+    """
+    if not _init_firebase():
+        return None
+    try:
+        from firebase_admin import db as rtdb
+        # Requete filtree cote Firebase (evite de charger tous les users)
+        ref = rtdb.reference("utilisateurs")
+        result = ref.order_by_child("qr_code").equal_to(qr_code).get()
+        if result:
+            # result est un dict {user_id_str: {role:..., qr_code:...}}
+            user_id_str = next(iter(result))
+            return int(user_id_str)
+        return None
+    except Exception as e:
+        _safe_print(f"[Firebase] [ERREUR] get_user_id_by_qr qr={qr_code} : {e}")
+        return None
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# TABLE : /poubelles/{bin_id}
+# ─────────────────────────────────────────────────────────────────────────────
+
+# Etats valides pour une poubelle
+BIN_ETATS = {"vide", "mi-plein", "plein", "en_maintenance"}
+
+
+def update_bin_status(bin_id: str, poids: float, etat: str) -> bool:
+    """
+    Met a jour l'etat d'une poubelle dans Firebase RTDB.
+
+    Structure : /poubelles/{bin_id}/
+      - poids : float  (poids actuel du contenu en kg)
+      - etat  : str    ("vide" | "mi-plein" | "plein" | "en_maintenance")
+
+    A appeler apres chaque mesure IoT ou scan de poubelle.
+    Retourne True si l'ecriture a reussi, False sinon.
+    """
+    if not _init_firebase():
+        return False
+
+    # Validation de l'etat
+    etat_valide = etat if etat in BIN_ETATS else "vide"
+    if etat != etat_valide:
+        _safe_print(f"[Firebase] [WARN] Etat inconnu '{etat}' -> utilise 'vide'")
+
+    try:
+        from firebase_admin import db as rtdb
+        ref = rtdb.reference(f"poubelles/{bin_id}")
+        ref.update({
+            "poids": round(float(poids), 2),
+            "etat": etat_valide,
+            "derniere_mise_a_jour": datetime.now(timezone.utc).isoformat(),
+        })
+        _safe_print(f"[Firebase] [OK] Poubelle {bin_id} : poids={poids}kg, etat={etat_valide}")
+        return True
+    except Exception as e:
+        _safe_print(f"[Firebase] [ERREUR] update_bin_status bin={bin_id} : {e}")
+        traceback.print_exc()
+        return False
+
+
+def get_bin_status(bin_id: str) -> Optional[dict]:
+    """Recupere l'etat actuel d'une poubelle depuis Firebase RTDB."""
+    if not _init_firebase():
+        return None
+    try:
+        from firebase_admin import db as rtdb
+        ref = rtdb.reference(f"poubelles/{bin_id}")
+        return ref.get()
+    except Exception as e:
+        _safe_print(f"[Firebase] [ERREUR] get_bin_status bin={bin_id} : {e}")
+        return None

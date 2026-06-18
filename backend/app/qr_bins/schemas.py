@@ -1,7 +1,7 @@
 """
 app/qr_bins/schemas.py — Schémas Pydantic : SmartBin, BinScan
 """
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import Optional
 from datetime import datetime
 
@@ -47,6 +47,7 @@ class BinScanResponse(BaseModel):
     score_after: float = 0.0
     firebase_synced: bool = False
     message: str
+    action: str = Field("open_top_lid", description="Action matérielle à effectuer")
     error: Optional[str] = None
 
 

@@ -79,11 +79,11 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (_) => Center(
+      builder: (ctx) => Center(
         child: Container(
           padding: const EdgeInsets.all(24),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: Theme.of(ctx).colorScheme.surface,
             borderRadius: BorderRadius.circular(20),
             boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 20)],
           ),
@@ -169,15 +169,15 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     final unreadCount = _notifications.where((n) => n['is_read'] != true).length;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         elevation: 0,
         leading: webLeading(IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 18, color: Color(0xFF1E293B)),
+          icon: Icon(Icons.arrow_back_ios_new_rounded, size: 18, color: Theme.of(context).colorScheme.onSurface),
           onPressed: () => Navigator.pop(context),
         )),
-        title: Text('Notifications', style: GoogleFonts.outfit(fontSize: 20, fontWeight: FontWeight.bold, color: const Color(0xFF1E293B))),
+        title: Text('Notifications', style: GoogleFonts.outfit(fontSize: 20, fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onSurface)),
         actions: [
           if (unreadCount > 0)
             TextButton(
@@ -240,9 +240,15 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       decoration: BoxDecoration(
-        color: isRead ? Colors.white : color.withOpacity(0.04),
+        color: isRead ? Theme.of(context).colorScheme.surface : color.withOpacity(0.04),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: isRead ? Colors.grey.shade100 : color.withOpacity(0.15)),
+        border: Border.all(
+          color: isRead
+              ? (Theme.of(context).brightness == Brightness.dark
+                  ? Theme.of(context).dividerColor
+                  : Colors.grey.shade100)
+              : color.withOpacity(0.15),
+        ),
         boxShadow: isRead ? [] : [BoxShadow(color: color.withOpacity(0.06), blurRadius: 12, offset: const Offset(0, 4))],
       ),
       child: Column(
@@ -271,24 +277,29 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                 const SizedBox(height: 4),
                 Text(notif['body'] ?? '', style: GoogleFonts.inter(fontSize: 13, color: const Color(0xFF64748B))),
                 const SizedBox(height: 6),
-                Row(
+                Wrap(
+                  spacing: 12,
+                  runSpacing: 6,
+                  crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
                     Text(time, style: GoogleFonts.inter(fontSize: 11, color: const Color(0xFF94A3B8), fontWeight: FontWeight.w500)),
-                    if (postId != null) ...[
-                      const SizedBox(width: 8),
-                      Icon(Icons.open_in_new_rounded, size: 12, color: color.withOpacity(0.6)),
-                      const SizedBox(width: 2),
+                    if (postId != null)
                       GestureDetector(
                         onTap: () {
                           final pid = postId is int ? postId : int.parse(postId.toString());
                           _navigateToPost(pid);
                         },
-                        child: Text('Voir', style: GoogleFonts.inter(fontSize: 11, color: color, fontWeight: FontWeight.w600)),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.open_in_new_rounded, size: 12, color: color.withOpacity(0.6)),
+                            const SizedBox(width: 2),
+                            Text('Voir', style: GoogleFonts.inter(fontSize: 11, color: color, fontWeight: FontWeight.w600)),
+                          ],
+                        ),
                       ),
-                    ],
                     // Reply button for comment notifications
-                    if (isComment && postId != null && AuthState.isLoggedIn) ...[
-                      const SizedBox(width: 12),
+                    if (isComment && postId != null && AuthState.isLoggedIn)
                       GestureDetector(
                         onTap: () {
                           setState(() {
@@ -321,7 +332,6 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                           ]),
                         ),
                       ),
-                    ],
                   ],
                 ),
               ],
@@ -454,6 +464,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                       hintText: 'Écrire votre réponse...',
                       hintStyle: GoogleFonts.inter(fontSize: 13, color: const Color(0xFF94A3B8)),
                       border: InputBorder.none,
+                      filled: false,
                       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                       isDense: true,
                     ),

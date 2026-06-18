@@ -12,6 +12,8 @@ import '../../services/auth_service.dart';
 import '../../services/l10n_service.dart';
 import 'notifications_screen.dart';
 import 'post_detail_screen.dart';
+import '../../services/theme_service.dart';
+import 'points_history_screen.dart';
 
 class ProfileTab extends StatefulWidget {
   const ProfileTab({Key? key}) : super(key: key);
@@ -21,8 +23,8 @@ class ProfileTab extends StatefulWidget {
 }
 
 class ProfileTabState extends State<ProfileTab> {
-  bool _pushNotifications = true;
   bool _mfaEnabled = false;
+  bool get _isDarkMode => ThemeService.isDarkMode;
   final AuthService _authService = AuthService();
   final ImagePicker _imagePicker = ImagePicker();
   int _unreadNotifCount = 0;
@@ -33,14 +35,25 @@ class ProfileTabState extends State<ProfileTab> {
   void initState() {
     super.initState();
     L10n.addListener(_onLocaleChange);
+    ThemeService.addListener(_onThemeChange);
     _loadUnreadCount();
     _loadMyStats();
     refreshScore(); // Charge le score au premier montage
   }
 
+  void _onThemeChange() {
+    if (mounted) setState(() {});
+  }
+
+  Future<void> _toggleDarkMode(bool value) async {
+    await ThemeService.setDarkMode(value);
+    if (mounted) setState(() {});
+  }
+
   @override
   void dispose() {
     L10n.removeListener(_onLocaleChange);
+    ThemeService.removeListener(_onThemeChange);
     super.dispose();
   }
 
@@ -54,24 +67,8 @@ class ProfileTabState extends State<ProfileTab> {
     try {
       final userData = await _authService.fetchUserProfile();
       if (userData != null && mounted) {
-        final u = AuthState.currentUser;
-        if (u != null) {
-          final newScore = (userData['global_score'] as num?)?.toDouble() ?? u.globalScore;
-          if (newScore != u.globalScore) {
-            AuthState.currentUser = User(
-              id: u.id,
-              name: u.name,
-              email: u.email,
-              role: u.role,
-              points: u.points,
-              globalScore: newScore,
-              avatarUrl: u.avatarUrl,
-              qrCode: u.qrCode,
-            );
-          }
-          // Toujours rafraîchir l'UI même si le score n'a pas changé
-          if (mounted) setState(() {});
-        }
+        AuthState.currentUser = User.fromBackend(userData);
+        if (mounted) setState(() {});
       }
     } catch (_) {}
   }
@@ -249,43 +246,43 @@ class ProfileTabState extends State<ProfileTab> {
     ));
   }
 
-  void _showMfaDialog() {
+  void _showMfaDialog(BuildContext context) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        title: Text('Authentification Forte', style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.security_rounded, size: 60, color: AppTheme.primaryGreen),
-            const SizedBox(height: 20),
-            const Text('Activez la validation en deux étapes pour sécuriser votre compte éco-responsable.'),
-            const SizedBox(height: 20),
-            ListTile(
-              title: const Text('Utiliser l\'application'),
-              subtitle: const Text('Google Authenticator / Authy'),
-              trailing: Switch(
-                  value: _mfaEnabled,
-                  onChanged: (v) {
-                    setState(() => _mfaEnabled = v);
-                    Navigator.pop(context);
-                  },
-                  activeColor: AppTheme.primaryGreen),
-            ),
+      builder: (dialogContext) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+          title: Text('Authentification Forte', style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.security_rounded, size: 60, color: AppTheme.primaryGreen),
+              const SizedBox(height: 20),
+              const Text('Activez la validation en deux étapes pour sécuriser votre compte éco-responsable.'),
+              const SizedBox(height: 20),
+              ListTile(
+                title: const Text('Utiliser l\'application'),
+                subtitle: const Text('Google Authenticator / Authy'),
+                trailing: Switch(
+                    value: _mfaEnabled,
+                    onChanged: (v) {
+                      setState(() => _mfaEnabled = v);
+                      Navigator.pop(dialogContext);
+                    },
+                    activeColor: AppTheme.primaryGreen),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('FERMER')),
           ],
         ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('FERMER')),
-        ],
-      ),
     );
   }
 
-  void _showPasswordDialog() {
+  void _showPasswordDialog(BuildContext context) {
     showDialog(
       context: context,
-      builder: (context) => _ChangePasswordDialog(authService: _authService),
+      builder: (dialogContext) => _ChangePasswordDialog(authService: _authService, isDarkMode: _isDarkMode),
     );
   }
 
@@ -295,11 +292,10 @@ class ProfileTabState extends State<ProfileTab> {
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (sheetContext) {
-        return _SavedPostsSheet(authService: _authService);
+        return _SavedPostsSheet(authService: _authService, isDarkMode: _isDarkMode);
       },
     );
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -318,155 +314,151 @@ class ProfileTabState extends State<ProfileTab> {
             children: [
               const SizedBox(height: 24),
 
-            Animate(
-              effects: const [FadeEffect(), ScaleEffect()],
-              child: _buildProfileHeader(user),
-            ),
-
-            const SizedBox(height: 32),
-
-            // Afficher les statistiques de gamification uniquement pour un utilisateur standard
-            if (showStats)
-              Animate(
-                effects: [FadeEffect(delay: 300.ms), const SlideEffect(begin: Offset(0, 0.1))],
-                child: _buildStatsGrid(),
-              ),
-
-            if (!showStats) ...[
-              _buildProfessionalBadge(),
-              const SizedBox(height: 32),
-            ],
-
-            // Section QR Code Eco-Badge (citoyens uniquement)
-            if (showStats) ...[ 
-              const SizedBox(height: 24),
-              Animate(
-                effects: [FadeEffect(delay: 400.ms), const SlideEffect(begin: Offset(0, 0.1))],
-                child: _buildQrBadgeButton(),
-              ),
-              const SizedBox(height: 12),
-              // Bouton scanner poubelle intelligente (mobile uniquement)
-              if (!kIsWeb)
-                Animate(
-                  effects: [FadeEffect(delay: 500.ms), const SlideEffect(begin: Offset(0, 0.1))],
-                  child: _buildBinScannerButton(),
-                ),
-            ],
-
-            const SizedBox(height: 40),
-
-            _buildMenuSection(L10n.tr('menu_sec_security'), [
-              _MenuAction(
-                icon: FontAwesomeIcons.userShield,
-                title: L10n.tr('menu_mfa'),
-                subtitle: _mfaEnabled ? L10n.tr('menu_mfa_enabled') : L10n.tr('menu_mfa_disabled'),
-                onTap: _showMfaDialog,
-              ),
-              _MenuAction(
-                icon: FontAwesomeIcons.key,
-                title: L10n.tr('menu_change_pass'),
-                subtitle: L10n.tr('menu_change_pass_sub'),
-                onTap: _showPasswordDialog,
-              ),
-              _MenuAction(
-                // New menu item for saved posts
-                icon: FontAwesomeIcons.bookmark,
-                title: L10n.tr('menu_saved_posts'),
-                subtitle: L10n.tr('menu_saved_posts_sub'),
-                onTap: () => _viewSavedPosts(context),
-              ),
-              _MenuAction(
-                icon: FontAwesomeIcons.bell,
-                title: L10n.tr('menu_notifications'),
-                subtitle: _unreadNotifCount > 0 ? '$_unreadNotifCount ${_unreadNotifCount > 1 ? L10n.tr('menu_notif_unreads') : L10n.tr('menu_notif_unread')}' : L10n.tr('menu_notif_none'),
-                trailing: _unreadNotifCount > 0 ? Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(color: const Color(0xFFFF6B8A), borderRadius: BorderRadius.circular(12)),
-                  child: Text('$_unreadNotifCount', style: GoogleFonts.outfit(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
-                ) : null,
-                onTap: () async {
-                  await Navigator.push(context, MaterialPageRoute(builder: (_) => const NotificationsScreen()));
-                  _loadUnreadCount(); // Refresh count when returning
-                },
-              ),
-
-            ]),
-
-            const SizedBox(height: 32),
-
-            _buildMenuSection(L10n.tr('menu_sec_preferences'), [
-              _MenuAction(
-                icon: FontAwesomeIcons.language,
-                title: L10n.tr('menu_lang'),
-                subtitle: L10n.locale == 'fr' ? 'Français' : 'العربية',
-                onTap: () {
-                  final newLang = L10n.locale == 'fr' ? 'ar' : 'fr';
-                  L10n.setLocale(newLang);
-                },
-              ),
-              _MenuAction(
-                icon: FontAwesomeIcons.bell,
-                title: L10n.tr('menu_push_notif'),
-                trailing: Switch(
-                    value: _pushNotifications,
-                    onChanged: (v) => setState(() => _pushNotifications = v),
-                    activeColor: AppTheme.primaryGreen),
-              ),
-              _MenuAction(
-                icon: FontAwesomeIcons.moon,
-                title: L10n.tr('menu_dark_mode'),
-                subtitle: L10n.tr('menu_dark_mode_sub'),
-                onTap: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Thème : Basculement en cours...')),
-                  );
-                },
-              ),
-            ]),
-
-            const SizedBox(height: 60),
-
-            Animate(
-              effects: [FadeEffect(delay: 1.seconds)],
-              child: GestureDetector(
-                onTap: () => Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false),
-                child: Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFFFF1F2),
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: Colors.red.shade100),
+                  Animate(
+                    effects: const [FadeEffect(), ScaleEffect()],
+                    child: _buildProfileHeader(context, user),
                   ),
-                  child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                    Icon(Icons.logout_rounded, color: Colors.red.shade400, size: 18),
-                    const SizedBox(width: 10),
-                    Text(L10n.tr('menu_logout'), style: GoogleFonts.outfit(color: Colors.red.shade400, fontWeight: FontWeight.w700, fontSize: 15)),
+
+                  const SizedBox(height: 32),
+
+                  // Afficher les statistiques de gamification uniquement pour un utilisateur standard
+                  if (showStats)
+                    Animate(
+                      effects: [FadeEffect(delay: 300.ms), const SlideEffect(begin: Offset(0, 0.1))],
+                      child: _buildStatsGrid(context),
+                    ),
+
+                  if (!showStats) ...[
+                    _buildProfessionalBadge(context),
+                    const SizedBox(height: 32),
+                  ],
+
+                  // Section QR Code Eco-Badge (citoyens uniquement)
+                  if (showStats) ...[ 
+                    const SizedBox(height: 24),
+                    Animate(
+                      effects: [FadeEffect(delay: 400.ms), const SlideEffect(begin: Offset(0, 0.1))],
+                      child: _buildQrBadgeButton(context),
+                    ),
+                  ],
+
+                  const SizedBox(height: 40),
+
+                  _buildMenuSection(context, L10n.tr('menu_sec_security'), [
+                    _MenuAction(
+                      icon: FontAwesomeIcons.userShield,
+                      title: L10n.tr('menu_mfa'),
+                      subtitle: _mfaEnabled ? L10n.tr('menu_mfa_enabled') : L10n.tr('menu_mfa_disabled'),
+                      onTap: () => _showMfaDialog(context),
+                    ),
+                    _MenuAction(
+                      icon: FontAwesomeIcons.key,
+                      title: L10n.tr('menu_change_pass'),
+                      subtitle: L10n.tr('menu_change_pass_sub'),
+                      onTap: () => _showPasswordDialog(context),
+                    ),
+                    _MenuAction(
+                      // New menu item for saved posts
+                      icon: FontAwesomeIcons.bookmark,
+                      title: L10n.tr('menu_saved_posts'),
+                      subtitle: L10n.tr('menu_saved_posts_sub'),
+                      onTap: () => _viewSavedPosts(context),
+                    ),
+                    if (showStats)
+                      _MenuAction(
+                        icon: FontAwesomeIcons.clockRotateLeft,
+                        title: L10n.isArabic ? 'سجل النقاط' : 'Historique des points',
+                        subtitle: L10n.isArabic ? 'النقاط المكتسبة من الاختبارات والفرز' : 'Points gagnés par quiz, tri, etc.',
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (_) => const PointsHistoryScreen()),
+                          ).then((_) => refreshScore());
+                        },
+                      ),
+                    _MenuAction(
+                      icon: FontAwesomeIcons.bell,
+                      title: L10n.tr('menu_notifications'),
+                      subtitle: _unreadNotifCount > 0 ? '$_unreadNotifCount ${_unreadNotifCount > 1 ? L10n.tr('menu_notif_unreads') : L10n.tr('menu_notif_unread')}' : L10n.tr('menu_notif_none'),
+                      trailing: _unreadNotifCount > 0 ? Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(color: const Color(0xFFFF6B8A), borderRadius: BorderRadius.circular(12)),
+                        child: Text('$_unreadNotifCount', style: GoogleFonts.outfit(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
+                      ) : null,
+                      onTap: () async {
+                        await Navigator.push(context, MaterialPageRoute(builder: (_) => const NotificationsScreen()));
+                        _loadUnreadCount(); // Refresh count when returning
+                      },
+                    ),
+
                   ]),
+
+                  const SizedBox(height: 32),
+
+                  _buildMenuSection(context, L10n.tr('menu_sec_preferences'), [
+                    _MenuAction(
+                      icon: FontAwesomeIcons.language,
+                      title: L10n.tr('menu_lang'),
+                      subtitle: L10n.locale == 'fr' ? 'Français' : 'العربية',
+                      onTap: () {
+                        final newLang = L10n.locale == 'fr' ? 'ar' : 'fr';
+                        L10n.setLocale(newLang);
+                      },
+                    ),
+                    _MenuAction(
+                      icon: FontAwesomeIcons.moon,
+                      title: L10n.tr('menu_dark_mode'),
+                      subtitle: L10n.tr('menu_dark_mode_sub'),
+                      trailing: Switch(
+                          value: _isDarkMode,
+                          onChanged: _toggleDarkMode,
+                          activeColor: AppTheme.primaryGreen),
+                    ),
+                  ]),
+
+                  const SizedBox(height: 60),
+
+                  Animate(
+                    effects: const [FadeEffect(delay: Duration(seconds: 1))],
+                    child: GestureDetector(
+                      onTap: () => Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false),
+                      child: Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        decoration: BoxDecoration(
+                          color: _isDarkMode ? Colors.red.shade900.withOpacity(0.2) : const Color(0xFFFFF1F2),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: _isDarkMode ? Colors.red.shade900.withOpacity(0.5) : Colors.red.shade100),
+                        ),
+                        child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                          Icon(Icons.logout_rounded, color: Colors.red.shade400, size: 18),
+                          const SizedBox(width: 10),
+                          Text(L10n.tr('menu_logout'), style: GoogleFonts.outfit(color: Colors.red.shade400, fontWeight: FontWeight.w700, fontSize: 15)),
+                        ]),
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 100),
+                  ],
                 ),
               ),
             ),
-
-            const SizedBox(height: 100),
-            ],  // children Column
-          ),   // Column
-        ),     // SingleChildScrollView
-      ),       // SafeArea
-    );         // Scaffold
+          );
   }
 
-  Widget _buildProfessionalBadge() {
+  Widget _buildProfessionalBadge(BuildContext context) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [AppTheme.deepSlate, Colors.blueGrey.shade800],
+          colors: _isDarkMode ? [const Color(0xFF1E293B), const Color(0xFF0F172A)] : [AppTheme.deepSlate, Colors.blueGrey.shade800],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(20),
-        boxShadow: AppTheme.premiumShadow,
+        boxShadow: _isDarkMode ? [] : AppTheme.premiumShadow,
       ),
       child: Row(
         children: [
@@ -493,7 +485,7 @@ class ProfileTabState extends State<ProfileTab> {
     ).animate().fadeIn(delay: 400.ms).slideY(begin: 0.1);
   }
 
-  Widget _buildProfileHeader(User? user) {
+  Widget _buildProfileHeader(BuildContext context, User? user) {
     return Column(
       children: [
         GestureDetector(
@@ -516,8 +508,8 @@ class ProfileTabState extends State<ProfileTab> {
                 padding: const EdgeInsets.all(4),
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: Colors.white,
-                  boxShadow: AppTheme.tightShadow,
+                  color: _isDarkMode ? const Color(0xFF1E293B) : Colors.white,
+                  boxShadow: _isDarkMode ? [] : AppTheme.tightShadow,
                 ),
                 child: Stack(
                   alignment: Alignment.center,
@@ -555,9 +547,9 @@ class ProfileTabState extends State<ProfileTab> {
                 child: Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: AppTheme.deepSlate,
+                    color: _isDarkMode ? const Color(0xFF334155) : AppTheme.deepSlate,
                     shape: BoxShape.circle,
-                    border: Border.all(color: Colors.white, width: 2),
+                    border: Border.all(color: _isDarkMode ? const Color(0xFF1E293B) : Colors.white, width: 2),
                   ),
                   child: const Icon(Icons.camera_alt_rounded, color: Colors.white, size: 14),
                 ),
@@ -572,7 +564,7 @@ class ProfileTabState extends State<ProfileTab> {
                 fontWeight: FontWeight.bold,
                 color: Theme.of(context).textTheme.titleLarge?.color ?? AppTheme.deepSlate)),
         Text(user?.email ?? 'admin@ecorewind.com',
-            style: GoogleFonts.inter(color: AppTheme.textMuted, fontWeight: FontWeight.w500)),
+            style: GoogleFonts.inter(color: _isDarkMode ? const Color(0xFF94A3B8) : AppTheme.textMuted, fontWeight: FontWeight.w500)),
         const SizedBox(height: 20),
 
         // Suppression du badge de rang générique pour l'admin, conservé uniquement pour les utilisateurs si nécessaire ou remplacé par un tag professionnel
@@ -591,7 +583,7 @@ class ProfileTabState extends State<ProfileTab> {
     );
   }
 
-  Widget _buildStatsGrid() {
+  Widget _buildStatsGrid(BuildContext context) {
     final postsCount = (_myStats['posts_count'] as num?)?.toInt() ?? 0;
     final likesReceived = (_myStats['likes_received'] as num?)?.toInt() ?? 0;
     final commentsCount = (_myStats['comments_count'] as num?)?.toInt() ?? 0;
@@ -602,43 +594,58 @@ class ProfileTabState extends State<ProfileTab> {
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(AppTheme.borderRadiusLarge),
-        boxShadow: AppTheme.premiumShadow,
+        boxShadow: _isDarkMode ? [] : AppTheme.premiumShadow,
       ),
       child: Column(
         children: [
           // Score global en haut
-          Container(
-            width: double.infinity,
-            margin: const EdgeInsets.only(bottom: 20),
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [AppTheme.primaryGreen.withOpacity(0.08), AppTheme.accentTeal.withOpacity(0.05)],
+          // Score global en haut (cliquable pour voir l'historique)
+          GestureDetector(
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const PointsHistoryScreen()),
+              ).then((_) => refreshScore()); // Actualise le score si retour d'écran
+            },
+            child: Container(
+              width: double.infinity,
+              margin: const EdgeInsets.only(bottom: 20),
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: _isDarkMode ? [const Color(0xFF334155).withOpacity(0.3), const Color(0xFF1E293B)] : [AppTheme.primaryGreen.withOpacity(0.08), AppTheme.accentTeal.withOpacity(0.05)],
+                ),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: _isDarkMode ? const Color(0xFF475569) : AppTheme.primaryGreen.withOpacity(0.15)),
               ),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: AppTheme.primaryGreen.withOpacity(0.15)),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(Icons.emoji_events_rounded, color: AppTheme.primaryGreen, size: 24),
-                const SizedBox(width: 12),
-                Text(L10n.tr('prof_stats_score'), style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w900, color: AppTheme.textMuted, letterSpacing: 1)),
-                const SizedBox(width: 12),
-                Text(globalScore.toStringAsFixed(1), style: GoogleFonts.outfit(fontSize: 26, fontWeight: FontWeight.bold, color: AppTheme.primaryGreen)),
-                const SizedBox(width: 4),
-                Text('pts', style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600, color: AppTheme.textMuted)),
-              ],
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.emoji_events_rounded, color: AppTheme.primaryGreen, size: 24),
+                  const SizedBox(width: 12),
+                  Text(L10n.tr('prof_stats_score'), style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w900, color: _isDarkMode ? const Color(0xFF94A3B8) : AppTheme.textMuted, letterSpacing: 1)),
+                  const SizedBox(width: 12),
+                  Text(globalScore.toStringAsFixed(1), style: GoogleFonts.outfit(fontSize: 26, fontWeight: FontWeight.bold, color: AppTheme.primaryGreen)),
+                  const SizedBox(width: 4),
+                  Text('pts', style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600, color: _isDarkMode ? const Color(0xFF94A3B8) : AppTheme.textMuted)),
+                  const SizedBox(width: 12),
+                  Icon(
+                    Icons.arrow_forward_ios_rounded,
+                    size: 14,
+                    color: _isDarkMode ? const Color(0xFF64748B) : AppTheme.textMuted,
+                  ),
+                ],
+              ),
             ),
           ),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              _buildStatItem(L10n.tr('prof_stats_posts'), '$postsCount', Icons.photo_library_rounded),
-              _buildDivider(),
-              _buildStatItem(L10n.tr('prof_stats_likes'), '$likesReceived', Icons.favorite_rounded),
-              _buildDivider(),
-              _buildStatItem(L10n.tr('prof_stats_comments'), '$commentsCount', Icons.chat_bubble_rounded),
+              _buildStatItem(context, L10n.tr('prof_stats_posts'), '$postsCount', Icons.photo_library_rounded),
+              _buildDivider(context),
+              _buildStatItem(context, L10n.tr('prof_stats_likes'), '$likesReceived', Icons.favorite_rounded),
+              _buildDivider(context),
+              _buildStatItem(context, L10n.tr('prof_stats_comments'), '$commentsCount', Icons.chat_bubble_rounded),
             ],
           ),
         ],
@@ -646,24 +653,24 @@ class ProfileTabState extends State<ProfileTab> {
     );
   }
 
-  Widget _buildDivider() => Container(height: 40, width: 1, color: Theme.of(context).dividerColor);
+  Widget _buildDivider(BuildContext context) => Container(height: 40, width: 1, color: Theme.of(context).dividerColor);
 
-  Widget _buildStatItem(String label, String value, IconData icon) {
+  Widget _buildStatItem(BuildContext context, String label, String value, IconData icon) {
     return Column(
       children: [
         Icon(icon, color: AppTheme.primaryGreen.withOpacity(0.5), size: 20),
         const SizedBox(height: 8),
         Text(value, style: GoogleFonts.outfit(fontSize: 22, fontWeight: FontWeight.bold, color: Theme.of(context).textTheme.titleLarge?.color ?? AppTheme.deepSlate)),
         Text(label,
-            style: const TextStyle(
-                fontSize: 10, fontWeight: FontWeight.w900, color: AppTheme.textMuted, letterSpacing: 1)),
+            style: TextStyle(
+                fontSize: 10, fontWeight: FontWeight.w900, color: _isDarkMode ? const Color(0xFF94A3B8) : AppTheme.textMuted, letterSpacing: 1)),
       ],
     );
   }
 
-  Widget _buildQrBadgeButton() {
+  Widget _buildQrBadgeButton(BuildContext context) {
     return GestureDetector(
-      onTap: _showQrBadge,
+      onTap: () => _showQrBadge(context),
       child: Container(
         width: double.infinity,
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
@@ -720,90 +727,13 @@ class ProfileTabState extends State<ProfileTab> {
     );
   }
 
-  /// Bouton d'accès au scanner QR des poubelles intelligentes
-  Widget _buildBinScannerButton() {
-    return GestureDetector(
-      onTap: () => Navigator.pushNamed(context, '/bin-scanner').then((_) {
-        // Rafraîchir le score après un scan réussi
-        refreshScore();
-      }),
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
-        decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            colors: [Color(0xFF059669), Color(0xFF10B981)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-          borderRadius: BorderRadius.circular(24),
-          boxShadow: [
-            BoxShadow(
-              color: const Color(0xFF059669).withOpacity(0.35),
-              blurRadius: 20,
-              offset: const Offset(0, 8),
-            ),
-          ],
-        ),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.2),
-                borderRadius: BorderRadius.circular(14),
-              ),
-              child: const Icon(Icons.qr_code_scanner_rounded, color: Colors.white, size: 28),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    L10n.tr('prof_btn_scan_bin'),
-                    style: GoogleFonts.outfit(
-                      fontSize: 17,
-                      fontWeight: FontWeight.w800,
-                      color: Colors.white,
-                    ),
-                  ),
-                  Text(
-                    L10n.tr('prof_btn_scan_bin_sub'),
-                    style: GoogleFonts.inter(
-                      fontSize: 12,
-                      color: Colors.white.withOpacity(0.8),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.2),
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(Icons.star_rounded, color: Colors.white, size: 14),
-                  const SizedBox(width: 4),
-                  Text('+ pts', style: GoogleFonts.outfit(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w700)),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 
-  void _showQrBadge() {
+
+  void _showQrBadge(BuildContext context) {
     showDialog(
       context: context,
       useRootNavigator: true,
-      builder: (context) => Dialog(
+      builder: (dialogContext) => Dialog(
         backgroundColor: Colors.transparent,
         elevation: 0,
         insetPadding: const EdgeInsets.symmetric(horizontal: 20),
@@ -811,6 +741,9 @@ class ProfileTabState extends State<ProfileTab> {
           color: Colors.transparent,
           child: PremiumGlassCard(
             padding: const EdgeInsets.all(32),
+            backgroundColor: _isDarkMode ? const Color(0xFF1E293B).withOpacity(0.85) : null,
+            borderColor: _isDarkMode ? Colors.white.withOpacity(0.1) : null,
+            boxShadow: _isDarkMode ? [] : null,
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -820,7 +753,7 @@ class ProfileTabState extends State<ProfileTab> {
                   style: GoogleFonts.outfit(
                     fontSize: 24,
                     fontWeight: FontWeight.w900,
-                    color: AppTheme.deepSlate,
+                    color: _isDarkMode ? Colors.white : AppTheme.deepSlate,
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -829,7 +762,7 @@ class ProfileTabState extends State<ProfileTab> {
                   textAlign: TextAlign.center,
                   style: GoogleFonts.inter(
                     fontSize: 14,
-                    color: AppTheme.textMuted,
+                    color: _isDarkMode ? const Color(0xFF94A3B8) : AppTheme.textMuted,
                   ),
                 ),
                 const SizedBox(height: 32),
@@ -863,7 +796,7 @@ class ProfileTabState extends State<ProfileTab> {
                 const SizedBox(height: 32),
                 PremiumButton(
                   text: 'FERMER',
-                  onPressed: () => Navigator.pop(context),
+                  onPressed: () => Navigator.pop(dialogContext),
                 ),
               ],
             ),
@@ -873,15 +806,15 @@ class ProfileTabState extends State<ProfileTab> {
     );
   }
 
-  Widget _buildMenuSection(String title, List<Widget> children) {
+  Widget _buildMenuSection(BuildContext context, String title, List<Widget> children) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
           padding: const EdgeInsets.only(left: 8.0),
           child: Text(title,
-              style: const TextStyle(
-                  fontSize: 11, fontWeight: FontWeight.w900, color: AppTheme.textMuted, letterSpacing: 1.5)),
+              style: TextStyle(
+                  fontSize: 11, fontWeight: FontWeight.w900, color: _isDarkMode ? const Color(0xFF94A3B8) : AppTheme.textMuted, letterSpacing: 1.5)),
         ),
         const SizedBox(height: 16),
         Container(
@@ -889,7 +822,7 @@ class ProfileTabState extends State<ProfileTab> {
             color: Theme.of(context).colorScheme.surface,
             borderRadius: BorderRadius.circular(24),
             boxShadow: [
-              BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 20, offset: const Offset(0, 8))
+              BoxShadow(color: _isDarkMode ? Colors.black.withOpacity(0.25) : Colors.black.withOpacity(0.04), blurRadius: 20, offset: const Offset(0, 8))
             ],
           ),
           child: Column(children: children),
@@ -910,6 +843,7 @@ class _MenuAction extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return ListTile(
       onTap: onTap,
       contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
@@ -918,10 +852,10 @@ class _MenuAction extends StatelessWidget {
         decoration: BoxDecoration(color: AppTheme.primaryGreen.withOpacity(0.05), shape: BoxShape.circle),
         child: FaIcon(icon, size: 16, color: AppTheme.primaryGreen),
       ),
-      title: Text(title, style: GoogleFonts.inter(fontWeight: FontWeight.w600, fontSize: 15)),
+      title: Text(title, style: GoogleFonts.inter(fontWeight: FontWeight.w600, fontSize: 15, color: isDark ? Colors.white : AppTheme.deepSlate)),
       subtitle:
-          subtitle != null ? Text(subtitle!, style: const TextStyle(fontSize: 12, color: AppTheme.textMuted)) : null,
-      trailing: trailing ?? const Icon(Icons.chevron_right, size: 16, color: AppTheme.textMuted),
+          subtitle != null ? Text(subtitle!, style: TextStyle(fontSize: 12, color: isDark ? const Color(0xFF94A3B8) : AppTheme.textMuted)) : null,
+      trailing: trailing ?? Icon(Icons.chevron_right, size: 16, color: isDark ? const Color(0xFF94A3B8) : AppTheme.textMuted),
     );
   }
 }
@@ -931,7 +865,8 @@ class _MenuAction extends StatelessWidget {
 // ============================================
 class _ChangePasswordDialog extends StatefulWidget {
   final AuthService authService;
-  const _ChangePasswordDialog({required this.authService});
+  final bool isDarkMode;
+  const _ChangePasswordDialog({required this.authService, required this.isDarkMode});
 
   @override
   State<_ChangePasswordDialog> createState() => _ChangePasswordDialogState();
@@ -1027,8 +962,10 @@ class _ChangePasswordDialogState extends State<_ChangePasswordDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = widget.isDarkMode;
     return AlertDialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+      backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
       title: Row(
         children: [
           Container(
@@ -1040,7 +977,7 @@ class _ChangePasswordDialogState extends State<_ChangePasswordDialog> {
             child: const Icon(Icons.lock_outline_rounded, color: AppTheme.primaryGreen, size: 20),
           ),
           const SizedBox(width: 12),
-          Text('Changer le mot de passe', style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 18)),
+          Text('Changer le mot de passe', style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 18, color: isDark ? Colors.white : Colors.black)),
         ],
       ),
       content: SingleChildScrollView(
@@ -1076,16 +1013,16 @@ class _ChangePasswordDialogState extends State<_ChangePasswordDialog> {
                 padding: const EdgeInsets.all(12),
                 margin: const EdgeInsets.only(bottom: 16),
                 decoration: BoxDecoration(
-                  color: Colors.red.shade50,
+                  color: isDark ? Colors.red.shade900.withOpacity(0.2) : Colors.red.shade50,
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.red.shade200),
+                  border: Border.all(color: isDark ? Colors.red.shade900.withOpacity(0.5) : Colors.red.shade200),
                 ),
                 child: Row(
                   children: [
                     Icon(Icons.error_outline, color: Colors.red.shade400, size: 20),
                     const SizedBox(width: 10),
                     Expanded(
-                      child: Text(_errorMessage!, style: GoogleFonts.inter(color: Colors.red.shade700, fontSize: 13)),
+                      child: Text(_errorMessage!, style: GoogleFonts.inter(color: isDark ? Colors.red.shade200 : Colors.red.shade700, fontSize: 13)),
                     ),
                   ],
                 ),
@@ -1093,20 +1030,20 @@ class _ChangePasswordDialogState extends State<_ChangePasswordDialog> {
 
             // Champs
             _buildPasswordField('Mot de passe actuel', _oldPassController, _obscureOld,
-                () => setState(() => _obscureOld = !_obscureOld)),
+                () => setState(() => _obscureOld = !_obscureOld), isDark),
             const SizedBox(height: 16),
             _buildPasswordField('Nouveau mot de passe', _newPassController, _obscureNew,
-                () => setState(() => _obscureNew = !_obscureNew)),
+                () => setState(() => _obscureNew = !_obscureNew), isDark),
             const SizedBox(height: 16),
             _buildPasswordField('Confirmer', _confirmPassController, _obscureConfirm,
-                () => setState(() => _obscureConfirm = !_obscureConfirm)),
+                () => setState(() => _obscureConfirm = !_obscureConfirm), isDark),
           ],
         ),
       ),
       actions: [
         TextButton(
           onPressed: _isLoading ? null : () => Navigator.pop(context),
-          child: Text('ANNULER', style: GoogleFonts.outfit(color: AppTheme.textMuted, fontWeight: FontWeight.w700)),
+          child: Text('ANNULER', style: GoogleFonts.outfit(color: isDark ? const Color(0xFF94A3B8) : AppTheme.textMuted, fontWeight: FontWeight.w700)),
         ),
         ElevatedButton(
           onPressed: _isLoading || _successMessage != null ? null : _handleChangePassword,
@@ -1129,25 +1066,25 @@ class _ChangePasswordDialogState extends State<_ChangePasswordDialog> {
   }
 
   Widget _buildPasswordField(
-      String label, TextEditingController controller, bool obscure, VoidCallback toggleVisibility) {
+      String label, TextEditingController controller, bool obscure, VoidCallback toggleVisibility, bool isDark) {
     return TextField(
       controller: controller,
       obscureText: obscure,
-      style: GoogleFonts.inter(fontWeight: FontWeight.w600),
+      style: GoogleFonts.inter(fontWeight: FontWeight.w600, color: isDark ? Colors.white : Colors.black),
       decoration: InputDecoration(
         labelText: label,
-        labelStyle: GoogleFonts.inter(fontSize: 13, color: AppTheme.textMuted),
+        labelStyle: GoogleFonts.inter(fontSize: 13, color: isDark ? const Color(0xFF94A3B8) : AppTheme.textMuted),
         prefixIcon: const Icon(Icons.lock_outline, size: 18, color: AppTheme.primaryGreen),
         suffixIcon: IconButton(
           icon: Icon(
             obscure ? Icons.visibility_off_rounded : Icons.visibility_rounded,
             size: 18,
-            color: AppTheme.textMuted,
+            color: isDark ? const Color(0xFF94A3B8) : AppTheme.textMuted,
           ),
           onPressed: toggleVisibility,
         ),
         filled: true,
-        fillColor: Colors.grey.shade50,
+        fillColor: isDark ? const Color(0xFF334155).withOpacity(0.3) : Colors.grey.shade50,
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
@@ -1164,7 +1101,8 @@ class _ChangePasswordDialogState extends State<_ChangePasswordDialog> {
 // ════════════════════════════════════════════
 class _SavedPostsSheet extends StatefulWidget {
   final AuthService authService;
-  const _SavedPostsSheet({required this.authService});
+  final bool isDarkMode;
+  const _SavedPostsSheet({required this.authService, required this.isDarkMode});
 
   @override
   State<_SavedPostsSheet> createState() => _SavedPostsSheetState();
@@ -1213,26 +1151,27 @@ class _SavedPostsSheetState extends State<_SavedPostsSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = widget.isDarkMode;
     return Container(
       height: MediaQuery.of(context).size.height * 0.75,
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1E293B) : Colors.white,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
       ),
       child: Column(
         children: [
           Container(
             width: 40, height: 5,
             margin: const EdgeInsets.symmetric(vertical: 12),
-            decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(10)),
+            decoration: BoxDecoration(color: isDark ? const Color(0xFF334155) : Colors.grey[300], borderRadius: BorderRadius.circular(10)),
           ),
           Padding(
             padding: const EdgeInsets.fromLTRB(24, 8, 24, 16),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text('Publications sauvegardées', style: GoogleFonts.outfit(fontSize: 22, fontWeight: FontWeight.bold, color: AppTheme.deepSlate)),
-                IconButton(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.close_rounded)),
+                Text('Publications sauvegardées', style: GoogleFonts.outfit(fontSize: 22, fontWeight: FontWeight.bold, color: isDark ? Colors.white : AppTheme.deepSlate)),
+                IconButton(onPressed: () => Navigator.pop(context), icon: Icon(Icons.close_rounded, color: isDark ? Colors.white : Colors.black)),
               ],
             ),
           ),
@@ -1241,19 +1180,19 @@ class _SavedPostsSheetState extends State<_SavedPostsSheet> {
                 ? const Center(child: CircularProgressIndicator(color: AppTheme.primaryGreen))
                 : _error != null
                     ? Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
-                        Icon(Icons.cloud_off_rounded, size: 48, color: Colors.grey.shade300),
+                        Icon(Icons.cloud_off_rounded, size: 48, color: isDark ? const Color(0xFF334155) : Colors.grey.shade300),
                         const SizedBox(height: 12),
-                        Text(_error!, style: GoogleFonts.inter(color: AppTheme.textMuted)),
+                        Text(_error!, style: GoogleFonts.inter(color: isDark ? const Color(0xFF94A3B8) : AppTheme.textMuted)),
                         const SizedBox(height: 12),
                         TextButton(onPressed: _loadSavedPosts, child: Text('Réessayer', style: GoogleFonts.inter(color: AppTheme.primaryGreen, fontWeight: FontWeight.w600))),
                       ]))
                     : _savedPosts.isEmpty
                         ? Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
-                            Icon(Icons.bookmark_outline_rounded, size: 60, color: AppTheme.textMuted.withOpacity(0.4)),
+                            Icon(Icons.bookmark_outline_rounded, size: 60, color: isDark ? const Color(0xFF334155) : AppTheme.textMuted.withOpacity(0.4)),
                             const SizedBox(height: 16),
-                            Text('Aucune publication sauvegardée', style: GoogleFonts.outfit(fontSize: 16, color: AppTheme.textMuted)),
+                            Text('Aucune publication sauvegardée', style: GoogleFonts.outfit(fontSize: 16, color: isDark ? const Color(0xFF94A3B8) : AppTheme.textMuted)),
                             const SizedBox(height: 6),
-                            Text('Appuyez sur le bookmark pour sauvegarder', style: GoogleFonts.inter(fontSize: 12, color: AppTheme.textMuted.withOpacity(0.6))),
+                            Text('Appuyez sur le bookmark pour sauvegarder', style: GoogleFonts.inter(fontSize: 12, color: isDark ? const Color(0xFF64748B) : AppTheme.textMuted.withOpacity(0.6))),
                           ]))
                         : ListView.builder(
                             padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -1271,7 +1210,7 @@ class _SavedPostsSheetState extends State<_SavedPostsSheet> {
                                   padding: const EdgeInsets.only(right: 24),
                                   margin: const EdgeInsets.symmetric(vertical: 6),
                                   decoration: BoxDecoration(
-                                    color: Colors.red.shade50,
+                                    color: isDark ? Colors.red.shade900.withOpacity(0.2) : Colors.red.shade50,
                                     borderRadius: BorderRadius.circular(16),
                                   ),
                                   child: Icon(Icons.delete_outline_rounded, color: Colors.red.shade400),
@@ -1281,15 +1220,15 @@ class _SavedPostsSheetState extends State<_SavedPostsSheet> {
                                   margin: const EdgeInsets.symmetric(vertical: 6),
                                   elevation: 0,
                                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                                  color: AppTheme.backgroundLight,
+                                  color: isDark ? const Color(0xFF334155).withOpacity(0.3) : AppTheme.backgroundLight,
                                   child: ListTile(
                                     contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                                     leading: CircleAvatar(
                                       backgroundColor: AppTheme.primaryGreen.withOpacity(0.1),
                                       child: Text(userName.isNotEmpty ? userName[0].toUpperCase() : '?', style: GoogleFonts.outfit(color: AppTheme.primaryGreen, fontWeight: FontWeight.bold)),
                                     ),
-                                    title: Text(userName, style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 14)),
-                                    subtitle: Text(description, maxLines: 2, overflow: TextOverflow.ellipsis, style: GoogleFonts.inter(fontSize: 12, color: AppTheme.textMuted)),
+                                    title: Text(userName, style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 14, color: isDark ? Colors.white : Colors.black)),
+                                    subtitle: Text(description, maxLines: 2, overflow: TextOverflow.ellipsis, style: GoogleFonts.inter(fontSize: 12, color: isDark ? const Color(0xFF94A3B8) : AppTheme.textMuted)),
                                     trailing: IconButton(
                                       icon: const Icon(Icons.bookmark_rounded, color: AppTheme.primaryGreen, size: 20),
                                       onPressed: () => _unsavePost(postId, index),

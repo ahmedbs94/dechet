@@ -33,6 +33,8 @@ class User(Base):
     avatar_url = Column(String, nullable=True)  # URL de la photo de profil
     global_score = Column(Float, default=0.0, index=True)  # Score global de l'utilisateur
     created_at = Column(DateTime, default=datetime.utcnow, index=True)  # Date d'inscription
+    fcm_token = Column(String, nullable=True)  # Firebase Cloud Messaging token (push notifications mobiles)
+    mfa_enabled = Column(Boolean, default=False, nullable=False)  # Authentification forte (TOTP)
 
     posts = relationship("Post", back_populates="author")
     saved_posts = relationship("SavedPost", back_populates="user")

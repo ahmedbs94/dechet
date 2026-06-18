@@ -91,12 +91,12 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: Text(
           'Informations personnelles',
           style: GoogleFonts.spaceGrotesk(
-            color: AppTheme.deepNavy,
+            color: Theme.of(context).colorScheme.onSurface,
             fontWeight: FontWeight.bold,
           ),
         ),
@@ -104,7 +104,7 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
         elevation: 0,
         centerTitle: true,
         leading: webLeading(IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: AppTheme.deepNavy),
+          icon: Icon(Icons.arrow_back_ios_new_rounded, color: Theme.of(context).colorScheme.onSurface),
           onPressed: () => Navigator.pop(context),
         )),
       ),
@@ -139,7 +139,7 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
           style: GoogleFonts.inter(
             fontSize: 14,
             fontWeight: FontWeight.w600,
-            color: AppTheme.deepNavy,
+            color: Theme.of(context).colorScheme.onSurface,
           ),
         ),
         const SizedBox(height: 8),
@@ -149,9 +149,11 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
           decoration: InputDecoration(
             prefixIcon: Icon(icon, color: editable ? AppTheme.primaryGreen : Colors.grey),
             filled: true,
-            fillColor: editable ? Colors.white : Colors.grey.shade100,
+            fillColor: Theme.of(context).brightness == Brightness.dark
+                ? (editable ? Theme.of(context).colorScheme.surface : Theme.of(context).colorScheme.surface.withOpacity(0.5))
+                : (editable ? Colors.white : Colors.grey.shade100),
             hintText: hint,
-            hintStyle: GoogleFonts.inter(fontSize: 12, color: Colors.grey),
+            hintStyle: GoogleFonts.inter(fontSize: 12, color: Theme.of(context).hintColor),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
               borderSide: BorderSide.none,

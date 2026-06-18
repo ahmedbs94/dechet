@@ -132,9 +132,9 @@ class _AdminProposalsScreenState extends State<AdminProposalsScreen> {
                 duration: const Duration(milliseconds: 250),
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                 decoration: BoxDecoration(
-                  color: isActive ? AppTheme.primaryGreen : Colors.white,
+                  color: isActive ? AppTheme.primaryGreen : Theme.of(context).colorScheme.surface,
                   borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: isActive ? AppTheme.primaryGreen : Colors.grey.shade200),
+                  border: Border.all(color: isActive ? AppTheme.primaryGreen : (Theme.of(context).brightness == Brightness.dark ? Theme.of(context).dividerColor : Colors.grey.shade200)),
                   boxShadow: isActive
                       ? [BoxShadow(color: AppTheme.primaryGreen.withOpacity(0.2), blurRadius: 12, offset: const Offset(0, 4))]
                       : [],
@@ -182,9 +182,9 @@ class _AdminProposalsScreenState extends State<AdminProposalsScreen> {
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: status == 'pending' ? const Color(0xFFF59E0B).withOpacity(0.3) : Colors.grey.shade100, width: status == 'pending' ? 2 : 1),
+        border: Border.all(color: status == 'pending' ? const Color(0xFFF59E0B).withOpacity(0.3) : (Theme.of(context).brightness == Brightness.dark ? Theme.of(context).dividerColor : Colors.grey.shade100), width: status == 'pending' ? 2 : 1),
         boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 15, offset: const Offset(0, 6))],
       ),
       child: Column(

@@ -87,6 +87,7 @@ async def get_me(current_user: db_models.User = Depends(get_current_user)):
         "qr_code": current_user.qr_code,
         "points": getattr(current_user, "points", 0),
         "global_score": getattr(current_user, "global_score", 0.0) or 0.0,
+        "mfa_enabled": getattr(current_user, "mfa_enabled", False) or False,
     }
 
 
@@ -110,6 +111,28 @@ async def update_avatar(data: AvatarUpdate, db: Session = Depends(get_db),
     db.commit()
     db.refresh(current_user)
     return {"message": "Avatar mis à jour", "avatar_url": current_user.avatar_url}
+
+
+# ── MFA (Authentification Forte) ──────────────────────────────────────────────
+
+@router.post("/users/me/mfa/enable")
+async def enable_mfa(db: Session = Depends(get_db),
+                     current_user: db_models.User = Depends(get_current_user)):
+    """Active l'authentification forte (MFA) pour l'utilisateur connecte."""
+    current_user.mfa_enabled = True
+    db.commit()
+    db.refresh(current_user)
+    return {"message": "Authentification forte activee", "mfa_enabled": True}
+
+
+@router.post("/users/me/mfa/disable")
+async def disable_mfa(db: Session = Depends(get_db),
+                      current_user: db_models.User = Depends(get_current_user)):
+    """Desactive l'authentification forte (MFA) pour l'utilisateur connecte."""
+    current_user.mfa_enabled = False
+    db.commit()
+    db.refresh(current_user)
+    return {"message": "Authentification forte desactivee", "mfa_enabled": False}
 
 
 @router.get("/users/me/stats")
@@ -143,3 +166,128 @@ async def get_my_stats(db: Session = Depends(get_db),
         "saved_count": saved_count,
         "eco_score": posts_count * 10 + int(likes_received) * 2 + comments_count * 5,
     }
+
+
+@router.get("/users/me/points-history")
+async def get_points_history(db: Session = Depends(get_db),
+                             current_user: db_models.User = Depends(get_current_user)):
+    """Historique chronologique des points gagnés par l'utilisateur (quiz, scans)."""
+    # 1. Récupérer les scans de poubelles
+    scans = db.query(db_models.BinScan).filter(
+        db_models.BinScan.user_id == current_user.id
+    ).all()
+    
+    # 2. Récupérer les participations aux quiz
+    quiz_submissions = db.query(db_models.QuizSubmission).join(
+        db_models.Quiz, db_models.QuizSubmission.quiz_id == db_models.Quiz.id
+    ).filter(
+        db_models.QuizSubmission.student_id == current_user.id
+    ).all()
+
+    history = []
+
+    for s in scans:
+        if s.points_earned and s.points_earned > 0:
+            history.append({
+                "id": f"scan_{s.id}",
+                "type": "tri",
+                "points": s.points_earned,
+                "date": s.scanned_at.isoformat() if s.scanned_at else None,
+                "description": f"Tri de déchets - {s.waste_type or 'général'}"
+            })
+
+    for qs in quiz_submissions:
+        if qs.score and qs.score > 0:
+            history.append({
+                "id": f"quiz_{qs.id}",
+                "type": "quiz",
+                "points": qs.score,
+                "date": qs.submitted_at.isoformat() if qs.submitted_at else (qs.graded_at.isoformat() if qs.graded_at else None),
+                "description": f"Quiz complété : {qs.quiz.title if qs.quiz else 'Quiz'}"
+            })
+
+    # Trier par date décroissante
+    history.sort(key=lambda x: x["date"] or "", reverse=True)
+
+    return history
+
+
+@router.get("/users/me/impact")
+async def get_my_impact(
+    db: Session = Depends(get_db),
+    current_user: db_models.User = Depends(get_current_user),
+):
+    """
+    Impact écologique personnel de l'utilisateur connecté.
+    Calculé depuis ses vrais scans QR (poids réel si disponible, sinon estimé).
+
+    Retourne :
+    - scan_count          : nombre total de scans effectués
+    - quiz_count          : nombre de quiz complétés
+    - waste_sorted_kg     : kg de déchets triés (réels ou estimés)
+    - co2_saved_kg        : CO₂ économisé (0.5 kg par kg de déchet trié)
+    - trees_equivalent    : arbres équivalents (1 arbre ≈ 22 kg CO₂/an)
+    - waste_by_type       : répartition par type de déchet
+    - total_scan_points   : points gagnés via scans
+    - total_quiz_points   : points gagnés via quiz
+    - posts_count         : publications approuvées
+    - likes_received      : total de likes reçus
+    """
+    from sqlalchemy import func
+
+    # ── Scans ─────────────────────────────────────────────────────────────────
+    scans = db.query(db_models.BinScan).filter(
+        db_models.BinScan.user_id == current_user.id
+    ).all()
+
+    scan_count = len(scans)
+    total_scan_points = sum(s.points_earned or 0.0 for s in scans)
+
+    # Poids total : poids réel si renseigné, sinon estimation 0.5 kg/scan
+    waste_sorted_kg = sum(
+        s.weight_kg if (s.weight_kg and s.weight_kg > 0) else 0.5
+        for s in scans
+    )
+
+    # Répartition par type de déchet
+    waste_by_type: dict = {}
+    for s in scans:
+        wtype = (s.waste_type or "général").lower()
+        wtype_kg = s.weight_kg if (s.weight_kg and s.weight_kg > 0) else 0.5
+        waste_by_type[wtype] = round(waste_by_type.get(wtype, 0.0) + wtype_kg, 2)
+
+    # Impact CO₂ : 0.5 kg CO₂ économisé par kg de déchets triés
+    co2_saved_kg = round(waste_sorted_kg * 0.5, 2)
+    trees_equivalent = max(0, int(co2_saved_kg / 22))
+
+    # ── Quiz ──────────────────────────────────────────────────────────────────
+    quiz_subs = db.query(db_models.QuizSubmission).filter(
+        db_models.QuizSubmission.student_id == current_user.id
+    ).all()
+    quiz_count = len(quiz_subs)
+    total_quiz_points = sum(qs.score or 0.0 for qs in quiz_subs)
+
+    # ── Posts ─────────────────────────────────────────────────────────────────
+    posts_count = db.query(func.count(db_models.Post.id)).filter(
+        db_models.Post.user_id == current_user.id,
+        db_models.Post.status == "published",
+    ).scalar() or 0
+
+    likes_received = db.query(func.sum(db_models.Post.likes_count)).filter(
+        db_models.Post.user_id == current_user.id,
+        db_models.Post.status == "published",
+    ).scalar() or 0
+
+    return {
+        "scan_count":        scan_count,
+        "quiz_count":        quiz_count,
+        "waste_sorted_kg":   round(waste_sorted_kg, 2),
+        "co2_saved_kg":      co2_saved_kg,
+        "trees_equivalent":  trees_equivalent,
+        "waste_by_type":     waste_by_type,
+        "total_scan_points": round(total_scan_points, 1),
+        "total_quiz_points": round(total_quiz_points, 1),
+        "posts_count":       posts_count,
+        "likes_received":    int(likes_received),
+    }
+

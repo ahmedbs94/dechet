@@ -7,8 +7,21 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../theme/app_theme.dart';
 import '../../constants.dart';
 
-// ── Requête authentifiée ─────────────────────────────────────────────────────
-Future<dynamic> analyticsGet(String path) async {
+// ── Résultat enrichi d'un appel analytics ────────────────────────────────────
+class AnalyticsResult {
+  final dynamic data;
+  final int cacheAge;        // secondes depuis le dernier calcul backend (0 = frais)
+  final DateTime fetchedAt;  // moment du fetch côté client
+
+  const AnalyticsResult({
+    required this.data,
+    this.cacheAge = 0,
+    required this.fetchedAt,
+  });
+}
+
+// ── Requête authentifiée (retourne AnalyticsResult) ──────────────────────────
+Future<AnalyticsResult?> analyticsGetFull(String path) async {
   try {
     final prefs = await SharedPreferences.getInstance();
     final jwt = prefs.getString('jwt_token');
@@ -17,12 +30,35 @@ Future<dynamic> analyticsGet(String path) async {
       Uri.parse('${ApiConstants.baseUrl}$path'),
       headers: {'Authorization': 'Bearer $jwt'},
     );
-    if (res.statusCode == 200) return json.decode(utf8.decode(res.bodyBytes));
+    if (res.statusCode == 200) {
+      final cacheAge = int.tryParse(res.headers['x-cache-age'] ?? '0') ?? 0;
+      return AnalyticsResult(
+        data: json.decode(utf8.decode(res.bodyBytes)),
+        cacheAge: cacheAge,
+        fetchedAt: DateTime.now(),
+      );
+    }
   } catch (_) {}
   return null;
 }
 
-// ── Carte de section ─────────────────────────────────────────────────────────
+// ── Requête simplifiée (compatibilité ancienne API) ───────────────────────────
+Future<dynamic> analyticsGet(String path) async {
+  final result = await analyticsGetFull(path);
+  return result?.data;
+}
+
+// ── Formatage "il y a X s/min" ───────────────────────────────────────────────
+String formatAge(int totalSeconds) {
+  if (totalSeconds <= 0) return 'À l\'instant';
+  if (totalSeconds < 60) return 'il y a ${totalSeconds}s';
+  final min = totalSeconds ~/ 60;
+  final sec = totalSeconds % 60;
+  if (sec == 0) return 'il y a ${min}min';
+  return 'il y a ${min}min ${sec}s';
+}
+
+// ── Carte de section améliorée ────────────────────────────────────────────────
 class SectionCard extends StatelessWidget {
   final String titre;
   final IconData icone;
@@ -31,12 +67,20 @@ class SectionCard extends StatelessWidget {
   final Widget contenu;
   final bool chargement;
   final VoidCallback onActualiser;
+  final DateTime? lastUpdated;   // moment où les données ont été chargées
+  final int? cacheAge;           // âge cache backend en secondes
 
   const SectionCard({
     Key? key,
-    required this.titre, required this.icone, required this.couleur,
-    required this.filtres, required this.contenu,
-    this.chargement = false, required this.onActualiser,
+    required this.titre,
+    required this.icone,
+    required this.couleur,
+    required this.filtres,
+    required this.contenu,
+    this.chargement = false,
+    required this.onActualiser,
+    this.lastUpdated,
+    this.cacheAge,
   }) : super(key: key);
 
   @override
@@ -44,9 +88,11 @@ class SectionCard extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: 24),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(24),
-        boxShadow: [BoxShadow(color: couleur.withOpacity(0.08), blurRadius: 20, offset: const Offset(0, 4))],
+        boxShadow: Theme.of(context).brightness == Brightness.dark
+            ? []
+            : [BoxShadow(color: couleur.withOpacity(0.08), blurRadius: 20, offset: const Offset(0, 4))],
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         // En-tête dégradé
@@ -56,28 +102,40 @@ class SectionCard extends StatelessWidget {
             gradient: LinearGradient(colors: [couleur.withOpacity(0.08), Colors.transparent]),
             borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
           ),
-          child: Row(children: [
-            Container(
-              padding: const EdgeInsets.all(9),
-              decoration: BoxDecoration(
-                color: couleur,
-                borderRadius: BorderRadius.circular(12),
-                boxShadow: [BoxShadow(color: couleur.withOpacity(0.35), blurRadius: 8, offset: const Offset(0, 3))],
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Row(children: [
+              Container(
+                padding: const EdgeInsets.all(9),
+                decoration: BoxDecoration(
+                  color: couleur,
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: [BoxShadow(color: couleur.withOpacity(0.35), blurRadius: 8, offset: const Offset(0, 3))],
+                ),
+                child: Icon(icone, color: Colors.white, size: 18),
               ),
-              child: Icon(icone, color: Colors.white, size: 18),
-            ),
-            const SizedBox(width: 12),
-            Expanded(child: Text(titre, style: GoogleFonts.outfit(
-              fontWeight: FontWeight.w900, fontSize: 14, color: AppTheme.deepSlate))),
-            if (chargement)
-              SizedBox(width: 14, height: 14,
-                child: CircularProgressIndicator(strokeWidth: 2, color: couleur)),
-            const SizedBox(width: 4),
-            IconButton(
-              onPressed: onActualiser, tooltip: 'Actualiser',
-              icon: Icon(Icons.refresh_rounded, color: couleur, size: 18),
-              padding: EdgeInsets.zero, constraints: const BoxConstraints(),
-            ),
+              const SizedBox(width: 12),
+              Expanded(child: Text(titre, style: GoogleFonts.outfit(
+                fontWeight: FontWeight.w900, fontSize: 14,
+                color: Theme.of(context).textTheme.titleLarge?.color ?? AppTheme.deepSlate))),
+              if (chargement)
+                SizedBox(width: 14, height: 14,
+                  child: CircularProgressIndicator(strokeWidth: 2, color: couleur)),
+              const SizedBox(width: 4),
+              IconButton(
+                onPressed: onActualiser, tooltip: 'Actualiser',
+                icon: Icon(Icons.refresh_rounded, color: couleur, size: 18),
+                padding: EdgeInsets.zero, constraints: const BoxConstraints(),
+              ),
+            ]),
+            // Badge de fraîcheur
+            if (lastUpdated != null) ...[
+              const SizedBox(height: 6),
+              _FreshnessTimerBadge(
+                lastUpdated: lastUpdated!,
+                cacheAge: cacheAge ?? 0,
+                couleur: couleur,
+              ),
+            ],
           ]),
         ),
         // Filtres
@@ -94,6 +152,61 @@ class SectionCard extends StatelessWidget {
   }
 }
 
+// ── Badge de fraîcheur avec timer live ───────────────────────────────────────
+class _FreshnessTimerBadge extends StatefulWidget {
+  final DateTime lastUpdated;
+  final int cacheAge;
+  final Color couleur;
+
+  const _FreshnessTimerBadge({
+    required this.lastUpdated,
+    required this.cacheAge,
+    required this.couleur,
+  });
+
+  @override
+  State<_FreshnessTimerBadge> createState() => _FreshnessTimerBadgeState();
+}
+
+class _FreshnessTimerBadgeState extends State<_FreshnessTimerBadge> {
+  late int _totalAge;
+
+  @override
+  void initState() {
+    super.initState();
+    _totalAge = widget.cacheAge + DateTime.now().difference(widget.lastUpdated).inSeconds;
+    // Mettre à jour chaque seconde
+    _tick();
+  }
+
+  void _tick() {
+    Future.delayed(const Duration(seconds: 1), () {
+      if (!mounted) return;
+      setState(() {
+        _totalAge = widget.cacheAge + DateTime.now().difference(widget.lastUpdated).inSeconds;
+      });
+      _tick();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isRecent = _totalAge < 30;
+    final color = isRecent ? Colors.green : _totalAge < 90 ? Colors.orange : Colors.red;
+    return Row(children: [
+      Container(
+        width: 6, height: 6,
+        decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+      ),
+      const SizedBox(width: 6),
+      Text(
+        'Mis à jour ${formatAge(_totalAge)}',
+        style: GoogleFonts.inter(fontSize: 9, color: AppTheme.textMuted, fontWeight: FontWeight.w500),
+      ),
+    ]);
+  }
+}
+
 // ── Indicateur principal (grand) ─────────────────────────────────────────────
 class IndicateurPrincipal extends StatelessWidget {
   final String valeur, etiquette, sousTitre;
@@ -103,9 +216,12 @@ class IndicateurPrincipal extends StatelessWidget {
 
   const IndicateurPrincipal({
     Key? key,
-    required this.valeur, required this.etiquette,
-    required this.sousTitre, required this.icone,
-    required this.couleur, this.alerte = false,
+    required this.valeur,
+    required this.etiquette,
+    required this.sousTitre,
+    required this.icone,
+    required this.couleur,
+    this.alerte = false,
   }) : super(key: key);
 
   @override
@@ -133,18 +249,78 @@ class IndicateurPrincipal extends StatelessWidget {
           fit: BoxFit.scaleDown,
           child: Text(valeur, style: GoogleFonts.outfit(
             fontWeight: FontWeight.w900, fontSize: 22,
-            color: alerte ? couleur : AppTheme.deepSlate, height: 1)),
+            color: alerte
+                ? couleur
+                : (Theme.of(context).textTheme.titleLarge?.color ?? AppTheme.deepSlate),
+            height: 1)),
         ),
         const SizedBox(height: 4),
         FittedBox(
           alignment: Alignment.centerLeft,
           fit: BoxFit.scaleDown,
           child: Text(etiquette, style: GoogleFonts.inter(
-            fontSize: 11, fontWeight: FontWeight.w700, color: AppTheme.deepSlate)),
+            fontSize: 11, fontWeight: FontWeight.w700,
+            color: Theme.of(context).textTheme.bodyLarge?.color ?? AppTheme.deepSlate)),
         ),
         const SizedBox(height: 2),
-        Text(sousTitre, style: GoogleFonts.inter(
-          fontSize: 9, color: AppTheme.textMuted), maxLines: 1, overflow: TextOverflow.ellipsis),
+        Text(sousTitre,
+          style: GoogleFonts.inter(fontSize: 9, color: AppTheme.textMuted),
+          maxLines: 1, overflow: TextOverflow.ellipsis),
+      ]),
+    );
+  }
+}
+
+// ── KPI compact (1/3 de largeur) ─────────────────────────────────────────────
+class IndicateurCompact extends StatelessWidget {
+  final String valeur, etiquette;
+  final IconData icone;
+  final Color couleur;
+  final bool alerte;
+
+  const IndicateurCompact({
+    Key? key,
+    required this.valeur,
+    required this.etiquette,
+    required this.icone,
+    required this.couleur,
+    this.alerte = false,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [couleur.withOpacity(alerte ? 0.12 : 0.06), couleur.withOpacity(0.01)],
+          begin: Alignment.topLeft, end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: couleur.withOpacity(alerte ? 0.35 : 0.12), width: 1.2),
+      ),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          Icon(icone, color: couleur, size: 14),
+          if (alerte) ...[
+            const SizedBox(width: 4),
+            Container(width: 6, height: 6, decoration: BoxDecoration(color: couleur, shape: BoxShape.circle)),
+          ],
+        ]),
+        const SizedBox(height: 6),
+        FittedBox(
+          alignment: Alignment.centerLeft,
+          fit: BoxFit.scaleDown,
+          child: Text(valeur, style: GoogleFonts.outfit(
+            fontWeight: FontWeight.w900, fontSize: 17,
+            color: alerte ? couleur : (Theme.of(context).textTheme.titleLarge?.color ?? AppTheme.deepSlate),
+            height: 1)),
+        ),
+        const SizedBox(height: 2),
+        Text(etiquette, style: GoogleFonts.inter(
+          fontSize: 9, fontWeight: FontWeight.w700,
+          color: AppTheme.textMuted),
+          maxLines: 1, overflow: TextOverflow.ellipsis),
       ]),
     );
   }
@@ -178,7 +354,7 @@ class FiltreDeroulant extends StatelessWidget {
         DropdownButton<String>(
           value: valeur, isDense: true, underline: const SizedBox(),
           style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w800, color: couleur),
-          dropdownColor: Colors.white,
+          dropdownColor: Theme.of(context).colorScheme.surface,
           items: options.map((o) => DropdownMenuItem(value: o, child: Text(o))).toList(),
           onChanged: (v) { if (v != null) onChangement(v); },
         ),
@@ -213,7 +389,11 @@ class FiltrePeriode extends StatelessWidget {
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
             decoration: BoxDecoration(
-              color: valeur == _options[i] ? couleur : Colors.grey.shade100,
+              color: valeur == _options[i]
+                  ? couleur
+                  : (Theme.of(context).brightness == Brightness.dark
+                      ? const Color(0xFF1E293B)
+                      : Colors.grey.shade100),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Text(_labels[i], style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w700,
@@ -242,7 +422,7 @@ class BarreProgression extends StatelessWidget {
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
           Text(etiquette, style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w600,
-            color: AppTheme.deepSlate)),
+           color: Theme.of(context).textTheme.bodyLarge?.color ?? AppTheme.deepSlate)),
           Text(valeurTexte, style: GoogleFonts.outfit(fontSize: 11, fontWeight: FontWeight.w800,
             color: couleur)),
         ]),
@@ -251,7 +431,9 @@ class BarreProgression extends StatelessWidget {
           borderRadius: BorderRadius.circular(4),
           child: LinearProgressIndicator(
             value: pct, minHeight: 8,
-            backgroundColor: Colors.grey.shade100,
+            backgroundColor: Theme.of(context).brightness == Brightness.dark
+                ? const Color(0xFF1E293B)
+                : Colors.grey.shade100,
             valueColor: AlwaysStoppedAnimation(couleur),
           ),
         ),
@@ -275,7 +457,7 @@ class GraphiqueAnneau extends StatelessWidget {
     return Row(children: [
       SizedBox(width: 110, height: 110,
         child: CustomPaint(painter: _PeintreAnneau(
-          tranches: tranches, couleurs: couleurs, total: total))),
+          tranches: tranches, couleurs: couleurs, total: total, context: context))),
       const SizedBox(width: 20),
       Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start,
         children: List.generate(tranches.length, (i) => Padding(
@@ -286,8 +468,8 @@ class GraphiqueAnneau extends StatelessWidget {
                 color: couleurs[i % couleurs.length], shape: BoxShape.circle)),
             const SizedBox(width: 8),
             Expanded(child: Text(i < etiquettes.length ? etiquettes[i] : tranches[i].key,
-              style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w600,
-                color: AppTheme.deepSlate))),
+               style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w600,
+                color: Theme.of(context).textTheme.bodyLarge?.color ?? AppTheme.deepSlate))),
             Text('${tranches[i].value.toInt()}',
               style: GoogleFonts.outfit(fontSize: 12, fontWeight: FontWeight.w800,
                 color: AppTheme.textMuted)),
@@ -304,7 +486,8 @@ class _PeintreAnneau extends CustomPainter {
   final List<MapEntry<String, double>> tranches;
   final List<Color> couleurs;
   final double total;
-  _PeintreAnneau({required this.tranches, required this.couleurs, required this.total});
+  final BuildContext context;
+  _PeintreAnneau({required this.tranches, required this.couleurs, required this.total, required this.context});
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -323,8 +506,8 @@ class _PeintreAnneau extends CustomPainter {
     }
     final tp = TextPainter(
       text: TextSpan(text: '${total.toInt()}',
-        style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15,
-          color: AppTheme.deepSlate)),
+        style: TextStyle(fontWeight: FontWeight.w900, fontSize: 15,
+          color: Theme.of(context).textTheme.titleLarge?.color ?? AppTheme.deepSlate)),
       textDirection: TextDirection.ltr)..layout();
     tp.paint(canvas, Offset(c.dx - tp.width / 2, c.dy - tp.height / 2));
   }
@@ -351,7 +534,9 @@ class GraphiqueLigne extends StatelessWidget {
       return Container(
         height: 120,
         decoration: BoxDecoration(
-          color: Colors.grey.shade50,
+          color: Theme.of(context).brightness == Brightness.dark
+              ? const Color(0xFF1E293B)
+              : Colors.grey.shade50,
           borderRadius: BorderRadius.circular(14),
         ),
         child: Center(child: Text('Aucune donnée', style: GoogleFonts.inter(color: AppTheme.textMuted, fontSize: 12))),
@@ -387,21 +572,16 @@ class _PeintreLigne extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     if (donnees.isEmpty || max == 0) return;
-    final h = size.height - 20; // réserver espace labels bas
+    final h = size.height - 20;
     final w = size.width;
     final step = w / (donnees.length - 1).clamp(1, 999);
 
-    // Zone remplie sous la courbe
     final fillPath = Path();
     fillPath.moveTo(0, h);
     for (var i = 0; i < donnees.length; i++) {
       final x = i * step;
       final y = h - (donnees[i]['count'] as num).toDouble() / max * h * 0.85;
-      if (i == 0) {
-        fillPath.lineTo(x, y);
-      } else {
-        fillPath.lineTo(x, y);
-      }
+      fillPath.lineTo(x, y);
     }
     fillPath.lineTo((donnees.length - 1) * step, h);
     fillPath.close();
@@ -412,7 +592,6 @@ class _PeintreLigne extends CustomPainter {
       ).createShader(Rect.fromLTWH(0, 0, w, h))
       ..style = PaintingStyle.fill);
 
-    // Ligne courbe
     final linePaint = Paint()
       ..color = couleur
       ..strokeWidth = 2.5
@@ -423,15 +602,10 @@ class _PeintreLigne extends CustomPainter {
     for (var i = 0; i < donnees.length; i++) {
       final x = i * step;
       final y = h - (donnees[i]['count'] as num).toDouble() / max * h * 0.85;
-      if (i == 0) {
-        linePath.moveTo(x, y);
-      } else {
-        linePath.lineTo(x, y);
-      }
+      if (i == 0) linePath.moveTo(x, y); else linePath.lineTo(x, y);
     }
     canvas.drawPath(linePath, linePaint);
 
-    // Points
     for (var i = 0; i < donnees.length; i++) {
       final x = i * step;
       final y = h - (donnees[i]['count'] as num).toDouble() / max * h * 0.85;
@@ -443,7 +617,7 @@ class _PeintreLigne extends CustomPainter {
   @override bool shouldRepaint(_PeintreLigne o) => true;
 }
 
-// ── Filtre période (string: today/last_7_days/last_30_days/all_time) ──────────
+// ── Filtre période (string) ───────────────────────────────────────────────────
 class FiltrePeriodeString extends StatelessWidget {
   final String valeur;
   final ValueChanged<String> onChangement;
@@ -474,7 +648,11 @@ class FiltrePeriodeString extends StatelessWidget {
             duration: const Duration(milliseconds: 180),
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
             decoration: BoxDecoration(
-              color: valeur == _options[i] ? couleur : Colors.grey.shade100,
+              color: valeur == _options[i]
+                  ? couleur
+                  : (Theme.of(context).brightness == Brightness.dark
+                      ? const Color(0xFF1E293B)
+                      : Colors.grey.shade100),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Text(_labels[i], style: GoogleFonts.inter(
@@ -487,7 +665,7 @@ class FiltrePeriodeString extends StatelessWidget {
   }
 }
 
-// ── Badge statut (anomalie / alerte) ─────────────────────────────────────────
+// ── Badge statut ──────────────────────────────────────────────────────────────
 class BadgeStatut extends StatelessWidget {
   final String label;
   final Color couleur;
@@ -521,3 +699,29 @@ class BadgeStatut extends StatelessWidget {
   }
 }
 
+// ── Séparateur de section avec titre ─────────────────────────────────────────
+class SectionDivider extends StatelessWidget {
+  final String label;
+  const SectionDivider({Key? key, required this.label}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16, top: 4),
+      child: Row(children: [
+        Text(label, style: GoogleFonts.outfit(
+          fontSize: 10, fontWeight: FontWeight.w900,
+          letterSpacing: 1.5, color: AppTheme.textMuted)),
+        const SizedBox(width: 12),
+        Expanded(child: Container(height: 1,
+          decoration: BoxDecoration(
+            gradient: LinearGradient(colors: [
+              AppTheme.textMuted.withOpacity(0.3),
+              Colors.transparent,
+            ]),
+          ),
+        )),
+      ]),
+    );
+  }
+}

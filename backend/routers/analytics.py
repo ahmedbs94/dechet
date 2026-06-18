@@ -15,7 +15,6 @@ from schemas.admin_analytics import (
     EducationStatsResponse,
     ModerationStatsResponse,
     CollectionPointStats,
-    AnomaliesResponse,
     UserStatsResponse,
 )
 
@@ -520,21 +519,3 @@ async def analytics_collection_points(
     - taux de disponibilité
     """
     return svc.get_collection_point_stats(db)
-
-
-@router.get(
-    "/anomalies",
-    response_model=AnomaliesResponse,
-    summary="Détection d'anomalies et comportements suspects",
-)
-async def analytics_anomalies(
-    db: Session = Depends(get_db),
-    _admin=Depends(get_admin_user),
-) -> AnomaliesResponse:
-    """
-    Détecte les comportements anormaux :
-    - SCAN_RATE_LIMIT : >20 scans/heure par utilisateur
-    - REPEATED_BIN_SCAN : même bin scanné >10x/jour par le même user
-    - FIREBASE_UNSYNCED : >20 scans non synchronisés avec Firebase
-    """
-    return svc.get_anomalies(db)

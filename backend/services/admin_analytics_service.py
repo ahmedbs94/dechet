@@ -14,8 +14,6 @@ from repositories import analytics_repository as repo
 from repositories.analytics_repository import _since
 from schemas.admin_analytics import (
     AdminDashboardResponse,
-    AnomaliesResponse,
-    Anomaly,
     CollectionPointStats,
     DashboardSummary,
     EducationStatsResponse,
@@ -28,6 +26,9 @@ from schemas.admin_analytics import (
     UserStatsResponse,
     WasteTypeCount,
 )
+
+# Titres de quiz à exclure des statistiques (quiz de test / internes)
+_QUIZ_EXCLUSIONS = {"environnement_question", "environnement_questions"}
 
 
 def _now() -> datetime:
@@ -68,8 +69,6 @@ def get_user_stats(db: Session, period: Optional[str] = "all_time") -> UserStats
 
 def get_scan_stats(db: Session, period: Optional[str] = "all_time") -> ScanStatsResponse:
     since = _since(period)
-    since_today = _now().replace(hour=0, minute=0, second=0, microsecond=0)
-    since_week  = _now() - timedelta(days=7)
 
     waste_rows = repo.count_scans_by_waste_type(db, since)
     top_bins_raw = repo.get_top_bins(db, since, limit=5)
@@ -96,7 +95,6 @@ def get_scan_stats(db: Session, period: Optional[str] = "all_time") -> ScanStats
             )
             for r in top_bins_raw
         ],
-        firebase_unsynced=repo.count_firebase_unsynced(db),
         average_points_per_scan=round(repo.average_points_per_scan(db, since), 2),
     )
 
@@ -137,7 +135,7 @@ def get_user_stats_with_period(db: Session, period: Optional[str] = "all_time") 
     )
 
 
-# ── Points de collecte ────────────────────────────────────────────────
+# ── Points de collecte ────────────────────────────────────────────────────────
 
 def get_collection_point_stats(db: Session) -> CollectionPointStats:
     by_status = repo.count_collection_points_by_status(db)
@@ -157,7 +155,13 @@ def get_collection_point_stats(db: Session) -> CollectionPointStats:
 
 def get_education_stats(db: Session, period: Optional[str] = "all_time") -> EducationStatsResponse:
     since = _since(period)
-    top_quizzes_raw = repo.get_top_quizzes(db, limit=5)
+    top_quizzes_raw = repo.get_top_quizzes(db, limit=10)  # récupérer plus pour filtrer
+
+    # Exclure les quiz internes / de test
+    top_quizzes_filtered = [
+        r for r in top_quizzes_raw
+        if (r.title or "").lower().strip() not in _QUIZ_EXCLUSIONS
+    ][:5]
 
     return EducationStatsResponse(
         total_quizzes=repo.count_total_quizzes(db),
@@ -171,7 +175,7 @@ def get_education_stats(db: Session, period: Optional[str] = "all_time") -> Educ
                 submissions=r.submissions or 0,
                 avg_score=round(float(r.avg_score), 1) if r.avg_score else None,
             )
-            for r in top_quizzes_raw
+            for r in top_quizzes_filtered
         ],
     )
 
@@ -193,55 +197,7 @@ def get_moderation_stats(db: Session) -> ModerationStatsResponse:
         total_posts=total,
         pending_testimonials=repo.count_pending_testimonials(db),
         pending_center_proposals=repo.count_pending_center_proposals(db),
-        auto_approve_rate=round((published / total * 100), 1) if total > 0 else 0.0,
-        worker_health=(
-            "critical" if pending_ai >= 50
-            else "warning" if pending_ai >= 10
-            else "ok"
-        ),
     )
-
-
-# ── Anomalies ─────────────────────────────────────────────────────────────────
-
-def get_anomalies(db: Session) -> AnomaliesResponse:
-    anomalies: List[Anomaly] = []
-    now = _now()
-
-    # 1. Scan rate trop élevé
-    for row in repo.detect_high_scan_rate_users(db, max_per_hour=20):
-        anomalies.append(Anomaly(
-            type="SCAN_RATE_LIMIT",
-            severity="high",
-            user_id=row.user_id,
-            message=f"Utilisateur #{row.user_id} : {row.scan_count} scans en moins d'1 heure",
-            value=row.scan_count,
-            detected_at=now,
-        ))
-
-    # 2. Même bin scanné trop souvent par le même user
-    for row in repo.detect_repeated_bin_scans(db, max_same_bin=10):
-        anomalies.append(Anomaly(
-            type="REPEATED_BIN_SCAN",
-            severity="medium",
-            user_id=row.user_id,
-            message=f"Utilisateur #{row.user_id} : bin #{row.smart_bin_id} scanné {row.count}x aujourd'hui",
-            value=row.count,
-            detected_at=now,
-        ))
-
-    # 3. Firebase unsynced élevé
-    unsynced = repo.count_firebase_unsynced(db)
-    if unsynced > 20:
-        anomalies.append(Anomaly(
-            type="FIREBASE_UNSYNCED",
-            severity="medium" if unsynced < 100 else "high",
-            message=f"{unsynced} scans non synchronisés avec Firebase",
-            value=unsynced,
-            detected_at=now,
-        ))
-
-    return AnomaliesResponse(count=len(anomalies), anomalies=anomalies)
 
 
 # ── Dashboard complet ─────────────────────────────────────────────────────────
@@ -258,7 +214,6 @@ def get_dashboard_summary(db: Session) -> AdminDashboardResponse:
     by_role_raw = repo.count_users_by_role(db)
     posts       = repo.count_posts_by_status(db)
     by_status   = repo.count_collection_points_by_status(db)
-    anomalies   = get_anomalies(db)
 
     pending_ai     = posts.get("pending_ai", 0)
     pending_review = posts.get("pending_review", 0)
@@ -282,7 +237,6 @@ def get_dashboard_summary(db: Session) -> AdminDashboardResponse:
         scans_today=repo.count_total_scans(db, since_today),
         scans_this_week=repo.count_total_scans(db, since_week),
         points_distributed=round(repo.sum_points_distributed(db), 1),
-        firebase_unsynced_scans=repo.count_firebase_unsynced(db),
 
         # Points de collecte
         total_collection_points=sum(by_status.values()),
@@ -296,9 +250,6 @@ def get_dashboard_summary(db: Session) -> AdminDashboardResponse:
         pending_moderation=pending_ai + pending_review,
         pending_testimonials=repo.count_pending_testimonials(db),
         pending_center_proposals=repo.count_pending_center_proposals(db),
-
-        # Anomalies
-        anomalies_count=anomalies.count,
     )
 
     return AdminDashboardResponse(

@@ -240,11 +240,11 @@ class _AddSortingCenterScreenState extends State<AddSortingCenterScreen> {
           icon: Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: Theme.of(context).colorScheme.surface,
               borderRadius: BorderRadius.circular(12),
               boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 10)],
             ),
-            child: const Icon(Icons.arrow_back_ios_new_rounded, color: AppTheme.deepNavy, size: 20),
+            child: Icon(Icons.arrow_back_ios_new_rounded, color: Theme.of(context).brightness == Brightness.dark ? Colors.white : AppTheme.deepNavy, size: 20),
           ),
           onPressed: () => Navigator.pop(context),
         )),
@@ -346,6 +346,7 @@ class _AddSortingCenterScreenState extends State<AddSortingCenterScreen> {
                                   )
                                 : null,
                             border: InputBorder.none,
+                            filled: false,
                             contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                           ),
                         ),
@@ -460,12 +461,11 @@ class _AddSortingCenterScreenState extends State<AddSortingCenterScreen> {
                           ),
                         ),
                         const SizedBox(height: 16),
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.baseline,
-                          textBaseline: TextBaseline.alphabetic,
+                        Wrap(
+                          alignment: WrapAlignment.spaceBetween,
+                          crossAxisAlignment: WrapCrossAlignment.center,
                           children: [
                             Text('CLASSIFICATION DES DÉCHETS', style: GoogleFonts.outfit(fontWeight: FontWeight.w900, letterSpacing: 1.5, fontSize: 11, color: AppTheme.textMuted)),
-                            const Spacer(),
                             Text('(Cliquez pour changer l\'état)', style: GoogleFonts.inter(fontSize: 10, color: AppTheme.textMuted, fontStyle: FontStyle.italic)),
                           ],
                         ),

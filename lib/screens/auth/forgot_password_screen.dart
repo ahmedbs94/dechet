@@ -527,6 +527,7 @@ class _OtpBox extends StatelessWidget {
         inputFormatters: [FilteringTextInputFormatter.digitsOnly],
         decoration: const InputDecoration(
           counterText: '',
+          filled: false,
           border: InputBorder.none,
         ),
         onChanged: (val) {
@@ -666,6 +667,7 @@ Widget _glassField({
         prefixIcon: Icon(icon, size: 20, color: AppTheme.primaryGreen),
         suffixIcon: suffixIcon,
         border: InputBorder.none,
+        filled: false,
         contentPadding:
             const EdgeInsets.symmetric(vertical: 18, horizontal: 16),
         floatingLabelStyle:

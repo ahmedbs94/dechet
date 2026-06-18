@@ -14,6 +14,7 @@ import '../../services/auth_service.dart';
 import '../../models/user_model.dart';
 import '../../widgets/auth_prompt_dialog.dart';
 import '../../constants.dart';
+import '../../services/l10n_service.dart';
 
 class MapTab extends StatefulWidget {
   const MapTab({Key? key}) : super(key: key);
@@ -37,9 +38,9 @@ extension VehicleModeExtension on VehicleMode {
 
   String get label {
     switch (this) {
-      case VehicleMode.foot: return 'À pied';
-      case VehicleMode.moto: return 'Moto';
-      case VehicleMode.car:  return 'Voiture';
+      case VehicleMode.foot: return L10n.isArabic ? 'مشياً' : 'À pied';
+      case VehicleMode.moto: return L10n.isArabic ? 'دراجة نارية' : 'Moto';
+      case VehicleMode.car:  return L10n.isArabic ? 'سيارة' : 'Voiture';
     }
   }
 
@@ -155,12 +156,18 @@ class _MapTabState extends State<MapTab> {
   @override
   void initState() {
     super.initState();
+    L10n.addListener(_onLocaleChange);
     _loadFromCache();
     _checkAndRefreshCache();
   }
 
+  void _onLocaleChange() {
+    if (mounted) setState(() {});
+  }
+
   @override
   void dispose() {
+    L10n.removeListener(_onLocaleChange);
     _searchController.dispose();
     super.dispose();
   }
@@ -557,6 +564,9 @@ class _MapTabState extends State<MapTab> {
                 urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
                 userAgentPackageName: 'com.ecorewind.app',
                 tileProvider: CancellableNetworkTileProvider(),
+                errorTileCallback: (tile, error, stackTrace) {
+                  // Tuiles inaccessibles (pas de réseau) → échec silencieux
+                },
               ),
 
               // ── Tracé de l'itinéraire ────────────────────────────────
@@ -614,7 +624,7 @@ class _MapTabState extends State<MapTab> {
                             decoration: BoxDecoration(
                               color: _selectedVehicle.color,
                               shape: BoxShape.circle,
-                              border: Border.all(color: Colors.white, width: 3),
+                              border: Border.all(color: Theme.of(context).colorScheme.surface, width: 3),
                               boxShadow: [
                                 BoxShadow(
                                   color: _selectedVehicle.color.withOpacity(0.5),
@@ -642,7 +652,7 @@ class _MapTabState extends State<MapTab> {
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
                   decoration: BoxDecoration(
-                    color: Colors.white, borderRadius: BorderRadius.circular(20),
+                    color: Theme.of(context).colorScheme.surface, borderRadius: BorderRadius.circular(20),
                     boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 10)],
                   ),
                   child: Row(
@@ -650,7 +660,7 @@ class _MapTabState extends State<MapTab> {
                     children: [
                       const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.primaryGreen)),
                       const SizedBox(width: 10),
-                      Text('Chargement des points...', style: GoogleFonts.inter(fontSize: 12, color: AppTheme.textMuted)),
+                      Text('Chargement des points...', style: GoogleFonts.inter(fontSize: 12, color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6))),
                     ],
                   ),
                 ),
@@ -665,7 +675,7 @@ class _MapTabState extends State<MapTab> {
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: Theme.of(context).colorScheme.surface,
                     borderRadius: BorderRadius.circular(20),
                     boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.12), blurRadius: 12)],
                   ),
@@ -679,7 +689,7 @@ class _MapTabState extends State<MapTab> {
                       const SizedBox(width: 12),
                       Text(
                         'Calcul de l\'itinéraire...',
-                        style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600, color: AppTheme.deepNavy),
+                        style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600, color: Theme.of(context).colorScheme.onSurface),
                       ),
                     ],
                   ),
@@ -749,6 +759,7 @@ class _MapTabState extends State<MapTab> {
                               enabledBorder: InputBorder.none,
                               focusedBorder: InputBorder.none,
                               fillColor: Colors.transparent,
+                              filled: false,
                               isDense: true,
                               contentPadding: EdgeInsets.zero,
                             ),
@@ -851,7 +862,7 @@ class _MapTabState extends State<MapTab> {
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                 decoration: BoxDecoration(
-                  color: Colors.white, borderRadius: BorderRadius.circular(20),
+                  color: Theme.of(context).colorScheme.surface, borderRadius: BorderRadius.circular(20),
                   boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 10)],
                 ),
                 child: Row(
@@ -867,7 +878,7 @@ class _MapTabState extends State<MapTab> {
                       ),
                     Text(
                       '${_points.length} point${_points.length != 1 ? 's' : ''} de tri',
-                      style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w700, color: AppTheme.deepNavy),
+                      style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w700, color: Theme.of(context).colorScheme.onSurface),
                     ),
                   ],
                 ),
@@ -887,7 +898,7 @@ class _MapTabState extends State<MapTab> {
                     final currentZoom = _mapController.camera.zoom;
                     _mapController.move(_mapController.camera.center, currentZoom + 1);
                   },
-                  backgroundColor: Colors.white,
+                  backgroundColor: Theme.of(context).colorScheme.surface,
                   child: const Icon(Icons.add, color: AppTheme.primaryGreen),
                 ),
                 const SizedBox(height: 8),
@@ -897,14 +908,14 @@ class _MapTabState extends State<MapTab> {
                     final currentZoom = _mapController.camera.zoom;
                     _mapController.move(_mapController.camera.center, currentZoom - 1);
                   },
-                  backgroundColor: Colors.white,
+                  backgroundColor: Theme.of(context).colorScheme.surface,
                   child: const Icon(Icons.remove, color: AppTheme.primaryGreen),
                 ),
                 const SizedBox(height: 8),
                 FloatingActionButton(
                   heroTag: 'fab_map_location',
                   onPressed: _fetchCurrentLocation,
-                  backgroundColor: Colors.white,
+                  backgroundColor: Theme.of(context).colorScheme.surface,
                   child: const Icon(Icons.my_location, color: AppTheme.primaryGreen),
                 ),
               ],
@@ -924,7 +935,7 @@ class _MapTabState extends State<MapTab> {
                   await _fetchAndCachePoints();
                   if (mounted) setState(() => _isRefreshing = false);
                 },
-                backgroundColor: Colors.white,
+                backgroundColor: Theme.of(context).colorScheme.surface,
                 child: _isRefreshing
                     ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.primaryGreen))
                     : const Icon(Icons.refresh_rounded, color: AppTheme.primaryGreen, size: 20),
@@ -1178,7 +1189,7 @@ class _PointDetailSheetState extends State<_PointDetailSheet> {
                       margin: const EdgeInsets.only(right: 8),
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
                       decoration: BoxDecoration(
-                        color: selected ? mode.color.withOpacity(0.12) : Colors.grey.shade100,
+                        color: selected ? mode.color.withOpacity(0.12) : (Theme.of(context).brightness == Brightness.dark ? const Color(0xFF1E293B) : Colors.grey.shade100),
                         borderRadius: BorderRadius.circular(14),
                         border: Border.all(
                           color: selected ? mode.color : Colors.transparent,
@@ -1365,7 +1376,7 @@ class _RouteInfoPanel extends StatelessWidget {
                   child: Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: Colors.grey.shade100,
+                      color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF1E293B) : Colors.grey.shade100,
                       shape: BoxShape.circle,
                     ),
                     child: const Icon(Icons.close_rounded, size: 18, color: AppTheme.textMuted),

@@ -2,9 +2,31 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../theme/app_theme.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../services/l10n_service.dart';
 
-class IntercommunalityTab extends StatelessWidget {
+class IntercommunalityTab extends StatefulWidget {
   const IntercommunalityTab({Key? key}) : super(key: key);
+
+  @override
+  State<IntercommunalityTab> createState() => _IntercommunalityTabState();
+}
+
+class _IntercommunalityTabState extends State<IntercommunalityTab> {
+  @override
+  void initState() {
+    super.initState();
+    L10n.addListener(_onLocaleChange);
+  }
+
+  void _onLocaleChange() {
+    if (mounted) setState(() {});
+  }
+
+  @override
+  void dispose() {
+    L10n.removeListener(_onLocaleChange);
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -14,37 +36,37 @@ class IntercommunalityTab extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Coordination Territoriale', style: AppTheme.seniorTheme.textTheme.headlineMedium),
-          const Text('Gérez les politiques de tri et les acteurs locaux.'),
+          Text(L10n.tr('Coordination Territoriale'), style: AppTheme.seniorTheme.textTheme.headlineMedium),
+          Text(L10n.tr('Gérez les politiques de tri et les acteurs locaux.')),
           const SizedBox(height: 40),
           
           _buildActionCard(
-            'Consignes de tri locales',
-            'Mise à jour des règles 2026',
+            L10n.tr('Consignes de tri locales'),
+            L10n.tr('Mise à jour des règles 2026'),
             Icons.balance_rounded,
             Colors.purple,
           ).animate().fadeIn().slideX(begin: 0.1),
           
           const SizedBox(height: 16),
           _buildActionCard(
-            'Points de collecte',
-            'Centralisation (342 points)',
+            L10n.tr('Points de collecte'),
+            L10n.tr('Centralisation (342 points)'),
             Icons.location_city_rounded,
             Colors.blue,
           ).animate().fadeIn(delay: 100.ms).slideX(begin: 0.1),
           
           const SizedBox(height: 16),
           _buildActionCard(
-            'Acteurs locaux',
-            'Coordination : 12 prestataires',
+            L10n.tr('Acteurs locaux'),
+            L10n.tr('Coordination : 12 prestataires'),
             Icons.groups_rounded,
             Colors.orange,
           ).animate().fadeIn(delay: 200.ms).slideX(begin: 0.1),
           
           const SizedBox(height: 48),
           
-          const Text('RAPPORTS DE PERFORMANCE INTERCOMMUNALE', 
-            style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, letterSpacing: 1.5, color: AppTheme.textMuted)),
+          Text(L10n.tr('RAPPORTS DE PERFORMANCE INTERCOMMUNALE'), 
+            style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w900, letterSpacing: 1.5, color: AppTheme.textMuted)),
           const SizedBox(height: 16),
           _buildRegionalChart(),
         ],

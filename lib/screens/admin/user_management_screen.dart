@@ -302,7 +302,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.backgroundSoft,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: _isLoading
           ? const Center(child: CircularProgressIndicator(color: AppTheme.primaryGreen))
           : _errorMessage != null
@@ -341,9 +341,9 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                             margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                             padding: const EdgeInsets.all(16),
                             decoration: BoxDecoration(
-                              color: Colors.white,
+                              color: Theme.of(context).colorScheme.surface,
                               borderRadius: BorderRadius.circular(20),
-                              boxShadow: AppTheme.tightShadow,
+                              boxShadow: Theme.of(context).brightness == Brightness.dark ? [] : AppTheme.tightShadow,
                             ),
                             child: Row(
                               children: [
@@ -369,9 +369,9 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                                       Text(
                                         userName,
                                         style: GoogleFonts.outfit(
-                                            fontWeight: FontWeight.bold, color: AppTheme.deepSlate, fontSize: 16),
+                                            fontWeight: FontWeight.bold, color: Theme.of(context).textTheme.titleLarge?.color ?? AppTheme.deepSlate, fontSize: 16),
                                       ),
-                                      Text(user['email'] ?? '', style: GoogleFonts.inter(fontSize: 12, color: AppTheme.textMuted)),
+                                      Text(user['email'] ?? '', style: GoogleFonts.inter(fontSize: 12, color: Theme.of(context).textTheme.bodyMedium?.color ?? AppTheme.textMuted)),
                                       const SizedBox(height: 6),
                                       Container(
                                         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),

@@ -64,7 +64,6 @@ class ScanStatsResponse(BaseModel):
     points_distributed:  float
     by_waste_type:       List[WasteTypeCount] = []
     top_bins:            List[TopBin] = []
-    firebase_unsynced:   int
     average_points_per_scan: float
 
 
@@ -105,23 +104,6 @@ class ModerationStatsResponse(BaseModel):
     total_posts:             int
     pending_testimonials:    int
     pending_center_proposals: int
-    auto_approve_rate:       float
-    worker_health:           str   # "ok" | "warning" | "critical"
-
-
-# ── Anomalies ─────────────────────────────────────────────────────────────────
-
-class Anomaly(BaseModel):
-    type:        str           # SCAN_RATE_LIMIT | FIREBASE_UNSYNCED | etc.
-    severity:    str           # low | medium | high | critical
-    user_id:     Optional[int] = None
-    message:     str
-    value:       Any = None
-    detected_at: datetime
-
-class AnomaliesResponse(BaseModel):
-    count:     int
-    anomalies: List[Anomaly] = []
 
 
 # ── Dashboard summary (1 seul appel Flutter) ──────────────────────────────────
@@ -139,7 +121,6 @@ class DashboardSummary(BaseModel):
     scans_today:            int
     scans_this_week:        int
     points_distributed:     float
-    firebase_unsynced_scans: int
 
     # Points de collecte
     total_collection_points:  int
@@ -153,9 +134,6 @@ class DashboardSummary(BaseModel):
     pending_moderation:     int   # pending_ai + pending_review
     pending_testimonials:   int
     pending_center_proposals: int
-
-    # Anomalies
-    anomalies_count:        int
 
 class AdminDashboardResponse(BaseModel):
     success:    bool = True

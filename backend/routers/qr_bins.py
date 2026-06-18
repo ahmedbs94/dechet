@@ -2,9 +2,10 @@
 routers/qr_bins.py — QR Poubelle Intelligente + Attribution de Score
 ══════════════════════════════════════════════════════════════════════
 Endpoints publics / citoyen :
-  POST /qr/scan-bin          → Scan d'une poubelle, validation, calcul et attribution des points
-  GET  /qr/scan-history      → Historique des scans du citoyen connecté
-  GET  /qr/leaderboard       → Classement des citoyens par score
+  POST /qr/scan-bin            → Scan poubelle : attribution points (citoyen) ou vidage (collecteur)
+  GET  /qr/scan-history        → Historique des scans du citoyen connecté
+  GET  /qr/collector-history   → Historique des collectes du collecteur connecté
+  GET  /qr/leaderboard         → Classement des citoyens par score
 
 Endpoints admin (smart_bins CRUD) :
   GET    /qr/smart-bins              → Liste toutes les poubelles
@@ -16,18 +17,27 @@ Endpoints admin (smart_bins CRUD) :
   GET    /qr/smart-bins/{bin_id}/stats → Stats d'un bac précis (admin)
 
 Flux QR sécurisé :
-  Flutter scanne bin_code
+  Flutter scanne bin_code de la poubelle
        ↓
   POST /qr/scan-bin { bin_code, qr_code, [weight_kg] }
        ↓
-  1. Vérifie smart_bins.bin_code  → 404 si inconnu
-  2. Vérifie smart_bins.status == "active"  → 409 si hors service
-  3. Identifie citoyen via users.qr_code    → 404 si inconnu
-  4. Anti double-scan 60 s                  → 429 si trop tôt
-  5. Calcule points (type vient du bac)
-  6. Met à jour users.global_score (SQL)
-  7. Projette sur Firebase RTDB (temps réel)
-  8. Crée bin_scans (smart_bin_id + bin_id legacy)
+  ┌── Citoyen (role=user) ─────────────────────────────────────────────┐
+  │  1. Vérifie bin_code dans smart_bins         → 404 si inconnu      │
+  │  2. Vérifie status == "active"               → 409 si hors service │
+  │  3. Identifie citoyen via users.qr_code      → 404 si inconnu      │
+  │  4. Anti double-scan 60 s                    → 429 si trop tôt     │
+  │  5. Calcule points (barème × poids si dispo)                       │
+  │  6. UPDATE users.global_score + INSERT bin_scans (SQL atomique)     │
+  │  7. Sync Firebase /scores + /poubelles (hors transaction)           │
+  │  8. Retourne action="open_top_lid"                                  │
+  └────────────────────────────────────────────────────────────────────┘
+  ┌── Collecteur (role=collector/admin/pointManager) ──────────────────┐
+  │  1. Récupère poids actuel depuis Firebase /poubelles               │
+  │  2. INSERT collector_logs (poids_avant, collecteur, poubelle)       │
+  │  3. Remet status → "active" + poids Firebase → 0                   │
+  │  4. Notifie tous les utilisateurs role=intercommunality (FCM)       │
+  │  5. Retourne action="open_bottom_compartment"                       │
+  └────────────────────────────────────────────────────────────────────┘
 """
 
 from datetime import datetime, timedelta
@@ -42,8 +52,9 @@ import db_models as db_models
 from database import get_db
 from core.deps import get_current_user, get_admin_user
 from services.firebase_service import (
-    calculate_points, update_user_score, WASTE_POINTS
+    calculate_points, update_user_score, WASTE_POINTS, update_bin_status, get_bin_status
 )
+from services.fcm_push_service import send_push_to_user
 
 router = APIRouter(tags=["qr-bins"])
 
@@ -79,6 +90,7 @@ class BinScanResponse(BaseModel):
     score_after: float
     firebase_synced: bool
     message: str
+    action: str = Field("open_top_lid", description="Action matérielle à effectuer par la poubelle")
 
 
 class SmartBinCreate(BaseModel):
@@ -132,7 +144,7 @@ async def scan_bin(data: BinScanRequest, db: Session = Depends(get_db)):
     if not bin_code or not qr_code:
         raise HTTPException(status_code=400, detail="bin_code et qr_code sont requis")
 
-    # ── 1. Valider la poubelle ────────────────────────────────────────────────
+    # ── 1. Identifier la poubelle ─────────────────────────────────────────────
     smart_bin = (
         db.query(db_models.SmartBin)
         .filter(db_models.SmartBin.bin_code == bin_code)
@@ -143,6 +155,125 @@ async def scan_bin(data: BinScanRequest, db: Session = Depends(get_db)):
             status_code=404,
             detail=f"Poubelle inconnue — bin_code '{bin_code}' non enregistre",
         )
+
+    # ── 2. Identifier l'utilisateur (Citoyen ou Gestionnaire/Collecteur) ──────
+    user = db.query(db_models.User).filter(db_models.User.qr_code == qr_code).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="QR invalide — utilisateur non trouve")
+    if not user.is_active:
+        raise HTTPException(status_code=403, detail="Compte desactive")
+
+    # ── 3. Logique Collecteur / Gestionnaire ──────────────────────────────────
+    if user.role in ["admin", "collector", "pointManager", "gestionnaire"]:
+        """
+        Flux collecteur :
+          a) Lire le poids actuel depuis Firebase (avant vidage)
+          b) Enregistrer la collecte dans collector_logs
+          c) Remettre la poubelle à zéro (SQL + Firebase)
+          d) Notifier tous les utilisateurs intercommunalité via FCM
+        """
+
+        # ── a. Poids avant vidage (depuis Firebase RTDB) ──────────────────────
+        weight_before = 0.0
+        try:
+            bin_firebase = get_bin_status(bin_code)
+            if bin_firebase and isinstance(bin_firebase, dict):
+                weight_before = float(bin_firebase.get("poids", 0.0))
+        except Exception:
+            pass  # Non bloquant — on continue même si Firebase est indisponible
+
+        # ── b. Enregistrer la collecte dans collector_logs ────────────────────
+        try:
+            log = db_models.CollectorLog(
+                collector_id     = user.id,
+                smart_bin_id     = smart_bin.id,
+                bin_code         = bin_code,
+                bin_type         = smart_bin.bin_type,
+                weight_before_kg = weight_before,
+                notified         = False,
+            )
+            db.add(log)
+
+            # Remettre la poubelle à l'état actif
+            smart_bin.status = "active"
+            db.add(smart_bin)
+
+            db.commit()
+            db.refresh(log)
+            db.refresh(smart_bin)
+        except Exception as exc:
+            db.rollback()
+            raise HTTPException(
+                status_code=500,
+                detail=f"Erreur enregistrement collecte : {exc}"
+            )
+
+        # ── c. Remettre Firebase à zéro ───────────────────────────────────────
+        try:
+            update_bin_status(bin_code, poids=0.0, etat="vide")
+        except Exception:
+            pass  # Non bloquant
+
+        # ── d. Notifier l'intercommunalité ────────────────────────────────────
+        try:
+            intercom_users = (
+                db.query(db_models.User)
+                .filter(
+                    db_models.User.role == "intercommunality",
+                    db_models.User.is_active == True,
+                )
+                .all()
+            )
+            now_str = datetime.utcnow().strftime("%d/%m/%Y à %H:%M")
+            notif_count = 0
+            for iuser in intercom_users:
+                ok = send_push_to_user(
+                    db=db,
+                    user_id=iuser.id,
+                    title="🗑️ Collecte effectuée",
+                    body=(
+                        f"Collecteur : {user.full_name or user.email} (ID {user.id})\n"
+                        f"Poubelle : {bin_code} ({smart_bin.bin_type})\n"
+                        f"Quantité collectée : {weight_before:.1f} kg\n"
+                        f"Date : {now_str}"
+                    ),
+                    data={
+                        "type":         "collection",
+                        "bin_code":     bin_code,
+                        "collector_id": str(user.id),
+                        "weight_kg":    str(round(weight_before, 2)),
+                    },
+                )
+                if ok:
+                    notif_count += 1
+
+            # Marquer la notification comme envoyée
+            if notif_count > 0:
+                log.notified = True
+                db.add(log)
+                db.commit()
+        except Exception:
+            pass  # Notifications non bloquantes
+
+        return BinScanResponse(
+            success             = True,
+            user_id             = user.id,
+            user_name           = user.full_name or user.email,
+            bin_code            = bin_code,
+            bin_type            = smart_bin.bin_type,
+            collection_point_id = smart_bin.collection_point_id,
+            points_earned       = 0.0,
+            score_before        = user.global_score or 0.0,
+            score_after         = user.global_score or 0.0,
+            firebase_synced     = True,
+            message=(
+                f"Collecte enregistree par {user.full_name or user.email}. "
+                f"Poids collecte : {weight_before:.1f} kg. Poubelle remise a zero."
+            ),
+            action              = "open_bottom_compartment"
+        )
+
+    # ── 4. Logique Citoyen ('user') ───────────────────────────────────────────
     if smart_bin.status != "active":
         status_msg = {
             "inactive":    "Poubelle desactivee",
@@ -151,14 +282,7 @@ async def scan_bin(data: BinScanRequest, db: Session = Depends(get_db)):
         }.get(smart_bin.status, f"Poubelle hors service ({smart_bin.status})")
         raise HTTPException(status_code=409, detail=status_msg)
 
-    # ── 2. Identifier le citoyen ──────────────────────────────────────────────
-    user = db.query(db_models.User).filter(db_models.User.qr_code == qr_code).first()
-    if not user:
-        raise HTTPException(status_code=404, detail="QR citoyen invalide — utilisateur non trouve")
-    if not user.is_active:
-        raise HTTPException(status_code=403, detail="Compte citoyen desactive")
-
-    # ── 3. Anti double-scan (60 secondes) ────────────────────────────────────
+    # Anti double-scan (60 secondes) pour les citoyens
     cutoff = datetime.utcnow() - timedelta(seconds=DOUBLE_SCAN_WINDOW_SECONDS)
     recent = (
         db.query(db_models.BinScan)
@@ -222,9 +346,6 @@ async def scan_bin(data: BinScanRequest, db: Session = Depends(get_db)):
 
     # ════════════════════════════════════════════════════════════════════════
     # SYNC FIREBASE (hors transaction SQL)
-    # Exécutée après COMMIT pour ne jamais bloquer la cohérence SQL.
-    # Si Firebase est indisponible, le score SQL reste correct ; firebase_synced
-    # reste False et sera corrigé par le job de sync periodique.
     # ════════════════════════════════════════════════════════════════════════
     firebase_ok = False
     try:
@@ -237,6 +358,46 @@ async def scan_bin(data: BinScanRequest, db: Session = Depends(get_db)):
         )
     except Exception:
         firebase_ok = False  # Firebase en panne : non bloquant
+
+    # ── Mise à jour Firebase /poubelles/{bin_code} ────────────────────────
+    # Calcule le poids cumulé de cette poubelle depuis le dernier vidage
+    # et déduit l'état automatiquement selon la capacité.
+    try:
+        poids_cumule = (
+            db.query(func.sum(db_models.BinScan.weight_kg))
+            .filter(
+                db_models.BinScan.smart_bin_id == smart_bin.id,
+                db_models.BinScan.weight_kg.isnot(None),
+            )
+            .scalar()
+        ) or 0.0
+        poids_cumule = round(float(poids_cumule), 2)
+
+        # Calcul de l'état selon le taux de remplissage
+        if smart_bin.capacity_kg and smart_bin.capacity_kg > 0:
+            taux = poids_cumule / smart_bin.capacity_kg
+            if taux >= 0.90:
+                etat_bin = "plein"
+                # Marquer la poubelle comme pleine dans PostgreSQL aussi
+                smart_bin.status = "full"
+                db.add(smart_bin)
+                db.commit()
+            elif taux >= 0.50:
+                etat_bin = "mi-plein"
+            else:
+                etat_bin = "vide"
+        else:
+            # Pas de capacité connue : estimation heuristique par poids brut
+            if poids_cumule >= 30.0:
+                etat_bin = "plein"
+            elif poids_cumule >= 10.0:
+                etat_bin = "mi-plein"
+            else:
+                etat_bin = "vide"
+
+        update_bin_status(bin_code, poids=poids_cumule, etat=etat_bin)
+    except Exception:
+        pass  # Non bloquant — le score citoyen est déjà sauvegardé
 
     # Marquer firebase_synced=True uniquement si le push a reussi
     if firebase_ok:
@@ -263,6 +424,7 @@ async def scan_bin(data: BinScanRequest, db: Session = Depends(get_db)):
             f"+{points} pts pour {user.full_name or user.email} "
             f"— {waste_type} @ {bin_code}"
         ),
+        action              = "open_top_lid"
     )
 
 
@@ -299,6 +461,65 @@ async def get_scan_history(
                 "scanned_at":    s.scanned_at.isoformat() if s.scanned_at else None,
             }
             for s in scans
+        ],
+    }
+
+
+# ── GET /qr/collector-history ─────────────────────────────────────────────────
+
+@router.get("/qr/collector-history")
+async def get_collector_history(
+    limit: int = 20,
+    db: Session = Depends(get_db),
+    current_user: db_models.User = Depends(get_current_user),
+):
+    """
+    Historique des collectes (vidages) effectuées par le collecteur connecté.
+
+    Accessible uniquement aux utilisateurs avec role :
+      collector | admin | pointManager | gestionnaire
+
+    Retourne pour chaque collecte :
+      - id               : identifiant de l'opération
+      - bin_code         : code de la poubelle vidée
+      - bin_type         : type de déchet de la poubelle
+      - weight_before_kg : quantité collectée (poids avant vidage)
+      - notified         : True si l'intercommunalité a été notifiée
+      - collected_at     : date et heure de la collecte
+    """
+    if current_user.role not in ["collector", "admin", "pointManager", "gestionnaire"]:
+        raise HTTPException(
+            status_code=403,
+            detail="Accès réservé aux collecteurs et gestionnaires.",
+        )
+
+    logs = (
+        db.query(db_models.CollectorLog)
+        .filter(db_models.CollectorLog.collector_id == current_user.id)
+        .order_by(desc(db_models.CollectorLog.collected_at))
+        .limit(min(limit, 200))
+        .all()
+    )
+
+    total_weight = sum(
+        (l.weight_before_kg or 0.0) for l in logs
+    )
+
+    return {
+        "collector_id":    current_user.id,
+        "collector_name":  current_user.full_name or current_user.email,
+        "total_collections": len(logs),
+        "total_weight_kg":   round(total_weight, 2),
+        "collections": [
+            {
+                "id":              l.id,
+                "bin_code":        l.bin_code,
+                "bin_type":        l.bin_type,
+                "weight_before_kg": l.weight_before_kg,
+                "notified":        l.notified,
+                "collected_at":    l.collected_at.isoformat() if l.collected_at else None,
+            }
+            for l in logs
         ],
     }
 
@@ -390,7 +611,14 @@ async def create_smart_bin(
     db.add(smart_bin)
     db.commit()
     db.refresh(smart_bin)
-    return {"message": "Poubelle créée avec succès", "smart_bin": _serialize_bin(smart_bin)}
+
+    # Sync Firebase /poubelles dès la création (état initial : vide, poids 0)
+    try:
+        update_bin_status(data.bin_code, poids=0.0, etat="vide")
+    except Exception:
+        pass  # Non bloquant
+
+    return {"message": "Poubelle creee avec succes", "smart_bin": _serialize_bin(smart_bin)}
 
 
 @router.get("/qr/smart-bins/{bin_id}")

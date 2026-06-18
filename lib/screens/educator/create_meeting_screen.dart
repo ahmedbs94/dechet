@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import '../../services/meetings_service.dart';
 import '../../services/groups_service.dart';
+import '../../services/l10n_service.dart';
 
 class CreateMeetingScreen extends StatefulWidget {
   final Map<String, dynamic>? existingMeeting; // non-null = mode édition
@@ -132,13 +133,13 @@ class _CreateMeetingScreenState extends State<CreateMeetingScreen> {
 
     if (ok) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text(isEdit ? 'Séance modifiée !' : 'Séance créée et citoyens notifiés !'),
+        content: Text(isEdit ? (L10n.isArabic ? 'تم تعديل الجلسة !' : 'Séance modifiée !') : (L10n.isArabic ? 'تم إنشاء الجلسة وإشعار المواطنين !' : 'Séance créée et citoyens notifiés !')),
         backgroundColor: _kGreen,
       ));
-      Navigator.pop(context, true); // signaler le refresh
+      Navigator.pop(context, true);
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-        content: Text('Erreur lors de la sauvegarde'),
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(L10n.isArabic ? 'خطأ أثناء الحفظ' : 'Erreur lors de la sauvegarde'),
         backgroundColor: Colors.red,
       ));
     }
@@ -153,7 +154,7 @@ class _CreateMeetingScreenState extends State<CreateMeetingScreen> {
         backgroundColor: const Color(0xFF0F1923),
         elevation: 0,
         title: Text(
-          isEdit ? 'Modifier la séance' : 'Planifier une séance',
+          isEdit ? (L10n.isArabic ? 'تعديل الجلسة' : 'Modifier la séance') : (L10n.isArabic ? 'جدولة جلسة' : 'Planifier une séance'),
           style: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: Colors.white),
         ),
         leading: IconButton(
@@ -170,7 +171,7 @@ class _CreateMeetingScreenState extends State<CreateMeetingScreen> {
           else
             TextButton(
               onPressed: _submit,
-              child: Text(isEdit ? 'Enregistrer' : 'Créer',
+              child: Text(isEdit ? (L10n.isArabic ? 'حفظ' : 'Enregistrer') : (L10n.isArabic ? 'إنشاء' : 'Créer'),
                 style: GoogleFonts.outfit(color: _kGreen, fontWeight: FontWeight.bold, fontSize: 16)),
             ),
         ],
@@ -180,28 +181,25 @@ class _CreateMeetingScreenState extends State<CreateMeetingScreen> {
         child: ListView(
           padding: const EdgeInsets.all(20),
           children: [
-            // ── Nom du cours ───────────────────────────────────────────────
-            const _SectionLabel('Nom du cours'),
+            _SectionLabel(L10n.isArabic ? 'اسم الدرس' : 'Nom du cours'),
             _StyledField(
               controller: _titleCtrl,
-              hint: 'Ex : Tri des déchets plastiques',
+              hint: L10n.isArabic ? 'مثال: فرز البلاستيك' : 'Ex : Tri des déchets plastiques',
               icon: Icons.menu_book_rounded,
-              validator: (v) => (v == null || v.isEmpty) ? 'Titre requis' : null,
+              validator: (v) => (v == null || v.isEmpty) ? (L10n.isArabic ? 'العنوان مطلوب' : 'Titre requis') : null,
             ),
             const SizedBox(height: 20),
 
-            // ── Description ────────────────────────────────────────────────
-            const _SectionLabel('Description / Objectifs'),
+            _SectionLabel(L10n.isArabic ? 'الوصف / الأهداف' : 'Description / Objectifs'),
             _StyledField(
               controller: _descCtrl,
-              hint: 'Décrivez les objectifs de cette séance...',
+              hint: L10n.isArabic ? 'صف أهداف هذه الجلسة...' : 'Décrivez les objectifs de cette séance...',
               icon: Icons.notes_rounded,
               maxLines: 3,
             ),
             const SizedBox(height: 20),
 
-            // ── Date & Heure ────────────────────────────────────────────────
-            const _SectionLabel('Date & Heure'),
+            _SectionLabel(L10n.isArabic ? 'التاريخ والوقت' : 'Date & Heure'),
             Row(children: [
               Expanded(child: _DateTimeChip(
                 icon: Icons.calendar_today_rounded,
@@ -217,23 +215,21 @@ class _CreateMeetingScreenState extends State<CreateMeetingScreen> {
             ]),
             const SizedBox(height: 20),
 
-            // ── Durée ──────────────────────────────────────────────────────
-            const _SectionLabel('Durée de la séance'),
+            _SectionLabel(L10n.isArabic ? 'مدة الجلسة' : 'Durée de la séance'),
             _DurationSelector(
               value: _durationMinutes,
               onChanged: (v) => setState(() => _durationMinutes = v),
             ),
             const SizedBox(height: 20),
 
-            // ── Audience ────────────────────────────────────────────────────
-            const _SectionLabel('Destinataires'),
+            _SectionLabel(L10n.isArabic ? 'المستهدفون' : 'Destinataires'),
             _AudienceSelector(
               value: _audience,
               onChanged: (v) => setState(() => _audience = v),
             ),
             if (_audience == 'group') ...[
               const SizedBox(height: 12),
-              const _SectionLabel('Sélectionner un groupe'),
+              _SectionLabel(L10n.isArabic ? 'اختر مجموعة' : 'Sélectionner un groupe'),
               // Dropdown groupes existants
               if (_groups.isNotEmpty)
                 Container(
@@ -250,12 +246,12 @@ class _CreateMeetingScreenState extends State<CreateMeetingScreen> {
                       hint: Row(children: [
                         const Icon(Icons.group_rounded, color: Color(0xFF00C896), size: 20),
                         const SizedBox(width: 8),
-                        Text('Choisir un groupe',
+                        Text(L10n.isArabic ? 'اختر مجموعة' : 'Choisir un groupe',
                           style: GoogleFonts.inter(color: Colors.white38)),
                       ]),
                       items: [
                         DropdownMenuItem<int?>(value: null,
-                          child: Text('— Aucun groupe —',
+                          child: Text(L10n.isArabic ? '— بدون مجموعة —' : '— Aucun groupe —',
                             style: GoogleFonts.inter(color: Colors.white54))),
                         ..._groups.map((g) => DropdownMenuItem<int?>(
                           value: g['id'] as int,
@@ -268,7 +264,7 @@ class _CreateMeetingScreenState extends State<CreateMeetingScreen> {
                               ),
                             ),
                             const SizedBox(width: 8),
-                            Text('${g['name']} (${g['member_count']} membres)',
+                            Text(L10n.isArabic ? '${g['name']} (${g['member_count']} أعضاء)' : '${g['name']} (${g['member_count']} membres)',
                               style: GoogleFonts.inter(color: Colors.white)),
                           ]),
                         )),
@@ -289,7 +285,7 @@ class _CreateMeetingScreenState extends State<CreateMeetingScreen> {
                       color: Color(0xFF00C896), size: 18),
                     const SizedBox(width: 10),
                     Expanded(child: Text(
-                      'Aucun groupe. Créez d\'abord un groupe depuis votre tableau de bord.',
+                      L10n.isArabic ? 'لا توجد مجموعات. أنشئ مجموعة أولاً من لوحة القيادة.' : 'Aucun groupe. Créez d\'abord un groupe depuis votre tableau de bord.',
                       style: GoogleFonts.inter(color: Colors.white60, fontSize: 12),
                     )),
                   ]),
@@ -309,8 +305,9 @@ class _CreateMeetingScreenState extends State<CreateMeetingScreen> {
                 const Icon(Icons.video_camera_front_rounded, color: _kGreen, size: 28),
                 const SizedBox(width: 12),
                 Expanded(child: Text(
-                  'Un lien Google Meet unique sera généré automatiquement '
-                  'et partagé avec les participants.',
+                  L10n.isArabic
+                    ? 'سيتم إنشاء رابط Google Meet تلقائياً ومشاركته مع المشاركين.'
+                    : 'Un lien Google Meet unique sera généré automatiquement et partagé avec les participants.',
                   style: GoogleFonts.inter(color: Colors.white70, fontSize: 13, height: 1.5),
                 )),
               ]),
@@ -437,14 +434,14 @@ class _AudienceSelector extends StatelessWidget {
   Widget build(BuildContext context) => Row(children: [
     Expanded(child: _AudienceChip(
       icon: Icons.public_rounded,
-      label: 'Tous les citoyens',
+      label: L10n.isArabic ? 'جميع المواطنين' : 'Tous les citoyens',
       selected: value == 'all',
       onTap: () => onChanged('all'),
     )),
     const SizedBox(width: 12),
     Expanded(child: _AudienceChip(
       icon: Icons.group_rounded,
-      label: 'Groupe ciblé',
+      label: L10n.isArabic ? 'مجموعة محددة' : 'Groupe ciblé',
       selected: value == 'group',
       onTap: () => onChanged('group'),
     )),

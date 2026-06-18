@@ -5,6 +5,7 @@ import '../../theme/app_theme.dart';
 import '../../models/user_model.dart';
 import '../../services/auth_service.dart';
 import '../../widgets/safe_network_image.dart';
+import '../../services/l10n_service.dart';
 
 
 class CommunityScreen extends StatefulWidget {
@@ -23,7 +24,18 @@ class _CommunityScreenState extends State<CommunityScreen> {
   @override
   void initState() {
     super.initState();
+    L10n.addListener(_onLocaleChange);
     _loadTestimonials();
+  }
+
+  void _onLocaleChange() {
+    if (mounted) setState(() {});
+  }
+
+  @override
+  void dispose() {
+    L10n.removeListener(_onLocaleChange);
+    super.dispose();
   }
 
   Future<void> _loadTestimonials() async {
@@ -39,7 +51,7 @@ class _CommunityScreenState extends State<CommunityScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.backgroundLight,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SingleChildScrollView(
         physics: const BouncingScrollPhysics(),
         child: Column(
@@ -60,7 +72,7 @@ class _CommunityScreenState extends State<CommunityScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Espace Communauté',
+                    L10n.tr('Espace Communauté'),
                     style: GoogleFonts.spaceGrotesk(
                       color: Colors.white,
                       fontSize: 28,
@@ -70,7 +82,7 @@ class _CommunityScreenState extends State<CommunityScreen> {
                   ).animate().fadeIn(duration: 300.ms).slideY(begin: 0.2, end: 0),
                   const SizedBox(height: 6),
                   Text(
-                    'Témoignages et propositions de nos éco-citoyens',
+                    L10n.tr('Témoignages et propositions de nos éco-citoyens'),
                     style: GoogleFonts.inter(color: Colors.white.withOpacity(0.8), fontSize: 14),
                   ).animate().fadeIn(delay: 150.ms),
                 ],
@@ -117,14 +129,14 @@ class _CommunityScreenState extends State<CommunityScreen> {
               ),
               const SizedBox(width: 12),
               Text(
-                'Avis de nos citoyens',
+                L10n.tr('Avis de nos citoyens'),
                 style: GoogleFonts.outfit(fontSize: 20, fontWeight: FontWeight.w900, color: AppTheme.deepSlate),
               ),
             ],
           ).animate().fadeIn(delay: 200.ms),
           const SizedBox(height: 6),
           Text(
-            '${_testimonials.length} témoignage${_testimonials.length > 1 ? 's' : ''}',
+            L10n.isArabic ? '${_testimonials.length} شهادات' : '${_testimonials.length} témoignage${_testimonials.length > 1 ? 's' : ''}',
             style: GoogleFonts.inter(fontSize: 13, color: AppTheme.textMuted),
           ).animate().fadeIn(delay: 250.ms),
           const SizedBox(height: 20),
@@ -179,9 +191,9 @@ class _CommunityScreenState extends State<CommunityScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Partager votre avis', style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 15)),
+                    Text(L10n.tr('Partager votre avis'), style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 15)),
                     const SizedBox(height: 2),
-                    Text('Votre expérience compte !', style: GoogleFonts.inter(color: Colors.white70, fontSize: 12)),
+                    Text(L10n.tr('Votre expérience compte !'), style: GoogleFonts.inter(color: Colors.white70, fontSize: 12)),
                   ],
                 ),
               ),
@@ -220,9 +232,9 @@ class _CommunityScreenState extends State<CommunityScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Proposer un centre de tri', style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 15)),
+                    Text(L10n.tr('Proposer un centre de tri'), style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 15)),
                     const SizedBox(height: 2),
-                    Text('Suggérez un nouvel emplacement', style: GoogleFonts.inter(color: Colors.white70, fontSize: 12)),
+                    Text(L10n.tr('Suggérez un nouvel emplacement'), style: GoogleFonts.inter(color: Colors.white70, fontSize: 12)),
                   ],
                 ),
               ),
@@ -247,9 +259,9 @@ class _CommunityScreenState extends State<CommunityScreen> {
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setModalState) => Container(
           padding: EdgeInsets.fromLTRB(24, 24, 24, MediaQuery.of(ctx).viewInsets.bottom + 24),
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+          decoration: BoxDecoration(
+            color: Theme.of(ctx).colorScheme.surface,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -257,11 +269,11 @@ class _CommunityScreenState extends State<CommunityScreen> {
             children: [
               Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(2)))),
               const SizedBox(height: 20),
-              Text('Votre avis', style: GoogleFonts.outfit(fontSize: 24, fontWeight: FontWeight.w900, color: AppTheme.deepSlate)),
+              Text(L10n.tr('Votre avis'), style: GoogleFonts.outfit(fontSize: 24, fontWeight: FontWeight.w900, color: AppTheme.deepSlate)),
               const SizedBox(height: 8),
-              Text('Partagez votre expérience avec EcoRewind', style: GoogleFonts.inter(fontSize: 14, color: AppTheme.textMuted)),
+              Text(L10n.tr('Partagez votre expérience avec EcoRewind'), style: GoogleFonts.inter(fontSize: 14, color: AppTheme.textMuted)),
               const SizedBox(height: 24),
-              Text('Note', style: GoogleFonts.outfit(fontWeight: FontWeight.w700, fontSize: 14)),
+              Text(L10n.tr('Note'), style: GoogleFonts.outfit(fontWeight: FontWeight.w700, fontSize: 14)),
               const SizedBox(height: 8),
               Row(
                 children: List.generate(5, (i) => GestureDetector(
@@ -273,7 +285,7 @@ class _CommunityScreenState extends State<CommunityScreen> {
                 )),
               ),
               const SizedBox(height: 20),
-              Text('Votre témoignage', style: GoogleFonts.outfit(fontWeight: FontWeight.w700, fontSize: 14)),
+              Text(L10n.tr('Votre témoignage'), style: GoogleFonts.outfit(fontWeight: FontWeight.w700, fontSize: 14)),
               const SizedBox(height: 8),
               TextField(
                 controller: contentController,
@@ -350,9 +362,9 @@ class _CommunityScreenState extends State<CommunityScreen> {
         builder: (ctx, setModalState) => Container(
           padding: EdgeInsets.fromLTRB(24, 24, 24, MediaQuery.of(ctx).viewInsets.bottom + 24),
           constraints: BoxConstraints(maxHeight: MediaQuery.of(ctx).size.height * 0.85),
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+          decoration: BoxDecoration(
+            color: Theme.of(ctx).colorScheme.surface,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
           ),
           child: SingleChildScrollView(
             child: Column(
@@ -531,9 +543,9 @@ class _TestimonialCard extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: Colors.grey.shade100),
+        border: Border.all(color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF334155) : Colors.grey.shade100),
         boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 15, offset: const Offset(0, 6))],
       ),
       child: Column(

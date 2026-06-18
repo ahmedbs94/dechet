@@ -9,6 +9,7 @@ import 'package:intl/intl.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../services/meetings_service.dart';
+import '../theme/app_theme.dart';
 
 class MeetingsSection extends StatefulWidget {
   const MeetingsSection({Key? key}) : super(key: key);
@@ -73,12 +74,12 @@ class _MeetingsSectionState extends State<MeetingsSection> {
             const SizedBox(width: 12),
             Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Text('Mes Séances', style: GoogleFonts.outfit(
-                  color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                  color: Theme.of(context).brightness == Brightness.dark ? Colors.white : AppTheme.deepSlate, fontSize: 18, fontWeight: FontWeight.bold)),
               Text('Google Meet avec votre éducateur', style: GoogleFonts.inter(
-                  color: Colors.white54, fontSize: 12)),
+                  color: Theme.of(context).brightness == Brightness.dark ? Colors.white54 : AppTheme.textMuted, fontSize: 12)),
             ])),
             IconButton(
-              icon: const Icon(Icons.refresh_rounded, color: Colors.white54),
+              icon: Icon(Icons.refresh_rounded, color: Theme.of(context).brightness == Brightness.dark ? Colors.white54 : AppTheme.textMuted),
               onPressed: () { setState(() => _loading = true); _load(); },
             ),
           ]),
@@ -288,11 +289,11 @@ class _EmptyState extends StatelessWidget {
         ),
         const SizedBox(height: 16),
         Text('Aucune séance à venir',
-          style: GoogleFonts.outfit(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+          style: GoogleFonts.outfit(color: Theme.of(context).brightness == Brightness.dark ? Colors.white : AppTheme.deepSlate, fontSize: 16, fontWeight: FontWeight.bold)),
         const SizedBox(height: 6),
         Text("Votre éducateur planifiera prochainement\nune séance Google Meet avec vous.",
           textAlign: TextAlign.center,
-          style: GoogleFonts.inter(color: Colors.white54, fontSize: 13, height: 1.5)),
+          style: GoogleFonts.inter(color: Theme.of(context).brightness == Brightness.dark ? Colors.white54 : AppTheme.textMuted, fontSize: 13, height: 1.5)),
       ]),
     ),
   );

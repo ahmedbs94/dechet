@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import '../../widgets/safe_network_image.dart';
 
 class PinterestBackground extends StatefulWidget {
   const PinterestBackground({Key? key}) : super(key: key);
@@ -69,8 +70,12 @@ class _PinterestBackgroundState extends State<PinterestBackground>
                       width: width,
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(16),
-                        image: DecorationImage(
-                          image: NetworkImage(url),
+                        color: Colors.grey.shade100,
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(16),
+                        child: SafeNetworkImage(
+                          url,
                           fit: BoxFit.cover,
                         ),
                       ),

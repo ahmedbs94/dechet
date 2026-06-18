@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:developer' as developer;
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart' show kIsWeb, debugPrint;
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -10,6 +10,9 @@ import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../constants.dart';
 import '../models/user_model.dart';
+import 'fcm_service.dart';
+import 'notification_service.dart';
+
 
 /// Service d'authentification
 /// Gere la connexion, l'inscription et la gestion des utilisateurs
@@ -65,6 +68,7 @@ class AuthService {
           'id': data['id'],
           'full_name': data['full_name'],
           'email': data['email'],
+          'avatar_url': data['avatar_url'] ?? '',
         };
       } else {
         final error = json.decode(response.body);
@@ -479,7 +483,24 @@ class AuthService {
     await prefs.setString('jwt_token', token);
     // Synchroniser avec AuthState pour accès synchrone
     AuthState.authToken = token;
+    // ── Envoyer le token FCM au backend maintenant qu'on est connecté ────────
+    _sendFcmTokenAfterLogin();
   }
+
+  /// Envoie le token FCM après connexion (sans bloquer le flux principal)
+  void _sendFcmTokenAfterLogin() {
+    if (kIsWeb) return;
+    // Léger délai pour laisser Firebase Auth se stabiliser
+    Future.delayed(const Duration(milliseconds: 800), () async {
+      try {
+        await FcmService.onUserLoggedIn();
+        debugPrint('[FCM] Token FCM enregistré avec succès après login');
+      } catch (e) {
+        debugPrint('[FCM] Erreur envoi token après login: $e');
+      }
+    });
+  }
+
 
   /// Public alias for saving token (used by OTP verification)
   Future<void> saveToken(String token) => _saveToken(token);
@@ -553,6 +574,14 @@ class AuthService {
   /// Supprime tous les tokens (déconnexion JWT + Firebase)
   Future<void> clearTokens() async {
     final prefs = await SharedPreferences.getInstance();
+    // ── Sauvegarder le timestamp de déconnexion AVANT de supprimer le token ──
+    // Utilisé par FCM pour n'afficher que les notifications reçues après ce moment
+    await prefs.setString(
+      'fcm_last_logout_time',
+      DateTime.now().toUtc().toIso8601String(),
+    );
+    // Effacer les IDs déjà affichés (plus nécessaire : le timestamp est la nouvelle borne)
+    await prefs.remove('fcm_shown_notif_ids');
     await prefs.remove('jwt_token');
     await prefs.remove('refresh_token');
     // Déconnexion Firebase : les Security Rules refuseront toute lecture ultérieure
@@ -1151,6 +1180,54 @@ class AuthService {
     }
   }
 
+  /// Récupère l'historique des points gagnés par l'utilisateur connecté depuis /users/me/points-history
+  Future<List<dynamic>> fetchPointsHistory() async {
+    try {
+      final token = await _getToken();
+      if (token == null) return [];
+      final response = await http.get(
+        Uri.parse('$baseUrl/users/me/points-history'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+      if (response.statusCode == 200) {
+        return json.decode(utf8.decode(response.bodyBytes));
+      }
+      return [];
+    } catch (e) {
+      developer.log('Erreur fetchPointsHistory: $e', name: 'AuthService');
+      return [];
+    }
+  }
+
+  /// Récupère l'impact écologique personnel depuis /users/me/impact
+  /// Retourne scan_count, quiz_count, co2_saved_kg, waste_sorted_kg,
+  /// trees_equivalent, waste_by_type, total_scan_points, total_quiz_points,
+  /// posts_count, likes_received.
+  Future<Map<String, dynamic>> fetchMyImpact() async {
+    try {
+      final token = await _getToken();
+      if (token == null) return {};
+      final response = await http.get(
+        Uri.parse('$baseUrl/users/me/impact'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      ).timeout(const Duration(seconds: 10));
+      if (response.statusCode == 200) {
+        return Map<String, dynamic>.from(
+            json.decode(utf8.decode(response.bodyBytes)));
+      }
+      return {};
+    } catch (e) {
+      developer.log('Erreur fetchMyImpact: $e', name: 'AuthService');
+      return {};
+    }
+  }
+
 
   // ===========================================
   // ADMINISTRATION DES UTILISATEURS
@@ -1263,6 +1340,32 @@ class AuthService {
 
   /// Deconnexion complète (JWT + Google + Facebook)
   Future<void> logout() async {
+    // ── Désenregistrer le token FCM côté backend avant d'effacer les identifiants localement ──
+    try {
+      final token = await _getToken();
+      if (token != null) {
+        await http.put(
+          Uri.parse('$baseUrl/notifications/fcm-token'),
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer $token',
+          },
+          body: jsonEncode({'token': ''}),
+        ).timeout(const Duration(seconds: 3));
+        developer.log('[FCM] Token FCM désenregistré avec succès sur le backend', name: 'AuthService');
+      }
+    } catch (e) {
+      developer.log('[FCM] Impossible de désenregistrer le token FCM : $e', name: 'AuthService');
+    }
+
+    // ── Vider le cache local des notifications en-app ──
+    try {
+      NotificationService().clear();
+      developer.log('[FCM] Cache local des notifications vidé', name: 'AuthService');
+    } catch (e) {
+      developer.log('[FCM] Erreur lors du vidage des notifications : $e', name: 'AuthService');
+    }
+
     await clearTokens();
     // Déconnexion Google
     try {

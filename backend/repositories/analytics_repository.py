@@ -128,19 +128,20 @@ def count_scans_by_waste_type(db: Session, since: Optional[datetime] = None) -> 
 
 
 def get_top_bins(db: Session, since: Optional[datetime] = None, limit: int = 5) -> list:
+    q = db.query(
+        m.BinScan.smart_bin_id,
+        func.count(m.BinScan.id).label("scans_count"),
+        func.coalesce(func.sum(m.BinScan.points_earned), 0).label("points_earned"),
+    ).filter(m.BinScan.smart_bin_id.isnot(None))
+
+    if since:
+        q = q.filter(m.BinScan.scanned_at >= since)
+
     q = (
-        db.query(
-            m.BinScan.smart_bin_id,
-            func.count(m.BinScan.id).label("scans_count"),
-            func.coalesce(func.sum(m.BinScan.points_earned), 0).label("points_earned"),
-        )
-        .filter(m.BinScan.smart_bin_id.isnot(None))
-        .group_by(m.BinScan.smart_bin_id)
+        q.group_by(m.BinScan.smart_bin_id)
         .order_by(func.count(m.BinScan.id).desc())
         .limit(limit)
     )
-    if since:
-        q = q.filter(m.BinScan.scanned_at >= since)
     return q.all()
 
 

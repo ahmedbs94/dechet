@@ -13,6 +13,8 @@ import '../../services/auth_service.dart';
 import '../../widgets/auth_prompt_dialog.dart';
 import '../../widgets/safe_network_image.dart';
 import '../../constants.dart';
+import '../../services/l10n_service.dart';
+import 'post_detail_screen.dart';
 
 class FeedTab extends StatefulWidget {
   const FeedTab({Key? key}) : super(key: key);
@@ -38,14 +40,20 @@ class _FeedTabState extends State<FeedTab> with SingleTickerProviderStateMixin {
   @override
   void initState() {
     super.initState();
+    L10n.addListener(_onLocaleChange);
     timeago.setLocaleMessages('fr', timeago.FrMessages());
     _fabCtrl = AnimationController(vsync: this, duration: 300.ms);
     _scroll.addListener(_onScroll);
     _loadPosts();
   }
 
+  void _onLocaleChange() {
+    if (mounted) setState(() {});
+  }
+
   @override
   void dispose() {
+    L10n.removeListener(_onLocaleChange);
     _scroll.removeListener(_onScroll);
     _scroll.dispose();
     _postCtrl.dispose();
@@ -70,7 +78,7 @@ class _FeedTabState extends State<FeedTab> with SingleTickerProviderStateMixin {
       final p = await _auth.fetchPosts(skip: 0, limit: _pageSize);
       if (mounted) setState(() { _posts = p.cast<Map<String, dynamic>>(); _loading = false; _skip = p.length; _hasMore = p.length >= _pageSize; });
     } catch (_) {
-      if (mounted) setState(() { _error = 'Impossible de charger le fil'; _loading = false; });
+      if (mounted) setState(() { _error = L10n.tr('Impossible de charger le fil'); _loading = false; });
     }
   }
 
@@ -110,6 +118,7 @@ class _FeedTabState extends State<FeedTab> with SingleTickerProviderStateMixin {
           slivers: [
             // ── App Bar ──
             SliverAppBar(
+              automaticallyImplyLeading: false,
               pinned: true,
               floating: false,
               expandedHeight: 110 + top,
@@ -133,7 +142,7 @@ class _FeedTabState extends State<FeedTab> with SingleTickerProviderStateMixin {
                     ),
                     const SizedBox(width: 8),
                     Text(
-                      'Fil',
+                      L10n.tr('tab_feed'),
                       style: GoogleFonts.outfit(
                         fontSize: 20,
                         fontWeight: FontWeight.w900,
@@ -153,7 +162,7 @@ class _FeedTabState extends State<FeedTab> with SingleTickerProviderStateMixin {
                         child: Row(mainAxisSize: MainAxisSize.min, children: [
                           const Icon(Icons.add_rounded, color: Colors.white, size: 16),
                           const SizedBox(width: 4),
-                          Text('Publier', style: GoogleFonts.outfit(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w700)),
+                        Text(L10n.tr('Publier'), style: GoogleFonts.outfit(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w700)),
                         ]),
                       ),
                     ),
@@ -237,7 +246,6 @@ class _PinCardState extends State<_PinCard> {
   late bool _liked;
   late int _likes;
   late bool _saved;
-  bool _actionsVisible = false;
 
   @override
   void initState() {
@@ -262,6 +270,17 @@ class _PinCardState extends State<_PinCard> {
     else if (mounted) { setState(() => _saved = !_saved); }
   }
 
+  void _goToDetails() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => PostDetailScreen(post: widget.post),
+      ),
+    ).then((_) {
+      widget.onRefresh();
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final imageUrl = widget.post['image_url'] as String? ?? '';
@@ -271,9 +290,10 @@ class _PinCardState extends State<_PinCard> {
     final avatarUrl = widget.post['user_avatar_url'] as String? ?? '';
     final timeStr = widget.formatTime(widget.post['created_at']);
     final isOwn = AuthState.isLoggedIn && name == AuthState.currentUser?.name;
+    final commentsCount = (widget.post['comments'] as List?)?.length ?? 0;
 
     return GestureDetector(
-      onTap: () => setState(() => _actionsVisible = !_actionsVisible),
+      onTap: _goToDetails,
       child: Container(
         decoration: BoxDecoration(
           color: Theme.of(context).colorScheme.surface,
@@ -308,18 +328,24 @@ class _PinCardState extends State<_PinCard> {
                     ),
                   ),
                 ),
-                // Boutons action overlay
+                // Boutons action overlay (Toujours visible)
                 Positioned(
                   bottom: 8, right: 8,
-                  child: AnimatedOpacity(
-                    opacity: _actionsVisible ? 1.0 : 0.0,
-                    duration: 200.ms,
-                    child: Row(children: [
-                      _ActionBtn(icon: _liked ? Icons.favorite_rounded : Icons.favorite_border_rounded, color: _liked ? const Color(0xFFFF4B6E) : Colors.white, label: '$_likes', onTap: _toggleLike),
-                      const SizedBox(width: 6),
-                      _ActionBtn(icon: _saved ? Icons.bookmark_rounded : Icons.bookmark_border_rounded, color: _saved ? AppTheme.primaryGreen : Colors.white, onTap: _toggleSave),
-                    ]),
-                  ),
+                  child: Row(children: [
+                    _ActionBtn(
+                      icon: _liked ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+                      color: _liked ? const Color(0xFFFF4B6E) : Colors.white,
+                      label: '$_likes',
+                      onTap: _toggleLike,
+                    ),
+                    const SizedBox(width: 6),
+                    _ActionBtn(
+                      icon: Icons.chat_bubble_outline_rounded,
+                      color: Colors.white,
+                      label: '$commentsCount',
+                      onTap: _goToDetails,
+                    ),
+                  ]),
                 ),
                 // Bouton save toujours visible en haut à droite
                 Positioned(
@@ -358,7 +384,7 @@ class _PinCardState extends State<_PinCard> {
                     ),
                     const SizedBox(height: 8),
                   ],
-                  // Si pas d'image, afficher les likes ici
+                  // Si pas d'image, afficher les likes et commentaires ici
                   if (!hasImage)
                     Padding(
                       padding: const EdgeInsets.only(bottom: 8),
@@ -366,6 +392,13 @@ class _PinCardState extends State<_PinCard> {
                         GestureDetector(onTap: _toggleLike, child: Icon(_liked ? Icons.favorite_rounded : Icons.favorite_border_rounded, size: 16, color: _liked ? const Color(0xFFFF4B6E) : Colors.grey.shade400)),
                         const SizedBox(width: 4),
                         Text('$_likes', style: GoogleFonts.inter(fontSize: 11, color: Colors.grey.shade500)),
+                        const SizedBox(width: 12),
+                        GestureDetector(
+                          onTap: _goToDetails,
+                          child: Icon(Icons.chat_bubble_outline_rounded, size: 15, color: Colors.grey.shade400),
+                        ),
+                        const SizedBox(width: 4),
+                        Text('$commentsCount', style: GoogleFonts.inter(fontSize: 11, color: Colors.grey.shade500)),
                         const Spacer(),
                         GestureDetector(onTap: _toggleSave, child: Icon(_saved ? Icons.bookmark_rounded : Icons.bookmark_border_rounded, size: 16, color: _saved ? AppTheme.primaryGreen : Colors.grey.shade400)),
                       ]),
@@ -478,7 +511,7 @@ class _CreatePostSheetState extends State<_CreatePostSheet> {
       if (r['success'] == true) {
         final pending = r['ai_flagged'] == true || r['status'] == 'pending_review';
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text(pending ? '⏳ Publication en attente de validation' : '✅ Publication publiée !'),
+          content: Text(pending ? (L10n.isArabic ? '⏳ المنشور في انتظار التحقق' : '⏳ Publication en attente de validation') : (L10n.isArabic ? '✅ تم نشر المنشور!' : '✅ Publication publiée !')),
           backgroundColor: pending ? Colors.orange : AppTheme.primaryGreen,
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
@@ -503,7 +536,7 @@ class _CreatePostSheetState extends State<_CreatePostSheet> {
         const SizedBox(height: 16),
         Row(children: [
           Text(
-            'Nouvelle publication',
+            L10n.tr('Nouvelle publication'),
             style: GoogleFonts.outfit(
               fontSize: 18,
               fontWeight: FontWeight.w800,
@@ -519,7 +552,7 @@ class _CreatePostSheetState extends State<_CreatePostSheet> {
           maxLines: 3,
           style: GoogleFonts.inter(fontSize: 14),
           decoration: InputDecoration(
-            hintText: 'Partagez votre geste écologique...',
+            hintText: L10n.tr('Partagez votre geste écologique...'),
             hintStyle: GoogleFonts.inter(color: Colors.grey.shade400),
             filled: true,
             fillColor: isDark ? Colors.white.withOpacity(0.05) : const Color(0xFFF8F7F5),
@@ -554,7 +587,7 @@ class _CreatePostSheetState extends State<_CreatePostSheet> {
               child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
                 const Icon(Icons.add_photo_alternate_rounded, color: AppTheme.primaryGreen, size: 22),
                 const SizedBox(width: 8),
-                Text('Ajouter une photo', style: GoogleFonts.inter(color: AppTheme.primaryGreen, fontWeight: FontWeight.w600, fontSize: 13)),
+                Text(L10n.tr('Ajouter une photo'), style: GoogleFonts.inter(color: AppTheme.primaryGreen, fontWeight: FontWeight.w600, fontSize: 13)),
               ]),
             ),
           ),
@@ -570,7 +603,7 @@ class _CreatePostSheetState extends State<_CreatePostSheet> {
           ),
           child: _uploading
             ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-            : Text('Publier', style: GoogleFonts.outfit(fontSize: 16, fontWeight: FontWeight.w800, color: Colors.white)),
+            : Text(L10n.tr('Publier'), style: GoogleFonts.outfit(fontSize: 16, fontWeight: FontWeight.w800, color: Colors.white)),
         ),
       ]),
     );
@@ -587,14 +620,14 @@ class _EmptyView extends StatelessWidget {
       Container(padding: const EdgeInsets.all(24), decoration: BoxDecoration(color: AppTheme.primaryGreen.withOpacity(0.08), shape: BoxShape.circle),
         child: const Icon(Icons.eco_rounded, size: 52, color: AppTheme.primaryGreen)),
       const SizedBox(height: 20),
-      Text('Aucune publication', style: GoogleFonts.outfit(fontSize: 20, fontWeight: FontWeight.w800, color: const Color(0xFF0F172A))),
+      Text(L10n.tr('Aucune publication'), style: GoogleFonts.outfit(fontSize: 20, fontWeight: FontWeight.w800, color: const Color(0xFF0F172A))),
       const SizedBox(height: 8),
-      Text('Soyez le premier à partager un geste éco !', style: GoogleFonts.inter(fontSize: 14, color: Colors.grey.shade500), textAlign: TextAlign.center),
+      Text(L10n.tr('Soyez le premier à partager un geste éco !'), style: GoogleFonts.inter(fontSize: 14, color: Colors.grey.shade500), textAlign: TextAlign.center),
       const SizedBox(height: 24),
       ElevatedButton.icon(
         onPressed: onTap,
         icon: const Icon(Icons.add_rounded, size: 18),
-        label: Text('Créer une publication', style: GoogleFonts.outfit(fontWeight: FontWeight.w700)),
+        label: Text(L10n.tr('Créer une publication'), style: GoogleFonts.outfit(fontWeight: FontWeight.w700)),
         style: ElevatedButton.styleFrom(backgroundColor: AppTheme.primaryGreen, foregroundColor: Colors.white,
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))),
       ),
@@ -613,7 +646,7 @@ class _ErrorView extends StatelessWidget {
       const SizedBox(height: 16),
       Text(message, style: GoogleFonts.inter(color: const Color(0xFF334155), fontWeight: FontWeight.w600)),
       const SizedBox(height: 12),
-      TextButton.icon(onPressed: onRetry, icon: const Icon(Icons.refresh_rounded), label: const Text('Réessayer'), style: TextButton.styleFrom(foregroundColor: AppTheme.primaryGreen)),
+      TextButton.icon(onPressed: onRetry, icon: const Icon(Icons.refresh_rounded), label: Text(L10n.tr('Réessayer')), style: TextButton.styleFrom(foregroundColor: AppTheme.primaryGreen)),
     ]));
   }
 }

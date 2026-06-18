@@ -7,6 +7,7 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../theme/app_theme.dart';
 import '../../services/auth_service.dart';
+import '../../services/l10n_service.dart';
 
 class PointManagerTab extends StatefulWidget {
   const PointManagerTab({Key? key}) : super(key: key);
@@ -32,13 +33,19 @@ class _PointManagerTabState extends State<PointManagerTab>
   @override
   void initState() {
     super.initState();
+    L10n.addListener(_onLocaleChange);
     _loadAll();
     // Polling toutes les 30 secondes
     _pollingTimer = Timer.periodic(const Duration(seconds: 30), (_) => _loadAll());
   }
 
+  void _onLocaleChange() {
+    if (mounted) setState(() {});
+  }
+
   @override
   void dispose() {
+    L10n.removeListener(_onLocaleChange);
     _pollingTimer?.cancel();
     super.dispose();
   }
@@ -117,15 +124,17 @@ class _PointManagerTabState extends State<PointManagerTab>
     if (mounted) setState(() => _markingRead = false);
   }
 
+  String _t(String fr, String ar) => L10n.isArabic ? ar : fr;
+
   String _timeAgo(String? isoDate) {
     if (isoDate == null) return '';
     try {
       final dt = DateTime.parse(isoDate).toLocal();
       final diff = DateTime.now().difference(dt);
-      if (diff.inMinutes < 1) return 'À l\'instant';
-      if (diff.inMinutes < 60) return 'Il y a ${diff.inMinutes} min';
-      if (diff.inHours < 24) return 'Il y a ${diff.inHours}h';
-      return 'Il y a ${diff.inDays}j';
+      if (diff.inMinutes < 1) return _t('À l\'instant', 'الآن');
+      if (diff.inMinutes < 60) return _t('Il y a ${diff.inMinutes} min', 'منذ ${diff.inMinutes} دقيقة');
+      if (diff.inHours < 24) return _t('Il y a ${diff.inHours}h', 'منذ ${diff.inHours} ساعة');
+      return _t('Il y a ${diff.inDays}j', 'منذ ${diff.inDays} يوم');
     } catch (_) {
       return '';
     }
@@ -146,6 +155,7 @@ class _PointManagerTabState extends State<PointManagerTab>
       slivers: [
         // ── AppBar ─────────────────────────────────────────────────────────
         SliverAppBar(
+          automaticallyImplyLeading: false,
           expandedHeight: 220,
           floating: false,
           pinned: true,
@@ -165,7 +175,7 @@ class _PointManagerTabState extends State<PointManagerTab>
               child: const Icon(Icons.location_on_rounded, color: Colors.white, size: 16),
             ),
             const SizedBox(width: 10),
-            Text('Supervision des Points',
+            Text(_t('Supervision des Points','مراقبة النقاط'),
                 style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 15)),
             const Spacer(),
             if (_unreadCount > 0)
@@ -199,7 +209,7 @@ class _PointManagerTabState extends State<PointManagerTab>
                     child: const Icon(Icons.notifications_active_rounded, color: Colors.red, size: 16),
                   ),
                   const SizedBox(width: 10),
-                  Text('ALERTES EN TEMPS RÉEL',
+                   Text(_t('ALERTES EN TEMPS RÉEL','تنبيهات فورية'),
                       style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w900, letterSpacing: 1.5, color: AppTheme.textMuted)),
                   const Spacer(),
                   if (_unreadCount > 0)
@@ -213,7 +223,7 @@ class _PointManagerTabState extends State<PointManagerTab>
                         ),
                         child: _markingRead
                             ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.primaryGreen))
-                            : Text('Tout lire',
+                             : Text(_t('Tout lire','قراءة الكل'),
                                 style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w700, color: AppTheme.primaryGreen)),
                       ),
                     ),
@@ -244,7 +254,7 @@ class _PointManagerTabState extends State<PointManagerTab>
                   child: const Icon(Icons.place_rounded, color: AppTheme.primaryGreen, size: 16),
                 ),
                 const SizedBox(width: 10),
-                Text('ÉTAT DES CENTRES',
+                 Text(_t('ÉTAT DES CENTRES','حالة المراكز'),
                     style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w900, letterSpacing: 1.5, color: AppTheme.textMuted)),
               ]),
               const SizedBox(height: 16),
@@ -279,9 +289,9 @@ class _PointManagerTabState extends State<PointManagerTab>
                         const Icon(Icons.engineering_rounded, color: Colors.white, size: 24),
                         const SizedBox(width: 16),
                         Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                          Text('PLANIFIER UNE INTERVENTION',
+                           Text(_t('PLANIFIER UNE INTERVENTION','جدولة تدخل'),
                               style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 13, letterSpacing: 0.5)),
-                          Text('Assigner une équipe à un centre critique',
+                          Text(_t('Assigner une équipe à un centre critique','تعيين فريق لمركز حرج'),
                               style: GoogleFonts.inter(color: Colors.white54, fontSize: 11)),
                         ])),
                         const Icon(Icons.arrow_forward_ios_rounded, color: Colors.white38, size: 14),
@@ -347,12 +357,12 @@ class _PointManagerTabState extends State<PointManagerTab>
                 )),
                 const SizedBox(height: 12),
                 Row(children: [
-                  _pill(Icons.sensors, 'IoT Actif', AppTheme.primaryGreen.withOpacity(0.2), AppTheme.primaryGreen),
-                  const SizedBox(width: 8),
-                  if (criticalCount > 0)
-                    _pill(Icons.warning_amber_rounded, '$criticalCount alerte(s)', Colors.red.withOpacity(0.2), Colors.red)
-                  else
-                    _pill(Icons.check_circle_outline, 'Tout normal', Colors.green.withOpacity(0.2), Colors.green),
+                   _pill(Icons.sensors, _t('IoT Actif','إنترنت الأشياء نشط'), AppTheme.primaryGreen.withOpacity(0.2), AppTheme.primaryGreen),
+                   const SizedBox(width: 8),
+                   if (criticalCount > 0)
+                     _pill(Icons.warning_amber_rounded, '$criticalCount ${_t('alerte(s)','تنبيه')}', Colors.red.withOpacity(0.2), Colors.red)
+                   else
+                     _pill(Icons.check_circle_outline, _t('Tout normal','كل شيء طبيعي'), Colors.green.withOpacity(0.2), Colors.green),
                 ]),
               ],
             ),
@@ -382,11 +392,11 @@ class _PointManagerTabState extends State<PointManagerTab>
   // ── Résumé ──────────────────────────────────────────────────────────────────
   Widget _buildQuickStats(int sature, int maintenance, int total) {
     return Row(children: [
-      _statCard('$total', 'Centres', Icons.place_rounded, Colors.blue),
+      _statCard('$total', _t('Centres','مراكز'), Icons.place_rounded, Colors.blue),
       const SizedBox(width: 12),
-      _statCard('$sature', 'Saturés', Icons.warning_rounded, Colors.red),
+      _statCard('$sature', _t('Saturés','ممتلئة'), Icons.warning_rounded, Colors.red),
       const SizedBox(width: 12),
-      _statCard('$maintenance', 'Maint.', Icons.build_rounded, Colors.orange),
+      _statCard('$maintenance', _t('Maint.','صيانة'), Icons.build_rounded, Colors.orange),
     ].map((w) => Expanded(child: w)).toList());
   }
 
@@ -394,7 +404,7 @@ class _PointManagerTabState extends State<PointManagerTab>
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(20),
         boxShadow: AppTheme.tightShadow,
       ),
@@ -431,7 +441,7 @@ class _PointManagerTabState extends State<PointManagerTab>
         ),
         const SizedBox(width: 16),
         Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text('${criticalCenters.length} Centre(s) Nécessitent une Attention',
+          Text(L10n.isArabic ? '${criticalCenters.length} مركز يحتاج اهتماماً' : '${criticalCenters.length} Centre(s) Nécessitent une Attention',
               style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 13)),
           const SizedBox(height: 4),
           Text(criticalCenters.map((c) => c['name'] ?? '').join(' • '),
@@ -452,11 +462,11 @@ class _PointManagerTabState extends State<PointManagerTab>
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: isRead ? Colors.white : color.withOpacity(0.04),
+        color: isRead ? Theme.of(context).colorScheme.surface : color.withOpacity(0.04),
         borderRadius: BorderRadius.circular(20),
         boxShadow: AppTheme.tightShadow,
         border: Border.all(
-          color: isRead ? Colors.grey.shade100 : color.withOpacity(0.25),
+          color: isRead ? (Theme.of(context).brightness == Brightness.dark ? const Color(0xFF334155) : Colors.grey.shade100) : color.withOpacity(0.25),
           width: isRead ? 1 : 1.5,
         ),
       ),
@@ -497,16 +507,16 @@ class _PointManagerTabState extends State<PointManagerTab>
     return Container(
       padding: const EdgeInsets.all(40),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(20),
         boxShadow: AppTheme.tightShadow,
       ),
       child: Column(children: [
         Icon(Icons.check_circle_outline_rounded, size: 48, color: AppTheme.primaryGreen.withOpacity(0.5)),
         const SizedBox(height: 16),
-        Text('Aucune alerte active', style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 15, color: AppTheme.deepSlate)),
+        Text(_t('Aucune alerte active','لا توجد تنبيهات نشطة'), style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 15, color: AppTheme.deepSlate)),
         const SizedBox(height: 4),
-        Text('Tous les centres fonctionnent normalement', style: GoogleFonts.inter(fontSize: 12, color: AppTheme.textMuted)),
+        Text(_t('Tous les centres fonctionnent normalement','جميع المراكز تعمل بشكل طبيعي'), style: GoogleFonts.inter(fontSize: 12, color: AppTheme.textMuted)),
       ]),
     );
   }
@@ -524,28 +534,28 @@ class _PointManagerTabState extends State<PointManagerTab>
       case 'saturé':
         statusColor = Colors.red;
         statusIcon = Icons.error_rounded;
-        statusLabel = 'SATURÉ';
+        statusLabel = L10n.isArabic ? 'ممتلئ' : 'SATURÉ';
         break;
       case 'maintenance':
         statusColor = Colors.orange;
         statusIcon = Icons.build_rounded;
-        statusLabel = 'MAINTENANCE';
+        statusLabel = L10n.isArabic ? 'صيانة' : 'MAINTENANCE';
         break;
       default:
         statusColor = AppTheme.primaryGreen;
         statusIcon = Icons.check_circle_rounded;
-        statusLabel = 'DISPONIBLE';
+        statusLabel = L10n.isArabic ? 'متاح' : 'DISPONIBLE';
     }
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(20),
         boxShadow: AppTheme.tightShadow,
         border: Border.all(
-          color: status == 'disponible' ? Colors.grey.shade100 : statusColor.withOpacity(0.2),
+          color: status == 'disponible' ? (Theme.of(context).brightness == Brightness.dark ? const Color(0xFF334155) : Colors.grey.shade100) : statusColor.withOpacity(0.2),
         ),
       ),
       child: Column(children: [
@@ -577,7 +587,7 @@ class _PointManagerTabState extends State<PointManagerTab>
         Row(children: [
           Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-              Text('Taux de remplissage',
+              Text(_t('Taux de remplissage','نسبة الامتلاء'),
                   style: GoogleFonts.inter(fontSize: 10, color: AppTheme.textMuted, fontWeight: FontWeight.w600)),
               Text('${(loadLevel * 100).toStringAsFixed(0)}%',
                   style: GoogleFonts.outfit(fontSize: 12, fontWeight: FontWeight.w900, color: statusColor)),
@@ -589,7 +599,7 @@ class _PointManagerTabState extends State<PointManagerTab>
                 value: loadLevel.clamp(0.0, 1.0),
                 minHeight: 7,
                 color: loadLevel > 0.85 ? Colors.red : loadLevel > 0.6 ? Colors.orange : AppTheme.primaryGreen,
-                backgroundColor: Colors.grey.shade100,
+                backgroundColor: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF1E293B) : Colors.grey.shade100,
               ),
             ),
           ])),
