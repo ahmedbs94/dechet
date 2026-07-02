@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'dart:math' as math;
-import 'package:shared_preferences/shared_preferences.dart';
 import '../services/auth_service.dart';
 import '../models/user_model.dart';
 
@@ -58,50 +57,76 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
   }
 
   Future<void> _checkSession() async {
-    // Replaced fixed delay with logic that checks for existing session
     final stopwatch = Stopwatch()..start();
 
-    // Restaurer le token JWT en mémoire (AuthState.authToken)
-    final prefs = await SharedPreferences.getInstance();
-    final savedToken = prefs.getString('jwt_token');
-    if (savedToken != null) AuthState.authToken = savedToken;
-
-    final authService = AuthService();
-    final result = await authService.getCurrentUserDetails();
-
-    // Ensure we wait at least 3 seconds for the animation to look good
-    final elapsed = stopwatch.elapsedMilliseconds;
-    if (elapsed < 3000) {
-      await Future.delayed(Duration(milliseconds: 3000 - elapsed));
+    // ── Priorité 1 : session déjà restaurée par main() avant runApp ──────────
+    // _restoreSessionIfAvailable() dans main() a déjà peuplé AuthState avant
+    // que le widget soit construit → pas besoin d'un appel réseau supplémentaire.
+    if (AuthState.isLoggedIn) {
+      // Attendre au moins 1.2s pour l'animation
+      final elapsed = stopwatch.elapsedMilliseconds;
+      if (elapsed < 1200) {
+        await Future.delayed(Duration(milliseconds: 1200 - elapsed));
+      }
+      if (!mounted) return;
+      _navigateToHome(AuthState.currentUser!.role);
+      return;
     }
 
+    // ── Priorité 2 : token présent mais currentUser null (cas exceptionnel) ──
+    // Par exemple : le serveur était inaccessible lors de main() mais l'app
+    // avait quand même un token valide en local.
+    if (AuthState.authToken != null) {
+      final authService = AuthService();
+      final result = await authService.getCurrentUserDetails();
+
+      final elapsed = stopwatch.elapsedMilliseconds;
+      if (elapsed < 1200) {
+        await Future.delayed(Duration(milliseconds: 1200 - elapsed));
+      }
+      if (!mounted) return;
+
+      if (result['success'] == true) {
+        final userData = result['user'] as Map<String, dynamic>;
+        final roleStr = userData['role'] as String? ?? 'user';
+        final role = UserRole.values.firstWhere(
+          (e) => e.toString().split('.').last == roleStr,
+          orElse: () => UserRole.user,
+        );
+        AuthState.currentUser = User(
+          id: (userData['id'] ?? 0).toString(),
+          name: userData['full_name'] ?? 'Utilisateur',
+          email: userData['email'] ?? '',
+          role: role,
+          globalScore: (userData['global_score'] as num?)?.toDouble() ?? 0.0,
+          avatarUrl: userData['avatar_url'] ?? '',
+          qrCode: userData['qr_code'] ?? '',
+        );
+        _navigateToHome(role);
+        return;
+      }
+    }
+
+    // ── Aucune session valide ──────────────────────────────────────────────────
+    final elapsed = stopwatch.elapsedMilliseconds;
+    if (elapsed < 1200) {
+      await Future.delayed(Duration(milliseconds: 1200 - elapsed));
+    }
     if (!mounted) return;
 
-    if (result['success']) {
-      final userData = result['user'];
-      final userRoleStr = userData['role'] as String;
+    AuthState.authToken = null;
+    AuthState.currentUser = null;
+    Navigator.pushReplacementNamed(context, '/');
+  }
 
-      UserRole role = UserRole.values.firstWhere(
-        (e) => e.toString().split('.').last == userRoleStr,
-        orElse: () => UserRole.user,
-      );
-
-      AuthState.currentUser = User(
-        id: userData['id'].toString(),
-        name: userData['full_name'] ?? 'Utilisateur',
-        email: userData['email'],
-        role: role,
-        globalScore: (userData['global_score'] as num?)?.toDouble() ?? 0.0,
-        avatarUrl: userData['avatar_url'] ?? 'https://ui-avatars.com/api/?name=${Uri.encodeComponent(userData['full_name'] ?? 'User')}&background=10B981&color=fff&size=300',
-        qrCode: userData['qr_code'] ?? '',
-      );
-
-      Navigator.pushReplacementNamed(context, '/home');
-    } else {
-      // Pour les nouveaux visiteurs, on affiche la page Marketing ultra-attractive
-      AuthState.authToken = null;
-      AuthState.currentUser = null;
-      Navigator.pushReplacementNamed(context, '/marketing');
+  void _navigateToHome(UserRole role) {
+    switch (role) {
+      case UserRole.admin:
+      case UserRole.superadmin:
+        Navigator.pushReplacementNamed(context, '/admin');
+        break;
+      default:
+        Navigator.pushReplacementNamed(context, '/home');
     }
   }
 

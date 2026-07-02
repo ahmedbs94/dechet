@@ -19,6 +19,8 @@ sqlalchemy
 alembic>=1.13.0
 Pillow
 httpx
+pyotp
+
 
 # ─── AI Moderation — Couche 1 : détection toxicité texte (BERT) ───────────────
 detoxify>=0.5.2

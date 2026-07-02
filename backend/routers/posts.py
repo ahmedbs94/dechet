@@ -7,7 +7,7 @@ import json as _json
 from datetime import datetime
 from typing import List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Header
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Header, BackgroundTasks
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session, joinedload
 
@@ -302,39 +302,162 @@ async def moderate_image(file: UploadFile = File(...)):
         # En cas d'erreur, renvoyer un message générique
         return {"error": str(e)}
 
+# ── Modération IA en tâche de fond ───────────────────────────────────────────
+
+def _run_ai_moderation(post_id: int, description: str, image_url: str, user_id: int, db: Session):
+    """
+    Tâche de fond : analyse IA du post après que l'utilisateur a déjà reçu une réponse.
+
+    Flux :
+    1. Récupère le post en DB (status = pending_review).
+    2. Exécute le pipeline IA (TextCNN + ResNet18 + NudeNet + Detoxify).
+    3. Met à jour le statut :
+         - score < 0.30   → "published"   (visible dans le fil immédiatement)
+         - score ≥ 0.30   → "pending_review" (admin valide manuellement)
+         - score ≥ 0.65   → "pending_review" (jamais auto-supprimé, admin tranche)
+    4. Envoie une notification si le post passe en "published".
+    """
+    from moderation_ai.eco_moderator import cnn_moderator as moderator
+
+    try:
+        post = db.query(db_models.Post).filter(db_models.Post.id == post_id).first()
+        if not post:
+            return
+
+        # ── Résoudre le chemin local de l'image ─────────────────────────────
+        image_local_path = ""
+        if image_url:
+            filename = os.path.basename(image_url)
+            candidate = os.path.join(UPLOADS_DIR, filename)
+            if os.path.exists(candidate):
+                image_local_path = candidate
+
+        # ── Pipeline IA ──────────────────────────────────────────────────────
+        try:
+            mod_result = moderator.moderate(
+                text=description or "",
+                image_local_path=image_local_path,
+            )
+        except Exception as e:
+            if IS_DEV:
+                print(f"[MOD-BG] Erreur IA sur post {post_id} : {e}")
+            post.moderation_reason = f"AI_ERROR:{str(e)[:120]}"
+            post.moderation_status = "pending_review"
+            post.moderated_at = datetime.utcnow()
+            db.commit()
+            return
+
+        if IS_DEV:
+            print(f"[MOD-BG] Post {post_id} score={mod_result.score:.3f} status={mod_result.status}")
+
+        # ── Calculer le statut final ──────────────────────────────────────────
+        model_parts = []
+        if mod_result.text_model_used:
+            model_parts.append(mod_result.text_model_used)
+        if mod_result.image_model_used:
+            model_parts.append(mod_result.image_model_used)
+        try:
+            if hasattr(moderator, '_obj') and moderator._obj is not None:
+                model_parts.append("EcoCNN_v1")
+            elif hasattr(moderator, '_cnn_ready'):
+                model_parts.append("EcoCNN_v1")
+        except Exception:
+            pass
+        model_version = "|".join(model_parts) if model_parts else "rules_only"
+
+        # Contenu rejeté → pending_review (admin décide, jamais auto-supprimé)
+        if mod_result.status == "rejected":
+            details = _rejection_details(mod_result.reasons, mod_result.score)
+            final_status = "pending_review"
+            moderation_reason = f"AI_FLAGGED:{details['category']}"
+        else:
+            details = None
+            final_status = mod_result.status   # "published" ou "pending_review"
+            moderation_reason = mod_result.short_reason
+
+        # ── Mettre à jour le post ────────────────────────────────────────────
+        post.status                   = final_status
+        post.moderation_score         = mod_result.score
+        post.moderation_reason        = moderation_reason
+        post.moderation_details       = mod_result.to_json()
+        post.moderated_at             = datetime.utcnow()
+        post.moderation_model_version = model_version
+        db.commit()
+
+        if IS_DEV:
+            print(f"[MOD-BG] Post {post_id} mis à jour → status={final_status}")
+
+        # ── Notifications selon le résultat ──────────────────────────────────
+        if final_status == "published":
+            # Post approuvé automatiquement : notifier l'utilisateur
+            notif = db_models.Notification(
+                user_id=user_id,
+                type="moderation",
+                title="✅ Publication approuvée !",
+                body="Votre publication a été validée et est maintenant visible par la communauté.",
+                from_user_name="EcoRewind IA",
+                post_id=post_id,
+            )
+            db.add(notif)
+            db.commit()
+
+        elif details is not None:
+            # Contenu signalé → notifier que l'admin va examiner
+            notif = db_models.Notification(
+                user_id=user_id,
+                type="moderation",
+                title="⚠️ Publication signalée par l'IA",
+                body=(
+                    "Votre publication a été détectée comme potentiellement hors-sujet "
+                    "par notre IA. Elle a été transmise à un administrateur pour vérification. "
+                    "Vous serez notifié(e) dès sa décision."
+                ),
+                from_user_name="EcoRewind IA",
+                post_id=post_id,
+            )
+            db.add(notif)
+            db.commit()
+
+    except Exception as e:
+        if IS_DEV:
+            print(f"[MOD-BG] Exception non gérée pour post {post_id}: {e}")
+    finally:
+        db.close()
+
+
 # ── Posts CRUD ────────────────────────────────────────────────────────────────
 
 @router.post("/posts", response_model=models.Post)
-async def create_post(post: models.PostCreate, db: Session = Depends(get_db),
+async def create_post(post: models.PostCreate,
+                      background_tasks: BackgroundTasks,
+                      db: Session = Depends(get_db),
                       current_user: db_models.User = Depends(get_current_user)):
     """
-    Flux de publication avec audit IA complet :
+    Flux de publication asynchrone (modération IA en tâche de fond) :
 
-    1. Le post est IMMÉDIATEMENT persisté en DB avec status="pending_ai".
-       → Garantit la traçabilité même si l'IA plante en cours d'analyse.
+    1. Le post est IMMÉDIATEMENT persisté en DB avec status="pending_review".
+       → L'utilisateur reçoit une confirmation en < 200ms.
 
-    2. L'IA analyse texte + image.
+    2. La modération IA est lancée en tâche de fond (BackgroundTasks).
+       → Aucun blocage côté HTTP.
 
-    3. Le statut est mis à jour selon le résultat :
-         - score < 0.30                → "published"
-         - 0.30 ≤ score < 0.65        → "pending_review" (admin valide)
-         - score ≥ 0.65 (ou "rejected") → "pending_review" (admin tranche,
-           jamais auto-supprimé pour conserver la preuve de tentative)
+    3. Le statut est mis à jour en arrière-plan :
+         - score < 0.30  → "published"      (visible dans le fil)
+         - score ≥ 0.30  → "pending_review" (admin valide manuellement)
 
-    4. moderated_at et moderation_model_version sont enregistrés à chaque décision.
+    4. Une notification est envoyée à l'utilisateur dès la décision IA.
     """
-    from moderation_ai.eco_moderator import cnn_moderator as moderator
     from fastapi.responses import JSONResponse as _JSONResponse
+    from database import SessionLocal
 
-    # ── Étape 1 : Créer le post en DB avec status="pending_ai" ─────────────────
-    # Garantit l'auditabilité même si l'analyse IA échoue.
+    # ── Étape 1 : Créer le post en DB et répondre IMMÉDIATEMENT ──────────────
     new_post = db_models.Post(
         user_id=current_user.id,
         user_name=post.user_name,
         user_avatar_url=post.user_avatar_url,
         image_url=post.image_url,
         description=post.description,
-        status="pending_ai",        # Statut transitoire obligatoire
+        status="pending_review",        # Statut initial visible à l'utilisateur
         moderation_score=0.0,
         moderation_reason=None,
         moderation_details=None,
@@ -346,123 +469,25 @@ async def create_post(post: models.PostCreate, db: Session = Depends(get_db),
     db.refresh(new_post)
 
     if IS_DEV:
-        print(f"📝 [MOD] Post {new_post.id} créé → status=pending_ai (avant analyse IA)")
+        print(f"[MOD] Post {new_post.id} créé → status=pending_review (IA en background)")
 
-    # ── Étape 2 : Analyse IA ────────────────────────────────────────────────────
-    # Résoudre le chemin local de l'image pour l'analyse IA
-    image_local_path = ""
-    if post.image_url:
-        filename = os.path.basename(post.image_url)
-        candidate = os.path.join(UPLOADS_DIR, filename)
-        if os.path.exists(candidate):
-            image_local_path = candidate
+    # ── Étape 2 : Lancer la modération IA en tâche de fond ───────────────────
+    # On crée une nouvelle session DB indépendante pour la tâche de fond,
+    # car la session `db` de la requête HTTP sera fermée après la réponse.
+    bg_db = SessionLocal()
+    background_tasks.add_task(
+        _run_ai_moderation,
+        post_id=new_post.id,
+        description=post.description or "",
+        image_url=post.image_url or "",
+        user_id=current_user.id,
+        db=bg_db,
+    )
 
-    try:
-        mod_result = moderator.moderate(
-            text=post.description or "",
-            image_local_path=image_local_path,
-        )
-        ai_error = False
-    except Exception as e:
-        # L'IA a planté : le post reste en pending_ai (ne sera pas publié)
-        # L'admin verra les posts bloqués en pending_ai et pourra intervenir.
-        if IS_DEV:
-            print(f"🔴 [MOD] Erreur IA sur post {new_post.id} : {e}")
-        new_post.moderation_reason = f"AI_ERROR:{str(e)[:120]}"
-        new_post.moderated_at = datetime.utcnow()
-        db.commit()
-        # Retourner le post en pending_ai — Flutter affiche un message générique
-        post_data = _format_post(new_post)
-        post_data["ai_flagged"] = False
-        return _JSONResponse(content=post_data, status_code=200)
-
-    if IS_DEV:
-        print(f"🤖 [MOD] Post {new_post.id} score={mod_result.score:.3f} status={mod_result.status} | {mod_result.reasons}")
-
-    # ── Étape 3 : Calculer le statut final et la version du modèle ─────────────
-    # Construire la version du pipeline utilisé (ex: "cnn_text+resnet18+nudenet")
-    model_parts = []
-    if mod_result.text_model_used:
-        model_parts.append(mod_result.text_model_used)
-    if mod_result.image_model_used:
-        model_parts.append(mod_result.image_model_used)
-    # Ajouter le nom du pipeline CNN si disponible
-    try:
-        if hasattr(moderator, '_obj') and moderator._obj is not None:
-            model_parts.append("EcoCNN_v1")
-        elif hasattr(moderator, '_cnn_ready'):
-            model_parts.append("EcoCNN_v1")
-    except Exception:
-        pass
-    model_version = "|".join(model_parts) if model_parts else "rules_only"
-
-    # Le contenu signalé comme rejected → envoyé en pending_review (admin décide)
-    if mod_result.status == "rejected":
-        details = _rejection_details(mod_result.reasons, mod_result.score)
-        final_status = "pending_review"
-        moderation_reason = f"AI_FLAGGED:{details['category']}"
-    else:
-        details = None
-        final_status = mod_result.status   # "published" ou "pending_review"
-        moderation_reason = mod_result.short_reason
-
-    # ── Étape 4 : Mettre à jour le post avec le résultat de l'IA ───────────────
-    new_post.status                   = final_status
-    new_post.moderation_score         = mod_result.score
-    new_post.moderation_reason        = moderation_reason
-    new_post.moderation_details       = mod_result.to_json()
-    new_post.moderated_at             = datetime.utcnow()   # Horodatage de la décision
-    new_post.moderation_model_version = model_version
-    db.commit()
-    db.refresh(new_post)
-
-    if IS_DEV:
-        print(f"✅ [MOD] Post {new_post.id} mis à jour → status={final_status} | model={model_version}")
-
-    # ── Étape 5 : Notifications ─────────────────────────────────────────────────
-    if details is not None:
-        # Contenu initialement rejeté → signalé, admin tranche
-        notif = db_models.Notification(
-            user_id=current_user.id,
-            type="moderation",
-            title="⚠️ Publication signalée par l'IA",
-            body=(
-                "Votre publication a été détectée comme potentiellement hors-sujet "
-                "par notre IA. Elle a été transmise à un administrateur pour vérification. "
-                "Vous serez notifié(e) dès sa décision."
-            ),
-            from_user_name="EcoRewind IA",
-            post_id=new_post.id,
-        )
-        db.add(notif)
-        db.commit()
-
-        post_data = _format_post(new_post)
-        post_data.update({
-            "ai_flagged":         True,
-            "rejection_category": details["category"],
-            "rejection_title":    details["title"],
-            "rejection_body":     details["body"],
-            "rejection_tip":      details["tip"],
-        })
-        return _JSONResponse(content=post_data, status_code=200)
-
-    if final_status == "pending_review":
-        notif = db_models.Notification(
-            user_id=current_user.id,
-            type="moderation",
-            title="⏳ Publication en cours de vérification",
-            body="Votre publication est en attente de validation par notre équipe de modération. Vous serez notifié dès qu'elle sera traitée.",
-            from_user_name="EcoRewind IA",
-            post_id=new_post.id,
-        )
-        db.add(notif)
-        db.commit()
-
+    # ── Étape 3 : Répondre immédiatement à l'utilisateur ─────────────────────
     post_data = _format_post(new_post)
     post_data["ai_flagged"] = False
     return _JSONResponse(content=post_data, status_code=200)
-
 
 
 
@@ -470,7 +495,7 @@ async def create_post(post: models.PostCreate, db: Session = Depends(get_db),
 async def get_single_post(post_id: int, db: Session = Depends(get_db),
                           authorization: Optional[str] = Header(None)):
     from jose import jwt as _jwt, JWTError as _JWTError
-    from auth import SECRET_KEY, ALGORITHM
+    from app.auth.service import SECRET_KEY, ALGORITHM
     post = db.query(db_models.Post).options(joinedload(db_models.Post.comments)).filter(
         db_models.Post.id == post_id).first()
     if not post:
@@ -537,7 +562,7 @@ async def update_post(post_id: int, post_update: models.PostUpdate,
     db_post = db.query(db_models.Post).filter(db_models.Post.id == post_id).first()
     if not db_post:
         raise HTTPException(status_code=404, detail="Publication non trouvée")
-    if db_post.user_id != current_user.id and current_user.role != "admin":
+    if db_post.user_id != current_user.id and current_user.role not in ["admin", "superadmin"]:
         raise HTTPException(status_code=403, detail="Non autorisé")
     if post_update.description:
         db_post.description = post_update.description
@@ -554,7 +579,7 @@ async def delete_post(post_id: int, db: Session = Depends(get_db),
     db_post = db.query(db_models.Post).filter(db_models.Post.id == post_id).first()
     if not db_post:
         raise HTTPException(status_code=404, detail="Publication non trouvée")
-    if db_post.user_id != current_user.id and current_user.role != "admin":
+    if db_post.user_id != current_user.id and current_user.role not in ["admin", "superadmin"]:
         raise HTTPException(status_code=403, detail="Non autorisé")
     db.delete(db_post)
     db.commit()
@@ -612,6 +637,8 @@ async def get_likers(post_id: int, db: Session = Depends(get_db)):
 @router.post("/posts/{post_id}/save")
 async def save_post(post_id: int, db: Session = Depends(get_db),
                     current_user: db_models.User = Depends(get_current_user)):
+    if current_user.role != "user":
+        raise HTTPException(status_code=403, detail="Seuls les citoyens peuvent enregistrer des publications")
     user_id = current_user.id
     existing = db.query(db_models.SavedPost).filter(
         db_models.SavedPost.user_id == user_id,
@@ -647,6 +674,8 @@ async def save_post(post_id: int, db: Session = Depends(get_db),
 @router.get("/users/me/saved-posts", response_model=List[models.Post])
 async def get_saved_posts(db: Session = Depends(get_db),
                           current_user: db_models.User = Depends(get_current_user)):
+    if current_user.role != "user":
+        raise HTTPException(status_code=403, detail="Seuls les citoyens peuvent consulter les publications enregistrées")
     saved_refs = db.query(db_models.SavedPost).filter(
         db_models.SavedPost.user_id == current_user.id).all()
     post_ids = [ref.post_id for ref in saved_refs]

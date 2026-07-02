@@ -125,12 +125,14 @@ class FirebaseScoreService {
 extension FirebaseUtilisateurReader on FirebaseScoreService {
   /// Lit le profil Firebase d'un utilisateur UNE seule fois.
   ///
-  /// Nœud lu : /utilisateurs/{userId}
+  /// Nœud lu : /utilisateurs/{qrCode}
+  /// La clé du nœud est le QR code (ex: TRIDECHET-aaa433a8-...)
   /// Retourne UtilisateurSnapshot.empty() si non authentifié ou absent.
-  Future<UtilisateurSnapshot> getUtilisateur(int userId) async {
+  Future<UtilisateurSnapshot> getUtilisateur(String qrCode) async {
     if (!_isFirebaseAuthenticated) return UtilisateurSnapshot.empty();
+    if (qrCode.isEmpty) return UtilisateurSnapshot.empty();
     try {
-      final ref = _db.ref('utilisateurs/$userId');
+      final ref = _db.ref('utilisateurs/$qrCode');
       final snapshot = await ref.get();
       if (!snapshot.exists || snapshot.value == null) {
         return UtilisateurSnapshot.empty();
@@ -144,12 +146,12 @@ extension FirebaseUtilisateurReader on FirebaseScoreService {
 
   /// Écoute les changements du profil d'un utilisateur en temps réel.
   ///
-  /// Nœud écouté : /utilisateurs/{userId}
-  Stream<UtilisateurSnapshot> watchUtilisateur(int userId) {
-    if (!_isFirebaseAuthenticated) {
+  /// Nœud écouté : /utilisateurs/{qrCode}
+  Stream<UtilisateurSnapshot> watchUtilisateur(String qrCode) {
+    if (!_isFirebaseAuthenticated || qrCode.isEmpty) {
       return Stream.value(UtilisateurSnapshot.empty());
     }
-    final ref = _db.ref('utilisateurs/$userId');
+    final ref = _db.ref('utilisateurs/$qrCode');
     return ref.onValue.map((event) {
       final data = event.snapshot.value;
       if (data == null) return UtilisateurSnapshot.empty();

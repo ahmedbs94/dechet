@@ -55,6 +55,15 @@ class AuthService {
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
+        if (data['status'] == 'mfa_required') {
+          return {
+            'success': true,
+            'mfa_required': true,
+            'mfa_token': data['mfa_token'],
+            'id': data['id'],
+            'email': data['email'],
+          };
+        }
         await _saveToken(data['access_token']);
         if (data['refresh_token'] != null) {
           await _saveRefreshToken(data['refresh_token']);
@@ -145,6 +154,135 @@ class AuthService {
     }
   }
 
+  /// Valide la connexion MFA avec le code à 6 chiffres
+  Future<Map<String, dynamic>> verifyMfaLogin(String mfaToken, String code) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/auth/mfa/verify'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({
+          'mfa_token': mfaToken,
+          'code': code,
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(utf8.decode(response.bodyBytes));
+        await _saveToken(data['access_token']);
+        if (data['refresh_token'] != null) {
+          await _saveRefreshToken(data['refresh_token']);
+        }
+        if (data['firebase_token'] != null) {
+          await _signInToFirebase(data['firebase_token']);
+        }
+        return {
+          'success': true,
+          'token': data['access_token'],
+          'role': data['role'],
+          'id': data['id'],
+          'full_name': data['full_name'],
+          'email': data['email'],
+          'qr_code': data['qr_code'] ?? '',
+          'avatar_url': data['avatar_url'] ?? '',
+        };
+      } else {
+        final error = json.decode(utf8.decode(response.bodyBytes));
+        return {'success': false, 'message': error['detail'] ?? 'Code MFA incorrect ou expiré'};
+      }
+    } catch (e) {
+      return {'success': false, 'message': 'Erreur réseau : $e'};
+    }
+  }
+
+  /// Initialise la configuration MFA sur le profil utilisateur
+  Future<Map<String, dynamic>> setupMfa() async {
+    try {
+      final token = await _getToken();
+      final response = await http.post(
+        Uri.parse('$baseUrl/users/me/mfa/setup'),
+        headers: {
+          'Content-Type': 'application/json',
+          if (token != null) 'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(utf8.decode(response.bodyBytes));
+        return {
+          'success': true,
+          'secret': data['secret'],
+          'otpauth_url': data['otpauth_url'],
+        };
+      } else {
+        final error = json.decode(utf8.decode(response.bodyBytes));
+        return {'success': false, 'message': error['detail'] ?? 'Erreur d\'initialisation du MFA'};
+      }
+    } catch (e) {
+      return {'success': false, 'message': 'Erreur réseau : $e'};
+    }
+  }
+
+  /// Valide et active la MFA avec le premier code de l'application
+  Future<Map<String, dynamic>> verifyEnableMfa(String code) async {
+    try {
+      final token = await _getToken();
+      final response = await http.post(
+        Uri.parse('$baseUrl/users/me/mfa/verify-enable'),
+        headers: {
+          'Content-Type': 'application/json',
+          if (token != null) 'Authorization': 'Bearer $token',
+        },
+        body: json.encode({'code': code}),
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(utf8.decode(response.bodyBytes));
+        return {
+          'success': true,
+          'message': data['message'],
+          'mfa_enabled': data['mfa_enabled'],
+        };
+      } else {
+        final error = json.decode(utf8.decode(response.bodyBytes));
+        return {'success': false, 'message': error['detail'] ?? 'Code MFA invalide'};
+      }
+    } catch (e) {
+      return {'success': false, 'message': 'Erreur réseau : $e'};
+    }
+  }
+
+  /// Désactive le MFA de façon sécurisée (avec mot de passe ou code)
+  Future<Map<String, dynamic>> disableMfa({String? password, String? code}) async {
+    try {
+      final token = await _getToken();
+      final response = await http.post(
+        Uri.parse('$baseUrl/users/me/mfa/disable'),
+        headers: {
+          'Content-Type': 'application/json',
+          if (token != null) 'Authorization': 'Bearer $token',
+        },
+        body: json.encode({
+          if (password != null) 'password': password,
+          if (code != null) 'code': code,
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(utf8.decode(response.bodyBytes));
+        return {
+          'success': true,
+          'message': data['message'],
+          'mfa_enabled': data['mfa_enabled'],
+        };
+      } else {
+        final error = json.decode(utf8.decode(response.bodyBytes));
+        return {'success': false, 'message': error['detail'] ?? 'Erreur lors de la désactivation du MFA'};
+      }
+    } catch (e) {
+      return {'success': false, 'message': 'Erreur réseau : $e'};
+    }
+  }
+
 
   bool _isGoogleSignInInProgress = false;
 
@@ -177,6 +315,15 @@ class AuthService {
 
       if (response.statusCode == 200) {
         final data = json.decode(utf8.decode(response.bodyBytes));
+        if (data['status'] == 'mfa_required') {
+          return {
+            'success': true,
+            'mfa_required': true,
+            'mfa_token': data['mfa_token'],
+            'id': data['id'],
+            'email': data['email'],
+          };
+        }
         await _saveToken(data['access_token']);
         // Connexion Firebase pour que les Security Rules reconnaissent l'utilisateur
         await _signInToFirebase(data['firebase_token']);
@@ -313,6 +460,15 @@ class AuthService {
 
       if (response.statusCode == 200) {
         final data = json.decode(utf8.decode(response.bodyBytes));
+        if (data['status'] == 'mfa_required') {
+          return {
+            'success': true,
+            'mfa_required': true,
+            'mfa_token': data['mfa_token'],
+            'id': data['id'],
+            'email': data['email'],
+          };
+        }
         await _saveToken(data['access_token']);
         // Connexion Firebase pour que les Security Rules reconnaissent l'utilisateur
         await _signInToFirebase(data['firebase_token']);

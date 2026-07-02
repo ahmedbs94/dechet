@@ -59,3 +59,16 @@ class OTPVerifyRequest(BaseModel):
 
 class QRVerifyRequest(BaseModel):
     qr_code: str
+
+
+class MFAPendingResponse(BaseModel):
+    status: str = "mfa_required"
+    mfa_token: str
+    id: int
+    email: str
+
+
+class MFAVerifyLoginRequest(BaseModel):
+    mfa_token: str
+    code: str
+

@@ -602,7 +602,11 @@ class _PeintreLigne extends CustomPainter {
     for (var i = 0; i < donnees.length; i++) {
       final x = i * step;
       final y = h - (donnees[i]['count'] as num).toDouble() / max * h * 0.85;
-      if (i == 0) linePath.moveTo(x, y); else linePath.lineTo(x, y);
+      if (i == 0) {
+        linePath.moveTo(x, y);
+      } else {
+        linePath.lineTo(x, y);
+      }
     }
     canvas.drawPath(linePath, linePaint);
 

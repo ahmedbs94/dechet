@@ -1,6 +1,10 @@
+import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:http/http.dart' as http;
 import 'package:timeago/timeago.dart' as timeago;
 import '../../theme/app_theme.dart';
 import '../../services/auth_service.dart';
@@ -19,22 +23,44 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   final _authService = AuthService();
   List<dynamic> _notifications = [];
   bool _isLoading = true;
-  // Track which notification has an open reply field
   int? _replyingToNotifId;
   final TextEditingController _replyController = TextEditingController();
   bool _isSendingReply = false;
+
+  // ── Rafraîchissement automatique toutes les 30 secondes ──
+  Timer? _refreshTimer;
+  // ── Écouteur FCM foreground (nouvelle notif reçue quand écran ouvert) ──
+  StreamSubscription<RemoteMessage>? _fcmSubscription;
 
   @override
   void initState() {
     super.initState();
     timeago.setLocaleMessages('fr', timeago.FrMessages());
     _loadNotifications();
+
+    // Rafraîchir toutes les 30 s → nouvelles notifs visibles sans action
+    _refreshTimer = Timer.periodic(const Duration(seconds: 30), (_) {
+      if (mounted) _silentRefresh();
+    });
+
+    // Rafraîchissement immédiat quand FCM reçoit un message foreground
+    _fcmSubscription = FirebaseMessaging.onMessage.listen((_) {
+      if (mounted) _silentRefresh();
+    });
   }
 
   @override
   void dispose() {
+    _refreshTimer?.cancel();
+    _fcmSubscription?.cancel();
     _replyController.dispose();
     super.dispose();
+  }
+
+  // Rafraîchissement silencieux (sans spinner) pour les mises à jour auto
+  Future<void> _silentRefresh() async {
+    final notifs = await _authService.fetchNotifications();
+    if (mounted) setState(() => _notifications = notifs);
   }
 
   Future<void> _loadNotifications() async {
@@ -52,18 +78,26 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
   IconData _getIcon(String type) {
     switch (type) {
-      case 'like': return Icons.favorite_rounded;
+      case 'like':    return Icons.favorite_rounded;
       case 'comment': return Icons.chat_bubble_rounded;
-      case 'save': return Icons.bookmark_rounded;
-      default: return Icons.notifications_rounded;
+      case 'save':    return Icons.bookmark_rounded;
+      case 'intercommunality_message':       return Icons.admin_panel_settings_rounded;
+      case 'intercommunality_group_message': return Icons.group_rounded;
+      case 'actor_reply':                    return Icons.reply_all_rounded;
+      case 'assignment':                     return Icons.assignment_rounded;
+      default:        return Icons.notifications_rounded;
     }
   }
 
   Color _getColor(String type) {
     switch (type) {
-      case 'like': return const Color(0xFFFF6B8A);
+      case 'like':    return const Color(0xFFFF6B8A);
       case 'comment': return const Color(0xFF5B8DEF);
-      case 'save': return AppTheme.primaryGreen;
+      case 'save':    return AppTheme.primaryGreen;
+      case 'intercommunality_message':
+      case 'intercommunality_group_message':
+      case 'actor_reply':  return const Color(0xFF6C3EB8);
+      case 'assignment':   return const Color(0xFFE67E22);
       default: return const Color(0xFF94A3B8);
     }
   }
@@ -119,8 +153,48 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     if (_replyController.text.trim().isEmpty) return;
     if (!AuthState.isLoggedIn) return;
 
+    final type   = notif['type'] ?? '';
+    final notifId = notif['id'];
+
+    // — Réponse à un message de l'intercommunalité
+    if (type == 'intercommunality_message' || type == 'intercommunality_group_message') {
+      if (notifId == null) return;
+      setState(() => _isSendingReply = true);
+      try {
+        final jwt = AuthState.authToken;
+        if (jwt == null || jwt.isEmpty) { setState(() => _isSendingReply = false); return; }
+        final uri = Uri.parse('${AuthService.baseUrl}/notifications/$notifId/reply');
+        final res = await http.post(
+          uri,
+          headers: {'Authorization': 'Bearer $jwt', 'Content-Type': 'application/json'},
+          body: json.encode({'message': _replyController.text.trim()}),
+        );
+        if (mounted) {
+          setState(() { _isSendingReply = false; _replyingToNotifId = null; });
+          _replyController.clear();
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Row(children: [
+              const Icon(Icons.check_circle_rounded, color: Colors.white, size: 20),
+              const SizedBox(width: 10),
+              Text(res.statusCode == 200 ? 'Réponse envoyée !' : 'Erreur : ${res.statusCode}',
+                   style: GoogleFonts.inter(fontWeight: FontWeight.w600)),
+            ]),
+            backgroundColor: res.statusCode == 200 ? const Color(0xFF6C3EB8) : Colors.red.shade400,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            margin: const EdgeInsets.all(16),
+            duration: const Duration(seconds: 2),
+          ));
+        }
+      } catch (_) {
+        if (mounted) setState(() => _isSendingReply = false);
+      }
+      return;
+    }
+
+    // — Réponse classique à un commentaire
     final postId = notif['post_id'];
-    final commentId = notif['comment_id']; // The comment we're replying to
+    final commentId = notif['comment_id'];
     if (postId == null) return;
 
     setState(() => _isSendingReply = true);
@@ -234,8 +308,17 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     final postId = notif['post_id'];
     final notifId = notif['id'];
     final isComment = type == 'comment';
+    final isIntercommunality = type == 'intercommunality_message' ||
+        type == 'intercommunality_group_message';
     final isReplying = _replyingToNotifId == notifId;
-    final fromUser = notif['from_user_name'] ?? '';
+    final fromUser = notif['from_user_name'] ?? 'Intercommunalité';
+
+    // ── Correction BUG : role est un enum UserRole, PAS une String ──
+    final userRole = AuthState.currentUser?.role;
+    final canReply = isIntercommunality &&
+        (userRole == UserRole.collector ||
+         userRole == UserRole.pointManager ||
+         userRole == UserRole.educator);
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
@@ -298,8 +381,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                           ],
                         ),
                       ),
-                    // Reply button for comment notifications
-                    if (isComment && postId != null && AuthState.isLoggedIn)
+                    // Reply button — commentaires ET messages intercommunalité
+                    if ((isComment && postId != null || canReply) && AuthState.isLoggedIn)
                       GestureDetector(
                         onTap: () {
                           setState(() {

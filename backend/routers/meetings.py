@@ -116,7 +116,7 @@ async def create_meeting(
     current_user: db_models.User = Depends(get_current_user),
 ):
     """Créer une nouvelle séance Google Meet (éducateur uniquement)."""
-    if current_user.role not in ("educator", "admin"):
+    if current_user.role not in ("educator", "admin", "superadmin"):
         raise HTTPException(status_code=403, detail="Réservé aux éducateurs")
 
     # Parser la date
@@ -218,7 +218,7 @@ async def get_my_meetings_educator(
     current_user: db_models.User = Depends(get_current_user),
 ):
     """Liste des séances créées par l'éducateur connecté."""
-    if current_user.role not in ("educator", "admin"):
+    if current_user.role not in ("educator", "admin", "superadmin"):
         raise HTTPException(status_code=403, detail="Réservé aux éducateurs")
     meetings = (
         db.query(db_models.Meeting)
@@ -243,7 +243,7 @@ async def update_meeting(
     ).filter(db_models.Meeting.id == meeting_id).first()
     if not meeting:
         raise HTTPException(status_code=404, detail="Séance non trouvée")
-    if meeting.educator_id != current_user.id and current_user.role != "admin":
+    if meeting.educator_id != current_user.id and current_user.role not in ["admin", "superadmin"]:
         raise HTTPException(status_code=403, detail="Non autorisé")
 
     if body.title is not None:            meeting.title            = body.title
@@ -294,7 +294,7 @@ async def delete_meeting(
     ).first()
     if not meeting:
         raise HTTPException(status_code=404, detail="Séance non trouvée")
-    if meeting.educator_id != current_user.id and current_user.role != "admin":
+    if meeting.educator_id != current_user.id and current_user.role not in ["admin", "superadmin"]:
         raise HTTPException(status_code=403, detail="Non autorisé")
     db.delete(meeting)
     db.commit()
@@ -365,7 +365,7 @@ async def get_all_meetings(
     current_user: db_models.User = Depends(get_current_user),
 ):
     """Admin : voir toutes les séances."""
-    if current_user.role != "admin":
+    if current_user.role not in ["admin", "superadmin"]:
         raise HTTPException(status_code=403, detail="Réservé aux admins")
     meetings = (
         db.query(db_models.Meeting)

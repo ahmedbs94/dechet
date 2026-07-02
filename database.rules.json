@@ -11,8 +11,8 @@
       ".write": false
     },
     "utilisateurs": {
-      "$user_id": {
-        ".read": "auth != null && auth.uid == $user_id",
+      "$qr_code": {
+        ".read": "auth != null",
         ".write": false
       }
     },
@@ -34,6 +34,10 @@
     },
     "admin_dashboard": {
       ".read": false,
+      ".write": false
+    },
+    "admin_stats": {
+      ".read": "auth != null",
       ".write": false
     },
     "$other": {

@@ -5,14 +5,22 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../theme/app_theme.dart';
 import 'analytics_helpers.dart';
 import '../../services/l10n_service.dart';
+import '../../core/firebase/firebase_admin_stats_service.dart';
 
 // ═══════════════════════════════════════════════════════════════════
-// ONGLET ANALYTICS ADMIN — 7 sections alimentées par FastAPI
-// Architecture temps réel :
-//   • Un seul coordinateur (_CoordinateurRefresh) gère tous les timers
-//   • Chaque section s'abonne via callback onRefresh
-//   • Pull-to-refresh global recharge tout en parallèle via /admin/dashboard/live
-//   • Badge de fraîcheur live dans chaque SectionCard
+// ONGLET ANALYTICS ADMIN — Architecture hybride Firebase + FastAPI
+//
+// Sources de données :
+//   🔥 Firebase RTDB (push temps réel, pas de polling) :
+//       Section 1 — KPIs Vue d'ensemble   → /admin_stats/
+//       Section 2 — Scans QR              → /admin_stats/ + /leaderboard/
+//       Section 3 — Utilisateurs          → /admin_stats/ + /leaderboard/
+//       Section 7 — Poubelles             → /poubelles/
+//
+//   🌐 FastAPI HTTP (polling 30s via _CoordinateurRefresh) :
+//       Section 4 — Formation & Quiz      → /admin/analytics/education
+//       Section 5 — Modération            → /admin/analytics/community
+//       Section 6 — Centres de tri        → /admin/analytics/centers/*
 // ═══════════════════════════════════════════════════════════════════
 
 // ── Coordinateur de rafraîchissement global ──────────────────────────────────
@@ -144,34 +152,39 @@ class _AdminAnalyticsTabState extends State<AdminAnalyticsTab> {
           ),
           const SizedBox(height: 20),
 
-          // ── SECTION 1 : VUE D'ENSEMBLE KPIs ─────────────────────────
+          // ── SECTION 1 : VUE D'ENSEMBLE KPIs 🔥 Firebase RTDB ────────
           const SectionDivider(label: 'VUE D\'ENSEMBLE'),
-          _SectionDashboard(coordinateur: _CoordinateurRefresh()),
+          const _SectionDashboardFirebase(),
           const SizedBox(height: 4),
 
-          // ── SECTION 2 : SCANS QR ─────────────────────────────────────
+          // ── SECTION 2 : SCANS QR 🔥 Firebase RTDB ───────────────────
           const SectionDivider(label: 'ACTIVITÉ — SCANS QR'),
-          _SectionScans(coordinateur: _CoordinateurRefresh()),
+          _SectionScansFirebase(coordinateur: _CoordinateurRefresh()),
           const SizedBox(height: 4),
 
-          // ── SECTION 3 : UTILISATEURS ─────────────────────────────────
+          // ── SECTION 3 : UTILISATEURS 🔥 Firebase RTDB ───────────────
           const SectionDivider(label: 'COMMUNAUTÉ — UTILISATEURS'),
-          _SectionUtilisateurs(coordinateur: _CoordinateurRefresh()),
+          const _SectionUtilisateursFirebase(),
           const SizedBox(height: 4),
 
-          // ── SECTION 4 : ÉDUCATION ─────────────────────────────────────
+          // ── SECTION 4 : ÉDUCATION 🌐 FastAPI ─────────────────────────
           const SectionDivider(label: 'FORMATION & ÉDUCATION'),
           _SectionEducation(coordinateur: _CoordinateurRefresh()),
           const SizedBox(height: 4),
 
-          // ── SECTION 5 : MODÉRATION ────────────────────────────────────
+          // ── SECTION 5 : MODÉRATION 🌐 FastAPI ────────────────────────
           const SectionDivider(label: 'MODÉRATION & PUBLICATIONS'),
           _SectionModeration(coordinateur: _CoordinateurRefresh()),
           const SizedBox(height: 4),
 
-          // ── SECTION 6 : CENTRES DE TRI ────────────────────────────────
+          // ── SECTION 6 : CENTRES DE TRI 🌐 FastAPI ────────────────────
           const SectionDivider(label: 'CENTRES DE TRI & COLLECTE'),
           _SectionCentres(coordinateur: _CoordinateurRefresh()),
+          const SizedBox(height: 4),
+
+          // ── SECTION 7 : POUBELLES INTELLIGENTES 🔥 Firebase RTDB ─────
+          const SectionDivider(label: 'POUBELLES INTELLIGENTES — TEMPS RÉEL'),
+          const _SectionPoubelles(),
           const SizedBox(height: 4),
 
           const SizedBox(height: 80),
@@ -232,7 +245,7 @@ class _BandeauSync extends StatelessWidget {
               border: Border.all(color: AppTheme.primaryGreen.withOpacity(0.3)),
             ),
             child: isRefreshing
-                ? SizedBox(width: 14, height: 14,
+                ? const SizedBox(width: 14, height: 14,
                     child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.primaryGreen))
                 : Row(mainAxisSize: MainAxisSize.min, children: [
                     const Icon(Icons.sync_rounded, color: AppTheme.primaryGreen, size: 14),
@@ -289,503 +302,472 @@ class _PulsingDotState extends State<_PulsingDot> with SingleTickerProviderState
 }
 
 // ═══════════════════════════════════════════════════════════════════
-// SECTION 1 — DASHBOARD KPI (GET /admin/dashboard)
-// Toutes les données vitales en un seul appel
+// SECTION 1 — DASHBOARD KPI 🔥 Firebase RTDB /admin_stats/
+// Données poussées par le backend après chaque scan QR.
+// StreamBuilder = zéro polling, mise à jour instantanée.
 // ═══════════════════════════════════════════════════════════════════
 
-class _SectionDashboard extends StatefulWidget {
-  final _CoordinateurRefresh coordinateur;
-  const _SectionDashboard({Key? key, required this.coordinateur}) : super(key: key);
-  @override State<_SectionDashboard> createState() => _EtatDashboard();
-}
-
-class _EtatDashboard extends State<_SectionDashboard> {
-  bool _chargement = false;
-  Map<String, dynamic> _data = {};
-  DateTime? _lastUpdated;
-  int _cacheAge = 0;
-
-  @override
-  void initState() {
-    super.initState();
-    widget.coordinateur.register(_chargerViaCoordinateur);
-    _charger();
-  }
-
-  @override
-  void dispose() {
-    widget.coordinateur.unregister(_chargerViaCoordinateur);
-    super.dispose();
-  }
-
-  void _chargerViaCoordinateur() { if (mounted) _charger(); }
-
-  Future<void> _charger() async {
-    if (!mounted) return;
-    setState(() => _chargement = true);
-    final result = await analyticsGetFull('/admin/dashboard');
-    if (!mounted) return;
-    setState(() {
-      _data = ((result?.data as Map<String, dynamic>?)?['data'] as Map<String, dynamic>?) ?? {};
-      _lastUpdated = result?.fetchedAt;
-      _cacheAge = result?.cacheAge ?? 0;
-      _chargement = false;
-    });
-  }
+class _SectionDashboardFirebase extends StatelessWidget {
+  const _SectionDashboardFirebase({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    // Utilisateurs
-    final totalUsers     = (_data['total_users']           as num?)?.toInt() ?? 0;
-    final newUsersMonth  = (_data['new_users_this_month']  as num?)?.toInt() ?? 0;
-    final activeUsersWk  = (_data['active_users_this_week'] as num?)?.toInt() ?? 0;
-    final avgScore       = (_data['average_global_score']  as num?)?.toDouble() ?? 0.0;
-    // Scans
-    final totalScans     = (_data['total_bin_scans']       as num?)?.toInt() ?? 0;
-    final scansToday     = (_data['scans_today']           as num?)?.toInt() ?? 0;
-    final scansWeek      = (_data['scans_this_week']       as num?)?.toInt() ?? 0;
-    final points         = (_data['points_distributed']    as num?)?.toDouble() ?? 0.0;
-    // Centres
-    final totalCentres   = (_data['total_collection_points']  as num?)?.toInt() ?? 0;
-    final activeCentres  = (_data['active_collection_points'] as num?)?.toInt() ?? 0;
-    // Éducation
-    final quiz           = (_data['total_quiz_submissions'] as num?)?.toInt() ?? 0;
-    final avgQuizScore   = (_data['average_quiz_score']    as num?)?.toDouble() ?? 0.0;
-    // Modération
-    final modPending     = (_data['pending_moderation']    as num?)?.toInt() ?? 0;
-    final pendingTests   = (_data['pending_testimonials']  as num?)?.toInt() ?? 0;
-    final pendingProps   = (_data['pending_center_proposals'] as num?)?.toInt() ?? 0;
+    return StreamBuilder<AdminStatsSnapshot>(
+      stream: FirebaseAdminStatsService().watchAdminStats(),
+      builder: (context, snapshot) {
+        final s = snapshot.data ?? AdminStatsSnapshot.empty();
+        final isLoading = snapshot.connectionState == ConnectionState.waiting
+            && !snapshot.hasData;
 
-    return SectionCard(
-      titre: L10n.tr('admin_kpi_overview'),
-      icone: Icons.dashboard_rounded,
-      couleur: AppTheme.primaryGreen,
-      chargement: _chargement,
-      onActualiser: _charger,
-      lastUpdated: _lastUpdated,
-      cacheAge: _cacheAge,
-      filtres: const [],
-      contenu: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        // Badge Firebase live
+        final lastUpdStr = s.lastUpdated != null
+            ? _formatAgo(s.lastUpdated!)
+            : 'En attente…';
 
-        // ── Bloc 1 : Utilisateurs (2 grandes + 2 compactes) ──────────
-        Text('👥 Utilisateurs', style: GoogleFonts.inter(
-          fontSize: 11, fontWeight: FontWeight.w800, color: AppTheme.textMuted)),
-        const SizedBox(height: 10),
-        LayoutBuilder(builder: (_, c) {
-          final w = (c.maxWidth - 12) / 2;
-          return Column(children: [
-            Row(children: [
-              SizedBox(width: w, child: IndicateurPrincipal(
-                valeur: '$totalUsers', etiquette: L10n.tr('admin_kpi_users'),
-                sousTitre: 'Comptes actifs',
-                icone: Icons.people_rounded, couleur: Colors.blue)),
-              const SizedBox(width: 12),
-              SizedBox(width: w, child: IndicateurPrincipal(
-                valeur: avgScore.toStringAsFixed(1), etiquette: L10n.tr('admin_kpi_avg_score'),
-                sousTitre: 'Score global moyen',
-                icone: Icons.emoji_events_rounded, couleur: Colors.purple)),
-            ]),
+        return SectionCard(
+          titre: L10n.tr('admin_kpi_overview'),
+          icone: Icons.dashboard_rounded,
+          couleur: AppTheme.primaryGreen,
+          chargement: isLoading,
+          onActualiser: () {},  // pas de polling — Firebase push
+          lastUpdated: s.lastUpdated,
+          cacheAge: 0,
+          filtres: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: Colors.green.withOpacity(0.12),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.green.withOpacity(0.3)),
+              ),
+              child: Row(mainAxisSize: MainAxisSize.min, children: [
+                Container(width: 6, height: 6,
+                  decoration: const BoxDecoration(
+                    color: Colors.green, shape: BoxShape.circle)),
+                const SizedBox(width: 5),
+                Text('Firebase · $lastUpdStr',
+                  style: GoogleFonts.inter(
+                    fontSize: 9, fontWeight: FontWeight.w700, color: Colors.green.shade700)),
+              ]),
+            ),
+          ],
+          contenu: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+
+            // ── Bloc 1 : Utilisateurs ──────────────────────────────────
+            Text('👥 Utilisateurs', style: GoogleFonts.inter(
+              fontSize: 11, fontWeight: FontWeight.w800, color: AppTheme.textMuted)),
+            const SizedBox(height: 10),
+            LayoutBuilder(builder: (_, c) {
+              final w = (c.maxWidth - 12) / 2;
+              return Column(children: [
+                Row(children: [
+                  SizedBox(width: w, child: IndicateurPrincipal(
+                    valeur: '${s.totalUsers}', etiquette: L10n.tr('admin_kpi_users'),
+                    sousTitre: 'Comptes actifs',
+                    icone: Icons.people_rounded, couleur: Colors.blue)),
+                  const SizedBox(width: 12),
+                  SizedBox(width: w, child: IndicateurPrincipal(
+                    valeur: s.averageScore.toStringAsFixed(1),
+                    etiquette: L10n.tr('admin_kpi_avg_score'),
+                    sousTitre: 'Score global moyen',
+                    icone: Icons.emoji_events_rounded, couleur: Colors.purple)),
+                ]),
+                const SizedBox(height: 10),
+                Row(children: [
+                  Expanded(child: IndicateurCompact(
+                    valeur: '+${s.newUsersMonth}', etiquette: 'Nouveaux / mois',
+                    icone: Icons.person_add_rounded, couleur: Colors.indigo)),
+                  const SizedBox(width: 8),
+                  Expanded(child: IndicateurCompact(
+                    valeur: '${s.activeUsersWeek}', etiquette: 'Actifs / semaine',
+                    icone: Icons.trending_up_rounded, couleur: Colors.teal)),
+                ]),
+              ]);
+            }),
+
+            const SizedBox(height: 20),
+
+            // ── Bloc 2 : Scans QR ──────────────────────────────────────
+            Text('📦 Scans QR & Points', style: GoogleFonts.inter(
+              fontSize: 11, fontWeight: FontWeight.w800, color: AppTheme.textMuted)),
+            const SizedBox(height: 10),
+            LayoutBuilder(builder: (_, c) {
+              final w = (c.maxWidth - 12) / 2;
+              return Column(children: [
+                Row(children: [
+                  SizedBox(width: w, child: IndicateurPrincipal(
+                    valeur: '${s.totalScans}',
+                    etiquette: L10n.tr('admin_kpi_scans'),
+                    sousTitre: 'Total historique',
+                    icone: Icons.qr_code_scanner_rounded, couleur: AppTheme.primaryGreen)),
+                  const SizedBox(width: 12),
+                  SizedBox(width: w, child: IndicateurPrincipal(
+                    valeur: s.pointsDistributed.toStringAsFixed(0),
+                    etiquette: L10n.tr('admin_kpi_points'),
+                    sousTitre: 'Points distribués',
+                    icone: Icons.stars_rounded, couleur: Colors.amber)),
+                ]),
+                const SizedBox(height: 10),
+                Row(children: [
+                  Expanded(child: IndicateurCompact(
+                    valeur: '${s.scansToday}', etiquette: 'Scans aujourd\'hui',
+                    icone: Icons.today_rounded, couleur: Colors.green)),
+                  const SizedBox(width: 8),
+                  Expanded(child: IndicateurCompact(
+                    valeur: '${s.scansWeek}', etiquette: 'Scans 7 jours',
+                    icone: Icons.date_range_rounded, couleur: Colors.cyan)),
+                ]),
+              ]);
+            }),
+
+            const SizedBox(height: 20),
+
+            // ── Bloc 2b : Collecteurs ──────────────────────────────────
+            Text('🚛 Collectes (Collecteurs)', style: GoogleFonts.inter(
+              fontSize: 11, fontWeight: FontWeight.w800, color: AppTheme.textMuted)),
             const SizedBox(height: 10),
             Row(children: [
               Expanded(child: IndicateurCompact(
-                valeur: '+$newUsersMonth', etiquette: 'Nouveaux / mois',
-                icone: Icons.person_add_rounded, couleur: Colors.indigo)),
+                valeur: '${s.totalCollections}', etiquette: 'Total collectes',
+                icone: Icons.local_shipping_rounded, couleur: Colors.indigo)),
               const SizedBox(width: 8),
               Expanded(child: IndicateurCompact(
-                valeur: '$activeUsersWk', etiquette: 'Actifs / semaine',
-                icone: Icons.trending_up_rounded, couleur: Colors.teal)),
+                valeur: '${s.collectionsWeek}', etiquette: 'Collectes 7j',
+                icone: Icons.recycling_rounded, couleur: Colors.teal)),
             ]),
-          ]);
-        }),
 
-        const SizedBox(height: 20),
+            const SizedBox(height: 20),
 
-        // ── Bloc 2 : Scans QR ────────────────────────────────────────
-        Text('📦 Scans QR & Points', style: GoogleFonts.inter(
-          fontSize: 11, fontWeight: FontWeight.w800, color: AppTheme.textMuted)),
-        const SizedBox(height: 10),
-        LayoutBuilder(builder: (_, c) {
-          final w = (c.maxWidth - 12) / 2;
-          return Column(children: [
-            Row(children: [
-              SizedBox(width: w, child: IndicateurPrincipal(
-                valeur: '$totalScans', etiquette: L10n.tr('admin_kpi_scans'),
-                sousTitre: 'Total historique',
-                icone: Icons.qr_code_scanner_rounded, couleur: AppTheme.primaryGreen)),
-              const SizedBox(width: 12),
-              SizedBox(width: w, child: IndicateurPrincipal(
-                valeur: points.toStringAsFixed(0), etiquette: L10n.tr('admin_kpi_points'),
-                sousTitre: 'Points distribués',
-                icone: Icons.stars_rounded, couleur: Colors.amber)),
-            ]),
+            // ── Bloc 3 : Centres ───────────────────────────────────────
+            Text('🏭 Centres de collecte', style: GoogleFonts.inter(
+              fontSize: 11, fontWeight: FontWeight.w800, color: AppTheme.textMuted)),
+            const SizedBox(height: 10),
+            LayoutBuilder(builder: (_, c) {
+              final w = (c.maxWidth - 12) / 2;
+              return Row(children: [
+                SizedBox(width: w, child: IndicateurPrincipal(
+                  valeur: '${s.activeCenters}/${s.totalCenters}',
+                  etiquette: L10n.tr('admin_kpi_centers'),
+                  sousTitre: 'Disponibles / Total',
+                  icone: Icons.location_on_rounded, couleur: const Color(0xFFF59E0B))),
+                const SizedBox(width: 12),
+                SizedBox(width: w, child: IndicateurPrincipal(
+                  valeur: s.averageScore.toStringAsFixed(1),
+                  etiquette: 'Score moyen',
+                  sousTitre: 'Citoyens actifs',
+                  icone: Icons.school_rounded, couleur: Colors.teal)),
+              ]);
+            }),
+
+            const SizedBox(height: 20),
+
+            // ── Bloc 4 : Alertes en attente ────────────────────────────
+            Text('⚠️ Alertes en attente', style: GoogleFonts.inter(
+              fontSize: 11, fontWeight: FontWeight.w800, color: AppTheme.textMuted)),
             const SizedBox(height: 10),
             Row(children: [
               Expanded(child: IndicateurCompact(
-                valeur: '$scansToday', etiquette: 'Scans aujourd\'hui',
-                icone: Icons.today_rounded, couleur: Colors.green)),
+                valeur: '${s.pendingModeration}', etiquette: 'Modération',
+                icone: Icons.pending_actions_rounded,
+                couleur: s.pendingModeration > 0 ? Colors.orange : Colors.green,
+                alerte: s.pendingModeration > 0)),
               const SizedBox(width: 8),
               Expanded(child: IndicateurCompact(
-                valeur: '$scansWeek', etiquette: 'Scans 7 jours',
-                icone: Icons.date_range_rounded, couleur: Colors.cyan)),
+                valeur: '${s.pendingTestimonials}', etiquette: 'Témoignages',
+                icone: Icons.star_rounded,
+                couleur: s.pendingTestimonials > 0 ? Colors.orange : Colors.green,
+                alerte: s.pendingTestimonials > 0)),
+              const SizedBox(width: 8),
+              Expanded(child: IndicateurCompact(
+                valeur: '${s.pendingProposals}', etiquette: 'Propositions',
+                icone: Icons.add_location_rounded,
+                couleur: s.pendingProposals > 0 ? Colors.orange : Colors.green,
+                alerte: s.pendingProposals > 0)),
             ]),
-          ]);
-        }),
-
-        const SizedBox(height: 20),
-
-        // ── Bloc 3 : Centres & Éducation ─────────────────────────────
-        Text('🏭 Centres & Formation', style: GoogleFonts.inter(
-          fontSize: 11, fontWeight: FontWeight.w800, color: AppTheme.textMuted)),
-        const SizedBox(height: 10),
-        LayoutBuilder(builder: (_, c) {
-          final w = (c.maxWidth - 12) / 2;
-          return Column(children: [
-            Row(children: [
-              SizedBox(width: w, child: IndicateurPrincipal(
-                valeur: '$activeCentres/$totalCentres',
-                etiquette: L10n.tr('admin_kpi_centers'),
-                sousTitre: 'Disponibles / Total',
-                icone: Icons.location_on_rounded, couleur: const Color(0xFFF59E0B))),
-              const SizedBox(width: 12),
-              SizedBox(width: w, child: IndicateurPrincipal(
-                valeur: '$quiz', etiquette: L10n.tr('admin_kpi_quiz'),
-                sousTitre: '∅ ${avgQuizScore.toStringAsFixed(1)}/10',
-                icone: Icons.school_rounded, couleur: Colors.teal)),
-            ]),
-          ]);
-        }),
-
-        const SizedBox(height: 20),
-
-        // ── Bloc 4 : Alertes à traiter ────────────────────────────────
-        Text('⚠️ Alertes en attente', style: GoogleFonts.inter(
-          fontSize: 11, fontWeight: FontWeight.w800, color: AppTheme.textMuted)),
-        const SizedBox(height: 10),
-        Row(children: [
-          Expanded(child: IndicateurCompact(
-            valeur: '$modPending', etiquette: 'Modération',
-            icone: Icons.pending_actions_rounded,
-            couleur: modPending > 0 ? Colors.orange : Colors.green,
-            alerte: modPending > 0)),
-          const SizedBox(width: 8),
-          Expanded(child: IndicateurCompact(
-            valeur: '$pendingTests', etiquette: 'Témoignages',
-            icone: Icons.star_rounded,
-            couleur: pendingTests > 0 ? Colors.orange : Colors.green,
-            alerte: pendingTests > 0)),
-          const SizedBox(width: 8),
-          Expanded(child: IndicateurCompact(
-            valeur: '$pendingProps', etiquette: 'Propositions',
-            icone: Icons.add_location_rounded,
-            couleur: pendingProps > 0 ? Colors.orange : Colors.green,
-            alerte: pendingProps > 0)),
-        ]),
-      ]),
+          ]),
+        );
+      },
     );
   }
 }
 
-// ═══════════════════════════════════════════════════════════════════
-// SECTION 2 — SCANS QR (GET /admin/analytics/scans + /scans/by-day)
-// ═══════════════════════════════════════════════════════════════════
-
-class _SectionScans extends StatefulWidget {
-  final _CoordinateurRefresh coordinateur;
-  const _SectionScans({Key? key, required this.coordinateur}) : super(key: key);
-  @override State<_SectionScans> createState() => _EtatScans();
+String _formatAgo(DateTime dt) {
+  final diff = DateTime.now().difference(dt);
+  if (diff.inSeconds < 5)  return 'À l\'instant';
+  if (diff.inSeconds < 60) return 'il y a ${diff.inSeconds}s';
+  if (diff.inMinutes < 60) return 'il y a ${diff.inMinutes}min';
+  return 'il y a ${diff.inHours}h';
 }
 
-class _EtatScans extends State<_SectionScans> {
+// ═══════════════════════════════════════════════════════════════════
+// SECTION 2 — SCANS QR 🔥 Firebase RTDB /admin_stats/ + courbe FastAPI
+// KPIs en temps réel via Firebase, courbe de tendance via FastAPI.
+// ═══════════════════════════════════════════════════════════════════
+
+class _SectionScansFirebase extends StatefulWidget {
+  final _CoordinateurRefresh coordinateur;
+  const _SectionScansFirebase({Key? key, required this.coordinateur}) : super(key: key);
+  @override State<_SectionScansFirebase> createState() => _EtatScansFirebase();
+}
+
+class _EtatScansFirebase extends State<_SectionScansFirebase> {
   String _period = 'last_7_days';
-  bool _chargement = false;
-  Map<String, dynamic> _stats = {};
+  bool _chargementCourbe = false;
   List<Map<String, dynamic>> _courbe = [];
-  DateTime? _lastUpdated;
-  int _cacheAge = 0;
 
   @override
   void initState() {
     super.initState();
-    widget.coordinateur.register(_chargerViaCoordinateur);
-    _charger();
+    widget.coordinateur.register(_chargerCourbe);
+    _chargerCourbe();
   }
 
   @override
   void dispose() {
-    widget.coordinateur.unregister(_chargerViaCoordinateur);
+    widget.coordinateur.unregister(_chargerCourbe);
     super.dispose();
   }
 
-  void _chargerViaCoordinateur() { if (mounted) _charger(); }
-
-  Future<void> _charger() async {
+  Future<void> _chargerCourbe() async {
     if (!mounted) return;
-    setState(() => _chargement = true);
+    setState(() => _chargementCourbe = true);
     final days = _period == 'today' ? 1 : _period == 'last_7_days' ? 7 : 30;
-    final results = await Future.wait([
-      analyticsGetFull('/admin/analytics/scans?period=$_period'),
-      analyticsGetFull('/admin/analytics/scans/by-day?days=$days'),
-    ]);
+    final result = await analyticsGetFull('/admin/analytics/scans/by-day?days=$days');
     if (!mounted) return;
     setState(() {
-      _stats    = (results[0]?.data as Map<String, dynamic>?) ?? {};
-      _courbe   = ((results[1]?.data as List?)?.cast<Map<String, dynamic>>()) ?? [];
-      _lastUpdated = results[0]?.fetchedAt;
-      _cacheAge = results[0]?.cacheAge ?? 0;
-      _chargement = false;
+      _courbe = ((result?.data as List?)?.cast<Map<String, dynamic>>()) ?? [];
+      _chargementCourbe = false;
     });
   }
 
-  static const _wasteColors = {
-    'plastic': Colors.blue, 'glass': Colors.teal, 'metal': Colors.blueGrey,
-    'paper': Colors.brown, 'organic': Colors.green,
-  };
-  static const _wasteIcons = {
-    'plastic': '🧴', 'glass': '🍶', 'metal': '🔩', 'paper': '📄', 'organic': '🌿',
-  };
-
   @override
   Widget build(BuildContext context) {
-    final total    = (_stats['total']        as num?)?.toInt() ?? 0;
-    final periode  = (_stats['this_period']  as num?)?.toInt() ?? 0;
-    final points   = (_stats['points_distributed'] as num?)?.toDouble() ?? 0.0;
-    final avgPts   = (_stats['average_points_per_scan'] as num?)?.toDouble() ?? 0.0;
-    final wasteRaw = (_stats['by_waste_type'] as List?)?.cast<Map>() ?? [];
-    final topBins  = (_stats['top_bins']     as List?)?.cast<Map>() ?? [];
-    final maxW     = wasteRaw.isEmpty ? 1.0 : wasteRaw.map((w) => (w['count'] as num).toDouble()).reduce(math.max);
+    return StreamBuilder<AdminStatsSnapshot>(
+      stream: FirebaseAdminStatsService().watchAdminStats(),
+      builder: (context, snapshot) {
+        final s = snapshot.data ?? AdminStatsSnapshot.empty();
+        final isLoading = snapshot.connectionState == ConnectionState.waiting
+            && !snapshot.hasData;
 
-    return SectionCard(
-      titre: 'Scans QR / Smart Bins',
-      icone: Icons.qr_code_scanner_rounded,
-      couleur: AppTheme.primaryGreen,
-      chargement: _chargement,
-      onActualiser: _charger,
-      lastUpdated: _lastUpdated,
-      cacheAge: _cacheAge,
-      filtres: [
-        FiltrePeriodeString(valeur: _period, couleur: AppTheme.primaryGreen,
-          onChangement: (v) { setState(() => _period = v); _charger(); }),
-      ],
-      contenu: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        LayoutBuilder(builder: (_, c) {
-          final w = (c.maxWidth - 12) / 2;
-          return Column(children: [
-            Row(children: [
-              SizedBox(width: w, child: IndicateurPrincipal(valeur: '$total', etiquette: 'Total scans',
-                sousTitre: 'Historique complet', icone: Icons.qr_code_rounded, couleur: AppTheme.primaryGreen)),
-              const SizedBox(width: 12),
-              SizedBox(width: w, child: IndicateurPrincipal(valeur: '$periode', etiquette: 'Cette période',
-                sousTitre: _period.replaceAll('_', ' '), icone: Icons.timelapse_rounded, couleur: Colors.teal)),
-            ]),
-            const SizedBox(height: 12),
-            Row(children: [
-              SizedBox(width: w, child: IndicateurPrincipal(valeur: points.toStringAsFixed(0),
-                etiquette: 'Points distribués', sousTitre: '~${avgPts.toStringAsFixed(1)} pts/scan',
-                icone: Icons.stars_rounded, couleur: Colors.amber)),
-              const SizedBox(width: 12),
-              SizedBox(width: w, child: IndicateurPrincipal(valeur: avgPts.toStringAsFixed(1),
-                etiquette: 'Moy. pts/scan', sousTitre: 'Rendement moyen',
-                icone: Icons.speed_rounded, couleur: Colors.teal)),
-            ]),
-          ]);
-        }),
+        final scansForPeriod = _period == 'today'
+            ? s.scansToday
+            : _period == 'last_7_days'
+                ? s.scansWeek
+                : s.totalScans;
 
-        if (_courbe.isNotEmpty) ...[
-          const SizedBox(height: 20),
-          Text('Tendance des scans', style: GoogleFonts.inter(
-            fontSize: 12, fontWeight: FontWeight.w800, color: AppTheme.textMuted)),
-          const SizedBox(height: 8),
-          GraphiqueLigne(donnees: _courbe, couleur: AppTheme.primaryGreen),
-        ],
-        if (wasteRaw.isNotEmpty) ...[
-          const SizedBox(height: 20),
-          Text('Types de déchets scannés', style: GoogleFonts.inter(
-            fontSize: 12, fontWeight: FontWeight.w800, color: AppTheme.textMuted)),
-          const SizedBox(height: 8),
-          ...wasteRaw.map((w) {
-            final type  = (w['waste_type'] as String? ?? 'autre').toLowerCase();
-            final color = (_wasteColors[type] ?? Colors.grey) as Color;
-            final emoji = _wasteIcons[type] ?? '♻️';
-            return BarreProgression(
-              etiquette: '$emoji ${w['waste_type']}',
-              valeurTexte: '${w['count']} (${w['points']?.toStringAsFixed(0) ?? 0} pts)',
-              valeur: (w['count'] as num).toDouble(),
-              max: maxW, couleur: color,
-            );
-          }),
-        ],
-        if (topBins.isNotEmpty) ...[
-          const SizedBox(height: 20),
-          Text('Top Smart Bins', style: GoogleFonts.inter(
-            fontSize: 12, fontWeight: FontWeight.w800, color: AppTheme.textMuted)),
-          const SizedBox(height: 8),
-          ...topBins.take(5).toList().asMap().entries.map((e) => Padding(
-            padding: const EdgeInsets.symmetric(vertical: 4),
-            child: Row(children: [
-              Container(width: 26, height: 26,
-                decoration: BoxDecoration(color: AppTheme.primaryGreen.withOpacity(0.1), shape: BoxShape.circle),
-                child: Center(child: Text('${e.key + 1}', style: GoogleFonts.outfit(
-                  fontSize: 11, fontWeight: FontWeight.w900, color: AppTheme.primaryGreen)))),
-              const SizedBox(width: 10),
-              Expanded(child: Text('Bin #${e.value['smart_bin_id']}', style: GoogleFonts.inter(
-                fontSize: 12, fontWeight: FontWeight.w700, color: AppTheme.deepSlate))),
-              Text('${e.value['scans_count']} scans', style: GoogleFonts.outfit(
-                fontSize: 12, fontWeight: FontWeight.w800, color: Colors.teal)),
-              const SizedBox(width: 8),
-              Text('${(e.value['points_earned'] as num?)?.toStringAsFixed(0) ?? 0} pts',
-                style: GoogleFonts.outfit(fontSize: 11, color: Colors.amber.shade700)),
-            ]),
-          )),
-        ],
-      ]),
+        final lastUpdStr = s.lastUpdated != null ? _formatAgo(s.lastUpdated!) : '…';
+
+        return SectionCard(
+          titre: 'Scans QR / Smart Bins',
+          icone: Icons.qr_code_scanner_rounded,
+          couleur: AppTheme.primaryGreen,
+          chargement: isLoading,
+          onActualiser: _chargerCourbe,
+          lastUpdated: s.lastUpdated,
+          cacheAge: 0,
+          filtres: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: Colors.green.withOpacity(0.12),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.green.withOpacity(0.3)),
+              ),
+              child: Row(mainAxisSize: MainAxisSize.min, children: [
+                Container(width: 6, height: 6,
+                  decoration: const BoxDecoration(color: Colors.green, shape: BoxShape.circle)),
+                const SizedBox(width: 5),
+                Text('Firebase · $lastUpdStr',
+                  style: GoogleFonts.inter(fontSize: 9, fontWeight: FontWeight.w700, color: Colors.green.shade700)),
+              ]),
+            ),
+            const SizedBox(width: 8),
+            FiltrePeriodeString(valeur: _period, couleur: AppTheme.primaryGreen,
+              onChangement: (v) { setState(() => _period = v); _chargerCourbe(); }),
+          ],
+          contenu: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            LayoutBuilder(builder: (_, c) {
+              final w = (c.maxWidth - 12) / 2;
+              return Column(children: [
+                Row(children: [
+                  SizedBox(width: w, child: IndicateurPrincipal(
+                    valeur: '${s.totalScans}', etiquette: 'Total scans',
+                    sousTitre: 'Historique complet',
+                    icone: Icons.qr_code_rounded, couleur: AppTheme.primaryGreen)),
+                  const SizedBox(width: 12),
+                  SizedBox(width: w, child: IndicateurPrincipal(
+                    valeur: '$scansForPeriod', etiquette: 'Cette période',
+                    sousTitre: _period.replaceAll('_', ' '),
+                    icone: Icons.timelapse_rounded, couleur: Colors.teal)),
+                ]),
+                const SizedBox(height: 12),
+                Row(children: [
+                  SizedBox(width: w, child: IndicateurPrincipal(
+                    valeur: s.pointsDistributed.toStringAsFixed(0),
+                    etiquette: 'Points distribués', sousTitre: 'Total cumulé',
+                    icone: Icons.stars_rounded, couleur: Colors.amber)),
+                  const SizedBox(width: 12),
+                  SizedBox(width: w, child: IndicateurPrincipal(
+                    valeur: s.totalScans > 0
+                        ? (s.pointsDistributed / s.totalScans).toStringAsFixed(1)
+                        : '0',
+                    etiquette: 'Moy. pts/scan', sousTitre: 'Rendement moyen',
+                    icone: Icons.speed_rounded, couleur: Colors.teal)),
+                ]),
+              ]);
+            }),
+
+            if (_courbe.isNotEmpty) ...[
+              const SizedBox(height: 20),
+              Text('Tendance des scans', style: GoogleFonts.inter(
+                fontSize: 12, fontWeight: FontWeight.w800, color: AppTheme.textMuted)),
+              const SizedBox(height: 8),
+              GraphiqueLigne(donnees: _courbe, couleur: AppTheme.primaryGreen),
+            ] else if (_chargementCourbe)
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 16),
+                child: Center(child: SizedBox(width: 20, height: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.primaryGreen))),
+              ),
+          ]),
+        );
+      },
     );
   }
 }
 
 // ═══════════════════════════════════════════════════════════════════
-// SECTION 3 — UTILISATEURS (GET /admin/analytics/users)
+// SECTION 3 — UTILISATEURS 🔥 Firebase RTDB /admin_stats/ + /leaderboard/
+// Compteurs temps réel + top scorers depuis le leaderboard Firebase.
 // ═══════════════════════════════════════════════════════════════════
 
-class _SectionUtilisateurs extends StatefulWidget {
-  final _CoordinateurRefresh coordinateur;
-  const _SectionUtilisateurs({Key? key, required this.coordinateur}) : super(key: key);
-  @override State<_SectionUtilisateurs> createState() => _EtatUtilisateurs();
-}
+class _SectionUtilisateursFirebase extends StatelessWidget {
+  const _SectionUtilisateursFirebase({Key? key}) : super(key: key);
 
-class _EtatUtilisateurs extends State<_SectionUtilisateurs> {
-  String _period = 'last_30_days';
-  bool _chargement = false;
-  Map<String, dynamic> _stats = {};
-  DateTime? _lastUpdated;
-  int _cacheAge = 0;
-
-  @override
-  void initState() {
-    super.initState();
-    widget.coordinateur.register(_chargerViaCoordinateur);
-    _charger();
-  }
-
-  @override
-  void dispose() {
-    widget.coordinateur.unregister(_chargerViaCoordinateur);
-    super.dispose();
-  }
-
-  void _chargerViaCoordinateur() { if (mounted) _charger(); }
-
-  Future<void> _charger() async {
-    if (!mounted) return;
-    setState(() => _chargement = true);
-    final result = await analyticsGetFull('/admin/analytics/users?period=$_period');
-    if (!mounted) return;
-    setState(() {
-      _stats = (result?.data as Map<String, dynamic>?) ?? {};
-      _lastUpdated = result?.fetchedAt;
-      _cacheAge = result?.cacheAge ?? 0;
-      _chargement = false;
-    });
-  }
-
-  static const _libelles = {
-    'user': 'Citoyen', 'educator': 'Éducateur', 'admin': 'Admin',
-    'collector': 'Collecteur', 'point_manager': 'Gestionnaire'
-  };
-  static const _couleurs = <String, Color>{
+  static const _medalColors = [Colors.amber, Colors.blueGrey, Colors.brown];
+  static const _roleColors  = <String, Color>{
     'user': Colors.blue, 'educator': Colors.purple, 'admin': Colors.red,
-    'collector': Colors.orange, 'point_manager': Colors.teal
+    'collector': Colors.orange, 'point_manager': Colors.teal,
+  };
+  static const _roleLabels = {
+    'user': 'Citoyen', 'educator': 'Éducateur', 'admin': 'Admin',
+    'collector': 'Collecteur', 'point_manager': 'Gestionnaire',
   };
 
   @override
   Widget build(BuildContext context) {
-    final total   = (_stats['total']              as num?)?.toInt() ?? 0;
-    final moy     = (_stats['average_global_score'] as num?)?.toDouble() ?? 0.0;
-    final newPer  = (_stats['new_this_period']    as num?)?.toInt() ?? 0;
-    final actifs  = (_stats['active_this_period'] as num?)?.toInt() ?? 0;
-    final byRoleRaw = (_stats['by_role'] as Map<String, dynamic>?) ?? {};
-    final top     = (_stats['top_scorers'] as List?)?.cast<Map>() ?? [];
+    return StreamBuilder<AdminStatsSnapshot>(
+      stream: FirebaseAdminStatsService().watchAdminStats(),
+      builder: (ctx, statsSnap) {
+        final s = statsSnap.data ?? AdminStatsSnapshot.empty();
+        final isLoading = statsSnap.connectionState == ConnectionState.waiting
+            && !statsSnap.hasData;
 
-    final rolesData = byRoleRaw.entries
-        .where((e) => (e.value as num? ?? 0) > 0).toList();
-    final maxCount = rolesData.isEmpty ? 1.0
-        : rolesData.map((e) => (e.value as num).toDouble()).reduce(math.max);
+        return StreamBuilder<List<LeaderboardEntry>>(
+          stream: FirebaseAdminStatsService().watchLeaderboard(),
+          builder: (ctx2, lbSnap) {
+            final leaderboard = lbSnap.data ?? [];
+            final lastUpdStr = s.lastUpdated != null ? _formatAgo(s.lastUpdated!) : '…';
 
-    return SectionCard(
-      titre: 'Utilisateurs & Communauté',
-      icone: Icons.people_alt_rounded,
-      couleur: Colors.blue,
-      chargement: _chargement,
-      onActualiser: _charger,
-      lastUpdated: _lastUpdated,
-      cacheAge: _cacheAge,
-      filtres: [
-        FiltrePeriodeString(valeur: _period, couleur: Colors.blue,
-          onChangement: (v) { setState(() => _period = v); _charger(); }),
-      ],
-      contenu: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        LayoutBuilder(builder: (_, c) {
-          final w = (c.maxWidth - 12) / 2;
-          return Column(children: [
-            Row(children: [
-              SizedBox(width: w, child: IndicateurPrincipal(valeur: '$total',
-                etiquette: 'Total inscrits', sousTitre: 'Comptes actifs',
-                icone: Icons.person_rounded, couleur: Colors.blue)),
-              const SizedBox(width: 12),
-              SizedBox(width: w, child: IndicateurPrincipal(valeur: '$newPer',
-                etiquette: 'Nouveaux', sousTitre: 'Cette période',
-                icone: Icons.person_add_rounded, couleur: Colors.indigo)),
-            ]),
-            const SizedBox(height: 12),
-            Row(children: [
-              SizedBox(width: w, child: IndicateurPrincipal(valeur: '$actifs',
-                etiquette: 'Actifs (ont scanné)', sousTitre: 'Cette période',
-                icone: Icons.trending_up_rounded, couleur: Colors.green)),
-              const SizedBox(width: 12),
-              SizedBox(width: w, child: IndicateurPrincipal(valeur: moy.toStringAsFixed(1),
-                etiquette: 'Score moyen', sousTitre: 'Moyenne globale',
-                icone: Icons.stars_rounded, couleur: Colors.amber)),
-            ]),
-          ]);
-        }),
-        if (rolesData.isNotEmpty) ...[
-          const SizedBox(height: 20),
-          Text('Répartition par rôle', style: GoogleFonts.inter(
-            fontSize: 12, fontWeight: FontWeight.w800, color: AppTheme.textMuted)),
-          const SizedBox(height: 10),
-          ...rolesData.map((e) => BarreProgression(
-            etiquette: _libelles[e.key] ?? e.key,
-            valeurTexte: '${e.value} utilisateurs',
-            valeur: (e.value as num).toDouble(),
-            max: maxCount, couleur: _couleurs[e.key] ?? Colors.grey,
-          )),
-        ],
-        if (top.isNotEmpty) ...[
-          const SizedBox(height: 20),
-          Text('🏆 Meilleurs citoyens', style: GoogleFonts.inter(
-            fontSize: 12, fontWeight: FontWeight.w800, color: AppTheme.textMuted)),
-          const SizedBox(height: 10),
-          ...top.take(3).toList().asMap().entries.map((e) => Padding(
-            padding: const EdgeInsets.symmetric(vertical: 5),
-            child: Row(children: [
-              Container(
-                width: 28, height: 28,
-                decoration: BoxDecoration(
-                  color: [Colors.amber, Colors.grey.shade400, Colors.brown.shade300][e.key].withOpacity(0.15),
-                  shape: BoxShape.circle),
-                child: Center(child: Text('${e.key + 1}', style: GoogleFonts.outfit(
-                  fontSize: 12, fontWeight: FontWeight.w900, color: AppTheme.deepSlate)))),
-              const SizedBox(width: 10),
-              Expanded(child: Text('${e.value['name']}', style: GoogleFonts.inter(
-                fontSize: 12, fontWeight: FontWeight.w700, color: AppTheme.deepSlate))),
-              BadgeStatut(label: '${e.value['role'] ?? 'user'}',
-                couleur: _couleurs[e.value['role']] ?? Colors.grey),
-              const SizedBox(width: 8),
-              Text('${e.value['score']} pts', style: GoogleFonts.outfit(
-                fontSize: 14, fontWeight: FontWeight.w900, color: Colors.amber.shade700)),
-            ]),
-          )),
-        ],
-      ]),
+            return SectionCard(
+              titre: 'Utilisateurs & Communauté',
+              icone: Icons.people_alt_rounded,
+              couleur: Colors.blue,
+              chargement: isLoading,
+              onActualiser: () {},
+              lastUpdated: s.lastUpdated,
+              cacheAge: 0,
+              filtres: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.blue.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.blue.withOpacity(0.3)),
+                  ),
+                  child: Row(mainAxisSize: MainAxisSize.min, children: [
+                    Container(width: 6, height: 6,
+                      decoration: const BoxDecoration(color: Colors.blue, shape: BoxShape.circle)),
+                    const SizedBox(width: 5),
+                    Text('Firebase · $lastUpdStr',
+                      style: GoogleFonts.inter(fontSize: 9, fontWeight: FontWeight.w700, color: Colors.blue.shade700)),
+                  ]),
+                ),
+              ],
+              contenu: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                LayoutBuilder(builder: (_, c) {
+                  final w = (c.maxWidth - 12) / 2;
+                  return Column(children: [
+                    Row(children: [
+                      SizedBox(width: w, child: IndicateurPrincipal(
+                        valeur: '${s.totalUsers}',
+                        etiquette: 'Total inscrits', sousTitre: 'Comptes enregistrés',
+                        icone: Icons.person_rounded, couleur: Colors.blue)),
+                      const SizedBox(width: 12),
+                      SizedBox(width: w, child: IndicateurPrincipal(
+                        valeur: '+${s.newUsersMonth}',
+                        etiquette: 'Nouveaux', sousTitre: 'Ce mois',
+                        icone: Icons.person_add_rounded, couleur: Colors.indigo)),
+                    ]),
+                    const SizedBox(height: 12),
+                    Row(children: [
+                      SizedBox(width: w, child: IndicateurPrincipal(
+                        valeur: '${s.activeUsersWeek}',
+                        etiquette: 'Actifs', sousTitre: 'Cette semaine',
+                        icone: Icons.trending_up_rounded, couleur: Colors.green)),
+                      const SizedBox(width: 12),
+                      SizedBox(width: w, child: IndicateurPrincipal(
+                        valeur: s.averageScore.toStringAsFixed(1),
+                        etiquette: 'Score moyen', sousTitre: 'Moyenne globale',
+                        icone: Icons.stars_rounded, couleur: Colors.amber)),
+                    ]),
+                  ]);
+                }),
+
+                // ── Leaderboard depuis Firebase /leaderboard/ ──────────
+                if (leaderboard.isNotEmpty) ...[
+                  const SizedBox(height: 20),
+                  Text('🏆 Meilleurs citoyens (Leaderboard Firebase)',
+                    style: GoogleFonts.inter(
+                      fontSize: 12, fontWeight: FontWeight.w800, color: AppTheme.textMuted)),
+                  const SizedBox(height: 10),
+                  ...leaderboard.take(5).toList().asMap().entries.map((e) {
+                    final entry = e.value;
+                    final medalColor = e.key < 3 ? _medalColors[e.key] : Colors.blueGrey;
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 5),
+                      child: Row(children: [
+                        Container(
+                          width: 28, height: 28,
+                          decoration: BoxDecoration(
+                            color: medalColor.withOpacity(0.15),
+                            shape: BoxShape.circle),
+                          child: Center(child: Text('${e.key + 1}',
+                            style: GoogleFonts.outfit(
+                              fontSize: 12, fontWeight: FontWeight.w900,
+                              color: AppTheme.deepSlate)))),
+                        const SizedBox(width: 10),
+                        Expanded(child: Text(entry.name,
+                          style: GoogleFonts.inter(
+                            fontSize: 12, fontWeight: FontWeight.w700,
+                            color: AppTheme.deepSlate))),
+                        BadgeStatut(
+                          label: _roleLabels[entry.role] ?? entry.role,
+                          couleur: _roleColors[entry.role] ?? Colors.grey),
+                        const SizedBox(width: 8),
+                        Text('${entry.score.toStringAsFixed(0)} pts',
+                          style: GoogleFonts.outfit(
+                            fontSize: 14, fontWeight: FontWeight.w900,
+                            color: Colors.amber.shade700)),
+                      ]),
+                    );
+                  }),
+                ],
+              ]),
+            );
+          },
+        );
+      },
     );
   }
 }
@@ -1049,6 +1031,27 @@ class _EtatModeration extends State<_SectionModeration> {
         const SizedBox(height: 8),
         _ligneInfo(Icons.add_location_rounded, 'Propositions de centres', '$pendProp',
           pendProp > 0 ? Colors.orange : Colors.green),
+        const SizedBox(height: 16),
+        const Divider(height: 1),
+        const SizedBox(height: 12),
+        Row(children: [
+          Icon(Icons.auto_awesome_rounded, size: 12, color: Colors.purple.shade300),
+          const SizedBox(width: 6),
+          Text(
+            "Auto-approbation IA : ${(autoRate * 100).toStringAsFixed(0)}%",
+            style: GoogleFonts.inter(fontSize: 10, color: AppTheme.textMuted, fontWeight: FontWeight.w600),
+          ),
+          const Spacer(),
+          Container(
+            width: 6, height: 6,
+            decoration: BoxDecoration(color: workerColor, shape: BoxShape.circle),
+          ),
+          const SizedBox(width: 6),
+          Text(
+            "Modérateur IA : ${health.toUpperCase()}",
+            style: GoogleFonts.inter(fontSize: 10, color: AppTheme.textMuted, fontWeight: FontWeight.w600),
+          ),
+        ]),
       ]),
     );
   }
@@ -1214,6 +1217,245 @@ class _EtatCentres extends State<_SectionCentres> {
             etiquettes: const ['Disponible', 'Saturé', 'Maintenance'],
           ),
         ],
+      ]),
+    );
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// SECTION POUBELLES 🔥 Firebase RTDB /poubelles/
+// État temps réel de chaque Smart Bin mis à jour après chaque scan.
+// ═══════════════════════════════════════════════════════════════════
+
+class _SectionPoubelles extends StatelessWidget {
+  const _SectionPoubelles({Key? key}) : super(key: key);
+
+  Color _etatColor(String etat) {
+    switch (etat) {
+      case 'plein':          return Colors.red;
+      case 'mi-plein':       return Colors.orange;
+      case 'en_maintenance': return Colors.purple;
+      default:               return Colors.green; // vide
+    }
+  }
+
+  IconData _etatIcon(String etat) {
+    switch (etat) {
+      case 'plein':          return Icons.error_rounded;
+      case 'mi-plein':       return Icons.warning_amber_rounded;
+      case 'en_maintenance': return Icons.build_circle_rounded;
+      default:               return Icons.check_circle_rounded;
+    }
+  }
+
+  String _etatLabel(String etat) {
+    switch (etat) {
+      case 'plein':          return 'Plein';
+      case 'mi-plein':       return 'Mi-plein';
+      case 'en_maintenance': return 'Maintenance';
+      default:               return 'Vide';
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<List<PoubelleSnapshot>>(
+      stream: FirebaseAdminStatsService().watchPoubelles(),
+      builder: (context, snapshot) {
+        final poubelles = snapshot.data ?? [];
+        final isLoading = snapshot.connectionState == ConnectionState.waiting
+            && !snapshot.hasData;
+
+        // Compteurs par état
+        final nbPlein  = poubelles.where((p) => p.isPlein).length;
+        final nbMiPl   = poubelles.where((p) => p.isMiPlein).length;
+        final nbMaint  = poubelles.where((p) => p.isMaintenance).length;
+        final nbVide   = poubelles.where((p) => p.isVide).length;
+        final total    = poubelles.length;
+
+        return SectionCard(
+          titre: 'Poubelles Intelligentes',
+          icone: Icons.delete_rounded,
+          couleur: Colors.green,
+          chargement: isLoading,
+          onActualiser: () {},  // Firebase push — pas de polling
+          lastUpdated: null,
+          cacheAge: 0,
+          filtres: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: Colors.green.withOpacity(0.12),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.green.withOpacity(0.3)),
+              ),
+              child: Row(mainAxisSize: MainAxisSize.min, children: [
+                Container(width: 6, height: 6,
+                  decoration: const BoxDecoration(color: Colors.green, shape: BoxShape.circle)),
+                const SizedBox(width: 5),
+                Text('Firebase RTDB · Temps réel',
+                  style: GoogleFonts.inter(
+                    fontSize: 9, fontWeight: FontWeight.w700, color: Colors.green.shade700)),
+              ]),
+            ),
+          ],
+          contenu: poubelles.isEmpty && !isLoading
+              ? Center(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 32),
+                    child: Column(children: [
+                      const Icon(Icons.delete_outline_rounded,
+                        size: 40, color: AppTheme.textMuted),
+                      const SizedBox(height: 12),
+                      Text('Aucune poubelle connectée',
+                        style: GoogleFonts.inter(
+                          fontSize: 13, color: AppTheme.textMuted, fontWeight: FontWeight.w600)),
+                      const SizedBox(height: 4),
+                      Text('Les données apparaîtront après le premier scan QR',
+                        style: GoogleFonts.inter(fontSize: 11, color: AppTheme.textMuted)),
+                    ]),
+                  ),
+                )
+              : Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+
+                  // ── Résumé compteurs ───────────────────────────────────
+                  LayoutBuilder(builder: (_, c) {
+                    final w = (c.maxWidth - 24) / 4;
+                    return Row(children: [
+                      SizedBox(width: w, child: _compteurBin('$total', 'Total', Colors.blueGrey, Icons.delete_rounded)),
+                      const SizedBox(width: 8),
+                      SizedBox(width: w, child: _compteurBin('$nbPlein', 'Pleins', Colors.red, Icons.error_rounded,
+                        alerte: nbPlein > 0)),
+                      const SizedBox(width: 8),
+                      SizedBox(width: w, child: _compteurBin('$nbMiPl', 'Mi-pleins', Colors.orange, Icons.warning_amber_rounded)),
+                      const SizedBox(width: 8),
+                      SizedBox(width: w, child: _compteurBin('$nbVide', 'Vides', Colors.green, Icons.check_circle_rounded)),
+                    ]);
+                  }),
+
+                  if (nbMaint > 0) ...[
+                    const SizedBox(height: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: Colors.purple.withOpacity(0.08),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: Colors.purple.withOpacity(0.2)),
+                      ),
+                      child: Row(children: [
+                        const Icon(Icons.build_circle_rounded, color: Colors.purple, size: 16),
+                        const SizedBox(width: 8),
+                        Text('$nbMaint poubelle(s) en maintenance',
+                          style: GoogleFonts.inter(
+                            fontSize: 11, fontWeight: FontWeight.w700, color: Colors.purple.shade700)),
+                      ]),
+                    ),
+                  ],
+
+                  // ── Liste des poubelles triées (pleines en premier) ────
+                  if (poubelles.isNotEmpty) ...[
+                    const SizedBox(height: 20),
+                    Text('État détaillé par poubelle',
+                      style: GoogleFonts.inter(
+                        fontSize: 12, fontWeight: FontWeight.w800, color: AppTheme.textMuted)),
+                    const SizedBox(height: 10),
+                    ...poubelles.take(20).map((p) {
+                      final color    = _etatColor(p.etat);
+                      final icon     = _etatIcon(p.etat);
+                      final label    = _etatLabel(p.etat);
+                      final majStr   = p.derniereMaj != null ? _formatAgo(p.derniereMaj!) : '—';
+                      return Container(
+                        margin: const EdgeInsets.only(bottom: 8),
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                        decoration: BoxDecoration(
+                          color: color.withOpacity(0.04),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: color.withOpacity(0.15)),
+                        ),
+                        child: Row(children: [
+                          // Icône état
+                          Container(
+                            padding: const EdgeInsets.all(7),
+                            decoration: BoxDecoration(
+                              color: color.withOpacity(0.12),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Icon(icon, color: color, size: 16),
+                          ),
+                          const SizedBox(width: 10),
+                          // Infos poubelle
+                          Expanded(child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('Bin ${p.binId}',
+                                style: GoogleFonts.outfit(
+                                  fontSize: 12, fontWeight: FontWeight.w800,
+                                  color: AppTheme.deepSlate),
+                                overflow: TextOverflow.ellipsis),
+                              Text('MàJ : $majStr',
+                                style: GoogleFonts.inter(
+                                  fontSize: 10, color: AppTheme.textMuted)),
+                            ],
+                          )),
+                          // Poids
+                          if (p.poids > 0) ...[
+                            Text('${p.poids.toStringAsFixed(1)} kg',
+                              style: GoogleFonts.outfit(
+                                fontSize: 12, fontWeight: FontWeight.w700,
+                                color: AppTheme.deepSlate)),
+                            const SizedBox(width: 8),
+                          ],
+                          // Badge état
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: color.withOpacity(0.12),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(label,
+                              style: GoogleFonts.inter(
+                                fontSize: 10, fontWeight: FontWeight.w800, color: color)),
+                          ),
+                          // Barre de remplissage
+                          const SizedBox(width: 8),
+                          SizedBox(
+                            width: 40,
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(4),
+                              child: LinearProgressIndicator(
+                                value: p.tauxEstime,
+                                minHeight: 6,
+                                backgroundColor: color.withOpacity(0.1),
+                                valueColor: AlwaysStoppedAnimation(color),
+                              ),
+                            ),
+                          ),
+                        ]),
+                      );
+                    }),
+                  ],
+                ]),
+        );
+      },
+    );
+  }
+
+  Widget _compteurBin(String valeur, String label, Color color, IconData icon, {bool alerte = false}) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withOpacity(alerte ? 0.5 : 0.2), width: alerte ? 1.5 : 1),
+      ),
+      child: Column(children: [
+        Icon(icon, color: color, size: 16),
+        const SizedBox(height: 4),
+        Text(valeur, style: GoogleFonts.outfit(
+          fontSize: 16, fontWeight: FontWeight.w900, color: color)),
+        Text(label, style: GoogleFonts.inter(
+          fontSize: 9, color: AppTheme.textMuted, fontWeight: FontWeight.w600),
+          textAlign: TextAlign.center),
       ]),
     );
   }

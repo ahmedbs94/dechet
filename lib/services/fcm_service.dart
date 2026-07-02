@@ -109,12 +109,24 @@ class FcmService {
   static Future<void> onUserLoggedIn() async {
     if (kIsWeb) return;
     try {
-      // Étape 1 : enregistrer le token FCM
-      final token = await FirebaseMessaging.instance.getToken();
+      // Étape 1 : récupérer le token FCM avec retry
+      // getToken() peut retourner null si les permissions viennent d'être
+      // accordées et que Firebase n'a pas encore généré le token.
+      String? token;
+      for (int attempt = 1; attempt <= 5; attempt++) {
+        token = await FirebaseMessaging.instance.getToken();
+        debugPrint('[FCM] getToken() tentative $attempt : ${token != null ? token.substring(0, 20) + "..." : "null"}');
+        if (token != null) break;
+        await Future.delayed(const Duration(seconds: 2));
+      }
+
       if (token != null) {
         await FcmService()._sendTokenToBackend(token);
-        debugPrint('[FCM] Token envoyé après login.');
+        debugPrint('[FCM] ✅ Token FCM enregistré après login.');
+      } else {
+        debugPrint('[FCM] ⚠️ Token FCM indisponible après 5 tentatives.');
       }
+
       // Étape 2 : afficher les notifications manquées
       await FcmService()._showPendingNotifications();
     } catch (e) {
@@ -354,8 +366,7 @@ class FcmService {
       await androidPlugin?.createNotificationChannel(_kChannel);
       debugPrint('[FCM] Canal Android créé/vérifié');
 
-      // 5. Enregistrer le handler de fond
-      FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
+      // 5. (Handler de fond enregistré dans main.dart AVANT Firebase.initializeApp)
 
       // 6. Récupérer & envoyer le token FCM
       await _getAndSendToken();
@@ -477,6 +488,18 @@ class FcmService {
 
     final context = navigatorKey.currentContext;
     if (context == null) return;
+
+    // Types liés à l'intercommunalité → écran Notifications
+    const intercommunalityTypes = {
+      'intercommunality_message',
+      'intercommunality_group_message',
+      'actor_reply',
+      'assignment',
+    };
+    if (intercommunalityTypes.contains(type)) {
+      Navigator.of(context).pushNamed('/notifications');
+      return;
+    }
 
     if (postIdRaw != null) {
       final postId = int.tryParse(postIdRaw.toString());

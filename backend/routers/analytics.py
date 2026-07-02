@@ -197,18 +197,22 @@ async def registrations_by_month(
     db: Session = Depends(get_db),
     _admin=Depends(get_admin_user),
 ):
-    rows = db.query(db_models.User.id).filter(db_models.User.is_active == True).all()
-    # Since no created_at on User, we approximate with IDs bucketed
-    total = len(rows)
     labels = _months_range(months)
-    # Distribute linearly (real impl needs User.created_at column)
-    per_month = max(1, total // months)
-    data = []
-    for i, label in enumerate(labels):
-        count = per_month + (1 if i == len(labels) - 1 else 0)
-        data.append({"month": label, "count": count})
-    data[-1]["count"] += total - sum(d["count"] for d in data[:-1])
-    return data
+    since = datetime.utcnow() - timedelta(days=30 * months)
+
+    # Requête dynamique sur la date de création de l'utilisateur
+    users = db.query(db_models.User.created_at).filter(
+        db_models.User.is_active == True,
+        db_models.User.created_at >= since
+    ).all()
+
+    counts = defaultdict(int)
+    for u in users:
+        if u.created_at:
+            month_str = u.created_at.strftime("%Y-%m")
+            counts[month_str] += 1
+
+    return [{"month": m, "count": counts[m]} for m in labels]
 
 
 # ─── Publications par statut et par mois ────────────────────────────────────
@@ -243,14 +247,18 @@ async def posts_by_month(
     labels = _months_range(months)
     since = datetime.utcnow() - timedelta(days=30 * months)
 
-    rows = db.query(
-        func.strftime("%Y-%m", db_models.Post.created_at).label("month"),
-        func.count(db_models.Post.id).label("count"),
-    ).filter(db_models.Post.created_at >= since)\
-     .group_by("month").all()
+    # Récupération dynamique et formatage côté Python pour être 100% agnostique de la base (PostgreSQL/SQLite)
+    posts = db.query(db_models.Post.created_at).filter(
+        db_models.Post.created_at >= since
+    ).all()
 
-    counts = {r.month: r.count for r in rows}
-    return [{"month": m, "count": counts.get(m, 0)} for m in labels]
+    counts = defaultdict(int)
+    for p in posts:
+        if p.created_at:
+            month_str = p.created_at.strftime("%Y-%m")
+            counts[month_str] += 1
+
+    return [{"month": m, "count": counts[m]} for m in labels]
 
 
 # ─── Centres de tri par ville ────────────────────────────────────────────────

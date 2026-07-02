@@ -19,6 +19,9 @@ from app.users.schemas import (  # noqa: F401
     UserSmall,
     UserUpdate,
     ChangePasswordRequest,
+    MFASetupResponse,
+    MFAVerifyEnableRequest,
+    MFADisableRequest,
 )
 
 # ── Auth ──────────────────────────────────────────────────────────────────────
@@ -34,6 +37,8 @@ from app.auth.schemas import (  # noqa: F401
     OTPSendRequest,
     OTPVerifyRequest,
     QRVerifyRequest,
+    MFAPendingResponse,
+    MFAVerifyLoginRequest,
 )
 
 # ── Posts ─────────────────────────────────────────────────────────────────────

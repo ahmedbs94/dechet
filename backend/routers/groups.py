@@ -75,7 +75,7 @@ async def list_citizens(
     current_user: db_models.User = Depends(get_current_user),
 ):
     """Liste tous les citoyens (rôle user) — pour le picker de l'éducateur."""
-    if current_user.role not in ("educator", "admin"):
+    if current_user.role not in ("educator", "admin", "superadmin"):
         raise HTTPException(status_code=403, detail="Réservé aux éducateurs")
     query = db.query(db_models.User).filter(db_models.User.role == "user")
     if q:
@@ -102,7 +102,7 @@ async def create_group(
     db: Session = Depends(get_db),
     current_user: db_models.User = Depends(get_current_user),
 ):
-    if current_user.role not in ("educator", "admin"):
+    if current_user.role not in ("educator", "admin", "superadmin"):
         raise HTTPException(status_code=403, detail="Réservé aux éducateurs")
     group = db_models.CitizenGroup(
         educator_id=current_user.id,
@@ -121,7 +121,7 @@ async def get_my_groups(
     db: Session = Depends(get_db),
     current_user: db_models.User = Depends(get_current_user),
 ):
-    if current_user.role not in ("educator", "admin"):
+    if current_user.role not in ("educator", "admin", "superadmin"):
         raise HTTPException(status_code=403, detail="Réservé aux éducateurs")
     groups = (
         db.query(db_models.CitizenGroup)
@@ -145,7 +145,7 @@ async def update_group(
     ).first()
     if not group:
         raise HTTPException(status_code=404, detail="Groupe non trouvé")
-    if group.educator_id != current_user.id and current_user.role != "admin":
+    if group.educator_id != current_user.id and current_user.role not in ["admin", "superadmin"]:
         raise HTTPException(status_code=403, detail="Non autorisé")
     if body.name is not None:        group.name        = body.name
     if body.description is not None: group.description = body.description
@@ -166,7 +166,7 @@ async def delete_group(
     ).first()
     if not group:
         raise HTTPException(status_code=404, detail="Groupe non trouvé")
-    if group.educator_id != current_user.id and current_user.role != "admin":
+    if group.educator_id != current_user.id and current_user.role not in ["admin", "superadmin"]:
         raise HTTPException(status_code=403, detail="Non autorisé")
     db.delete(group)
     db.commit()
@@ -185,7 +185,7 @@ async def add_member(
     ).first()
     if not group:
         raise HTTPException(status_code=404, detail="Groupe non trouvé")
-    if group.educator_id != current_user.id and current_user.role != "admin":
+    if group.educator_id != current_user.id and current_user.role not in ["admin", "superadmin"]:
         raise HTTPException(status_code=403, detail="Non autorisé")
     # Vérifier que le citoyen existe
     user = db.query(db_models.User).filter(db_models.User.id == body.user_id).first()
@@ -215,7 +215,7 @@ async def remove_member(
     ).first()
     if not group:
         raise HTTPException(status_code=404, detail="Groupe non trouvé")
-    if group.educator_id != current_user.id and current_user.role != "admin":
+    if group.educator_id != current_user.id and current_user.role not in ["admin", "superadmin"]:
         raise HTTPException(status_code=403, detail="Non autorisé")
     member = db.query(db_models.GroupMember).filter(
         db_models.GroupMember.group_id == group_id,

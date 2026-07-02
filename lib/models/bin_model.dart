@@ -123,26 +123,65 @@ class BinSnapshot {
 /// Snapshot des données d'identification d'un utilisateur depuis Firebase RTDB.
 /// Nœud : /utilisateurs/{user_id}
 class UtilisateurSnapshot {
+  /// Identifiant PostgreSQL de l'utilisateur.
+  final int id;
+
   /// Rôle de l'utilisateur (ex: "user", "admin", "collector"...)
   final String role;
 
   /// QR code unique de la carte de l'utilisateur.
   final String qrCode;
 
+  /// Nom complet de l'utilisateur (identification visuelle lors du scan QR).
+  final String fullName;
+
+  /// Adresse email de l'utilisateur (clé de recherche secondaire).
+  final String email;
+
+  /// Score cumulé du citoyen.
+  /// Présent UNIQUEMENT pour les utilisateurs avec role="user" (citoyens).
+  /// Vaut null pour les admins, collecteurs et autres rôles.
+  final double? score;
+
   const UtilisateurSnapshot({
+    this.id = 0,
     required this.role,
     required this.qrCode,
+    this.fullName = '',
+    this.email = '',
+    this.score,
   });
 
   factory UtilisateurSnapshot.fromMap(Map<dynamic, dynamic> map) {
+    final role = map['role']?.toString() ?? 'user';
     return UtilisateurSnapshot(
-      role: map['role']?.toString() ?? 'user',
-      qrCode: map['qr_code']?.toString() ?? '',
+      id:       (map['id'] as num?)?.toInt() ?? 0,
+      role:     role,
+      qrCode:   map['qr_code']?.toString() ?? '',
+      fullName: map['full_name']?.toString() ?? '',
+      email:    map['email']?.toString() ?? '',
+      // score uniquement présent pour les citoyens
+      score: role == 'user'
+          ? (map['score'] as num?)?.toDouble()
+          : null,
     );
   }
 
   factory UtilisateurSnapshot.empty() => const UtilisateurSnapshot(
-        role: 'user',
-        qrCode: '',
+        id:       0,
+        role:     'user',
+        qrCode:   '',
+        fullName: '',
+        email:    '',
+        score:    null,
       );
+
+  /// Indique si cet utilisateur est un citoyen (rôle "user").
+  bool get isCitoyen => role == 'user';
+
+  @override
+  String toString() =>
+      'UtilisateurSnapshot(id=$id, role=$role, fullName=$fullName, email=$email, '
+      'score=${score != null ? score!.toStringAsFixed(1) : "N/A"}, '
+      'qrCode=${qrCode.isNotEmpty ? "${qrCode.substring(0, 8)}..." : ""})';
 }

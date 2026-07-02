@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
 import 'dart:convert';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'theme/app_theme.dart';
 import 'theme/platform_ui.dart';
@@ -16,6 +18,7 @@ import 'screens/auth/section_testimonials.dart';
 import 'screens/auth/section_advantages.dart';
 import 'screens/client/client_home.dart';
 import 'screens/admin/admin_dashboard.dart';
+import 'screens/splash_screen.dart';
 
 import 'screens/client/sorting_guide_screen.dart';
 import 'screens/client/bin_scanner_screen.dart';
@@ -40,6 +43,13 @@ void main() async {
   await ThemeService.init();
 
   await L10n.init();
+
+  // ── Enregistrer le handler FCM de fond AVANT Firebase.initializeApp() ─────
+  // OBLIGATOIRE : doit être top-level ET appelé avant runApp().
+  // Sans ça, les notifications reçues quand l'app est FERMÉE ne s'affichent pas.
+  if (!kIsWeb) {
+    FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
+  }
 
   // ── Initialisation Firebase (Score temps réel — QR Poubelle) ──────────────
   // DefaultFirebaseOptions fournit la config correcte selon la plateforme
@@ -78,9 +88,19 @@ void main() async {
   await _restoreSessionIfAvailable();
 
   // ── Initialiser Firebase Cloud Messaging (push notifications mobile) ──────
-  // Lance FCM en arrière-plan pour ne pas bloquer le démarrage.
-  // Le token sera envoyé au backend dès que l'utilisateur est connecté.
-  FcmService.initialize();
+  // IMPORTANT : on ATTEND la fin de initialize() pour que les permissions
+  // Android soient accordées AVANT d'appeler onUserLoggedIn().
+  // Sans ce await, getToken() retourne null car les permissions ne sont
+  // pas encore accordées → token jamais envoyé → aucun push reçu.
+  if (!kIsWeb) {
+    await FcmService.initialize();
+    if (AuthState.currentUser != null) {
+      // Session restaurée : enregistrer le token FCM et afficher notifs manquées
+      unawaited(FcmService.onUserLoggedIn());
+    }
+  } else {
+    FcmService.initialize(); // Web : pas de push natif, juste init
+  }
 
   runApp(const EcoRewindApp());
 }
@@ -198,7 +218,7 @@ class _EcoRewindAppState extends State<EcoRewindApp> {
       theme: PlatformUI.isWeb ? WebTheme.theme : AppTheme.seniorTheme,
       darkTheme: AppTheme.darkTheme,
       themeMode: ThemeService.isDarkMode ? ThemeMode.dark : ThemeMode.light,
-      initialRoute: '/',
+      initialRoute: '/splash',
       onGenerateRoute: (settings) {
         // ─── Sur Web : pas d'historique Flutter — Chrome gère Retour/Avancer ───
         // Sur Mobile : MaterialPageRoute classique avec animation
@@ -246,10 +266,12 @@ class _EcoRewindAppState extends State<EcoRewindApp> {
             final profileIdx = role == UserRole.educator ? 1 : (role == UserRole.user ? 5 : 4);
             return tabRoute(profileIdx);
 
-          // ─── Routes statiques ─────────────────────────────────────────────
+          case '/splash':
+            return buildRoute((_) => const SplashScreen());
           case '/':
           case '/marketing':
             return buildRoute((_) => const MarketingLandingScreen());
+
           case '/onboarding':
             return buildRoute((_) => const OnboardingScreen());
           case '/login':

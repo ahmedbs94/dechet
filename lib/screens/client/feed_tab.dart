@@ -347,22 +347,23 @@ class _PinCardState extends State<_PinCard> {
                     ),
                   ]),
                 ),
-                // Bouton save toujours visible en haut à droite
-                Positioned(
-                  top: 8, right: 8,
-                  child: GestureDetector(
-                    onTap: _toggleSave,
-                    child: Container(
-                      width: 32, height: 32,
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.9),
-                        shape: BoxShape.circle,
-                        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 6)],
+                // Bouton save toujours visible en haut à droite (uniquement citoyens)
+                if (AuthState.currentUser?.role == UserRole.user)
+                  Positioned(
+                    top: 8, right: 8,
+                    child: GestureDetector(
+                      onTap: _toggleSave,
+                      child: Container(
+                        width: 32, height: 32,
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.9),
+                          shape: BoxShape.circle,
+                          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 6)],
+                        ),
+                        child: Icon(_saved ? Icons.bookmark_rounded : Icons.bookmark_border_rounded, size: 16, color: _saved ? AppTheme.primaryGreen : Colors.grey.shade600),
                       ),
-                      child: Icon(_saved ? Icons.bookmark_rounded : Icons.bookmark_border_rounded, size: 16, color: _saved ? AppTheme.primaryGreen : Colors.grey.shade600),
                     ),
                   ),
-                ),
               ]),
 
             // ── Texte & Auteur ──
@@ -399,8 +400,10 @@ class _PinCardState extends State<_PinCard> {
                         ),
                         const SizedBox(width: 4),
                         Text('$commentsCount', style: GoogleFonts.inter(fontSize: 11, color: Colors.grey.shade500)),
-                        const Spacer(),
-                        GestureDetector(onTap: _toggleSave, child: Icon(_saved ? Icons.bookmark_rounded : Icons.bookmark_border_rounded, size: 16, color: _saved ? AppTheme.primaryGreen : Colors.grey.shade400)),
+                        if (AuthState.currentUser?.role == UserRole.user) ...[
+                          const Spacer(),
+                          GestureDetector(onTap: _toggleSave, child: Icon(_saved ? Icons.bookmark_rounded : Icons.bookmark_border_rounded, size: 16, color: _saved ? AppTheme.primaryGreen : Colors.grey.shade400)),
+                        ],
                       ]),
                     ),
                   // Auteur
@@ -509,17 +512,70 @@ class _CreatePostSheetState extends State<_CreatePostSheet> {
       if (!mounted) return;
       Navigator.pop(context);
       if (r['success'] == true) {
+        // La modération IA se fait en arrière-plan : on rassure toujours l'utilisateur
         final pending = r['ai_flagged'] == true || r['status'] == 'pending_review';
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text(pending ? (L10n.isArabic ? '⏳ المنشور في انتظار التحقق' : '⏳ Publication en attente de validation') : (L10n.isArabic ? '✅ تم نشر المنشور!' : '✅ Publication publiée !')),
-          backgroundColor: pending ? Colors.orange : AppTheme.primaryGreen,
+          content: Row(
+            children: [
+              Icon(
+                pending ? Icons.access_time_rounded : Icons.check_circle_rounded,
+                color: Colors.white,
+                size: 18,
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  pending
+                      ? (L10n.isArabic
+                          ? '⏳ منشورك قيد المراجعة، سيظهر قريباً!'
+                          : '⏳ Publication envoyée ! Elle sera visible très bientôt.')
+                      : (L10n.isArabic
+                          ? '✅ تم نشر منشورك!'
+                          : '✅ Publication publiée !'),
+                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+                ),
+              ),
+            ],
+          ),
+          backgroundColor: pending ? const Color(0xFF0891B2) : AppTheme.primaryGreen,
           behavior: SnackBarBehavior.floating,
+          duration: const Duration(seconds: 4),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
         ));
         widget.onPosted();
+      } else {
+        // Erreur réseau ou serveur
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Row(children: [
+            const Icon(Icons.error_outline_rounded, color: Colors.white, size: 18),
+            const SizedBox(width: 10),
+            Expanded(child: Text(
+              L10n.isArabic ? 'حدث خطأ، حاول مرة أخرى' : 'Erreur lors de la publication, réessayez.',
+              style: const TextStyle(color: Colors.white),
+            )),
+          ]),
+          backgroundColor: Colors.red.shade600,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        ));
       }
-    } finally { if (mounted) setState(() => _uploading = false); }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(
+            L10n.isArabic ? 'خطأ في الاتصال بالشبكة' : 'Erreur de connexion au serveur.',
+            style: const TextStyle(color: Colors.white),
+          ),
+          backgroundColor: Colors.red.shade600,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        ));
+      }
+    } finally {
+      if (mounted) setState(() => _uploading = false);
+    }
   }
+
 
   @override
   Widget build(BuildContext context) {

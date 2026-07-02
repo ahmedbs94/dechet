@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../models/user_model.dart';
 import '../../services/auth_service.dart';
 import '../../theme/app_theme.dart';
 
@@ -51,164 +52,213 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
     String selectedRole = user?['role'] ?? 'user';
     String? errorMessage;
 
+    final currentUserRole = AuthState.currentUser?.role;
+    final isSuperAdmin = currentUserRole == UserRole.superadmin;
+    final availableRoles = isSuperAdmin
+        ? ['user', 'admin', 'superadmin', 'educator', 'pointManager', 'collector', 'intercommunality']
+        : ['user', 'educator', 'pointManager', 'collector', 'intercommunality'];
+
+    if (isEditing && !availableRoles.contains(selectedRole)) {
+      availableRoles.add(selectedRole);
+    }
+
     showDialog(
       context: context,
       builder: (context) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-          title: Text(
-            isEditing ? 'Modifier Utilisateur' : 'Nouvel Utilisateur',
-            style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 20),
-          ),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // Erreur
-                if (errorMessage != null)
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(12),
-                    margin: const EdgeInsets.only(bottom: 12),
-                    decoration: BoxDecoration(
-                      color: Colors.red.shade50,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.red.shade200),
-                    ),
-                    child: Row(children: [
-                      Icon(Icons.error_outline_rounded, color: Colors.red.shade400, size: 18),
-                      const SizedBox(width: 8),
-                      Expanded(child: Text(errorMessage!, style: GoogleFonts.inter(fontSize: 12, color: Colors.red.shade700))),
-                    ]),
-                  ),
-
-                // Email
-                if (!isEditing)
-                  TextField(
-                    controller: emailController,
-                    keyboardType: TextInputType.emailAddress,
-                    decoration: InputDecoration(
-                      labelText: 'Email',
-                      hintText: 'exemple@gmail.com',
-                      prefixIcon: const Icon(Icons.email_outlined, size: 20),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                    ),
-                  ),
-                if (!isEditing) const SizedBox(height: 14),
-
-                // Nom complet
-                TextField(
-                  controller: nameController,
-                  decoration: InputDecoration(
-                    labelText: 'Nom complet',
-                    prefixIcon: const Icon(Icons.person_outline_rounded, size: 20),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                  ),
-                ),
-                const SizedBox(height: 14),
-
-                // Rôle
-                DropdownButtonFormField<String>(
-                  value: selectedRole,
-                  items: ['user', 'admin', 'educator', 'pointManager', 'collector', 'intercommunality']
-                      .map((role) => DropdownMenuItem(
-                            value: role,
-                            child: Text(_getRoleLabel(role).toUpperCase()),
-                          ))
-                      .toList(),
-                  onChanged: (value) => selectedRole = value!,
-                  decoration: InputDecoration(
-                    labelText: 'Rôle',
-                    prefixIcon: const Icon(Icons.badge_outlined, size: 20),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                  ),
-                ),
-                const SizedBox(height: 14),
-
-                // Mot de passe
-                TextField(
-                  controller: passwordController,
-                  decoration: InputDecoration(
-                    labelText: isEditing ? 'Nouveau mot de passe' : 'Mot de passe',
-                    helperText: isEditing ? 'Laisser vide pour garder l\'actuel' : null,
-                    prefixIcon: const Icon(Icons.lock_outline_rounded, size: 20),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                  ),
-                  obscureText: true,
-                ),
-                const SizedBox(height: 14),
-
-                // Confirmation mot de passe
-                TextField(
-                  controller: confirmPasswordController,
-                  decoration: InputDecoration(
-                    labelText: 'Confirmer le mot de passe',
-                    prefixIcon: const Icon(Icons.lock_rounded, size: 20),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                  ),
-                  obscureText: true,
-                ),
-              ],
+        builder: (context, setDialogState) {
+          final screenH = MediaQuery.of(context).size.height;
+          return AlertDialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+            titlePadding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
+            contentPadding: const EdgeInsets.fromLTRB(24, 12, 24, 0),
+            actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+            title: Text(
+              isEditing ? 'Modifier Utilisateur' : 'Nouvel Utilisateur',
+              style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 20),
             ),
-          ),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(context), child: const Text('Annuler')),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppTheme.primaryGreen,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+            content: ConstrainedBox(
+              constraints: BoxConstraints(
+                maxHeight: screenH * 0.62, // jamais plus de 62% de l'écran
+                minWidth: double.maxFinite,
               ),
-              onPressed: () {
-                // Validation de l'email
-                if (!isEditing) {
-                  final email = emailController.text.trim();
-                  final emailRegex = RegExp(r'^[\w\.\-]+@[\w\.\-]+\.\w{2,}$');
-                  if (email.isEmpty || !emailRegex.hasMatch(email)) {
-                    setDialogState(() => errorMessage = 'Veuillez entrer un email valide (ex: nom@gmail.com)');
+              child: SingleChildScrollView(
+                physics: const BouncingScrollPhysics(),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    const SizedBox(height: 4),
+
+                    // Erreur
+                    if (errorMessage != null)
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        margin: const EdgeInsets.only(bottom: 12),
+                        decoration: BoxDecoration(
+                          color: Colors.red.shade50,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: Colors.red.shade200),
+                        ),
+                        child: Row(children: [
+                          Icon(Icons.error_outline_rounded, color: Colors.red.shade400, size: 18),
+                          const SizedBox(width: 8),
+                          Expanded(child: Text(errorMessage!, style: GoogleFonts.inter(fontSize: 12, color: Colors.red.shade700))),
+                        ]),
+                      ),
+
+                    // Email
+                    if (!isEditing) ...[
+                      TextField(
+                        controller: emailController,
+                        keyboardType: TextInputType.emailAddress,
+                        decoration: InputDecoration(
+                          labelText: 'Email',
+                          hintText: 'exemple@gmail.com',
+                          prefixIcon: const Icon(Icons.email_outlined, size: 20),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                          isDense: true,
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                    ],
+
+                    // Nom complet
+                    TextField(
+                      controller: nameController,
+                      decoration: InputDecoration(
+                        labelText: 'Nom complet',
+                        prefixIcon: const Icon(Icons.person_outline_rounded, size: 20),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                        isDense: true,
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+
+                    // Rôle
+                    DropdownButtonFormField<String>(
+                      value: selectedRole,
+                      isExpanded: true,
+                      items: availableRoles
+                          .map((role) => DropdownMenuItem(
+                                value: role,
+                                child: Text(
+                                  _getRoleLabel(role).toUpperCase(),
+                                  overflow: TextOverflow.ellipsis,
+                                  style: GoogleFonts.inter(fontSize: 13),
+                                ),
+                              ))
+                          .toList(),
+                      onChanged: (value) => selectedRole = value!,
+                      decoration: InputDecoration(
+                        labelText: 'Rôle',
+                        prefixIcon: const Icon(Icons.badge_outlined, size: 20),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                        isDense: true,
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+
+                    // Mot de passe
+                    TextField(
+                      controller: passwordController,
+                      decoration: InputDecoration(
+                        labelText: isEditing ? 'Nouveau mot de passe' : 'Mot de passe',
+                        helperText: isEditing ? 'Laisser vide pour garder l\'actuel' : null,
+                        helperStyle: GoogleFonts.inter(fontSize: 10),
+                        prefixIcon: const Icon(Icons.lock_outline_rounded, size: 20),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                        isDense: true,
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                      ),
+                      obscureText: true,
+                    ),
+                    const SizedBox(height: 12),
+
+                    // Confirmation mot de passe
+                    TextField(
+                      controller: confirmPasswordController,
+                      decoration: InputDecoration(
+                        labelText: 'Confirmer le mot de passe',
+                        prefixIcon: const Icon(Icons.lock_rounded, size: 20),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                        isDense: true,
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                      ),
+                      obscureText: true,
+                    ),
+                    const SizedBox(height: 8),
+                  ],
+                ),
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Annuler'),
+              ),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.primaryGreen,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                ),
+                onPressed: () {
+                  // Validation de l'email
+                  if (!isEditing) {
+                    final email = emailController.text.trim();
+                    final emailRegex = RegExp(r'^[\w\.\-]+@[\w\.\-]+\.\w{2,}$');
+                    if (email.isEmpty || !emailRegex.hasMatch(email)) {
+                      setDialogState(() => errorMessage = 'Veuillez entrer un email valide (ex: nom@gmail.com)');
+                      return;
+                    }
+                  }
+
+                  // Validation du nom
+                  if (nameController.text.trim().isEmpty) {
+                    setDialogState(() => errorMessage = 'Le nom complet est requis');
                     return;
                   }
-                }
 
-                // Validation du nom
-                if (nameController.text.trim().isEmpty) {
-                  setDialogState(() => errorMessage = 'Le nom complet est requis');
-                  return;
-                }
+                  // Validation du mot de passe
+                  final pwd = passwordController.text;
+                  final confirmPwd = confirmPasswordController.text;
 
-                // Validation du mot de passe
-                final pwd = passwordController.text;
-                final confirmPwd = confirmPasswordController.text;
+                  if (!isEditing && pwd.isEmpty) {
+                    setDialogState(() => errorMessage = 'Le mot de passe est requis');
+                    return;
+                  }
 
-                if (!isEditing && pwd.isEmpty) {
-                  setDialogState(() => errorMessage = 'Le mot de passe est requis');
-                  return;
-                }
+                  if (pwd.isNotEmpty && pwd.length < 6) {
+                    setDialogState(() => errorMessage = 'Le mot de passe doit contenir au moins 6 caractères');
+                    return;
+                  }
 
-                if (pwd.isNotEmpty && pwd.length < 6) {
-                  setDialogState(() => errorMessage = 'Le mot de passe doit contenir au moins 6 caractères');
-                  return;
-                }
+                  if (pwd.isNotEmpty && pwd != confirmPwd) {
+                    setDialogState(() => errorMessage = 'Les mots de passe ne correspondent pas');
+                    return;
+                  }
 
-                if (pwd.isNotEmpty && pwd != confirmPwd) {
-                  setDialogState(() => errorMessage = 'Les mots de passe ne correspondent pas');
-                  return;
-                }
-
-                Navigator.pop(context);
-                _processUser(
-                  isEditing: isEditing,
-                  userId: user?['id'],
-                  email: emailController.text.trim(),
-                  name: nameController.text.trim(),
-                  role: selectedRole,
-                  password: pwd,
-                );
-              },
-              child: Text(isEditing ? 'Sauvegarder' : 'Créer', style: const TextStyle(fontWeight: FontWeight.bold)),
-            ),
-          ],
-        ),
+                  Navigator.pop(context);
+                  _processUser(
+                    isEditing: isEditing,
+                    userId: user?['id'],
+                    email: emailController.text.trim(),
+                    name: nameController.text.trim(),
+                    role: selectedRole,
+                    password: pwd,
+                  );
+                },
+                child: Text(
+                  isEditing ? 'Sauvegarder' : 'Créer',
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
@@ -389,21 +439,23 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                                     ],
                                   ),
                                 ),
-                                Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    IconButton(
-                                      onPressed: () => _showUserDialog(user: user),
-                                      icon: const Icon(Icons.edit_outlined, color: Colors.blue),
-                                      tooltip: 'Modifier',
-                                    ),
-                                    IconButton(
-                                      onPressed: () => _deleteUser(user['id']),
-                                      icon: const Icon(Icons.delete_outline_rounded, color: Colors.red),
-                                      tooltip: 'Supprimer',
-                                    ),
-                                  ],
-                                ),
+                                if (AuthState.currentUser?.role == UserRole.superadmin ||
+                                    (user['role'] != 'admin' && user['role'] != 'superadmin'))
+                                  Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      IconButton(
+                                        onPressed: () => _showUserDialog(user: user),
+                                        icon: const Icon(Icons.edit_outlined, color: Colors.blue),
+                                        tooltip: 'Modifier',
+                                      ),
+                                      IconButton(
+                                        onPressed: () => _deleteUser(user['id']),
+                                        icon: const Icon(Icons.delete_outline_rounded, color: Colors.red),
+                                        tooltip: 'Supprimer',
+                                      ),
+                                    ],
+                                  ),
                               ],
                             ),
                           );
@@ -422,6 +474,8 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
 
   String _getRoleLabel(String role) {
     switch (role) {
+      case 'superadmin':
+        return 'Super Administrateur';
       case 'admin':
         return 'Administrateur';
       case 'educator':
@@ -441,6 +495,8 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
 
   Color _getRoleColor(String role) {
     switch (role) {
+      case 'superadmin':
+        return Colors.deepPurple;
       case 'admin':
         return Colors.red;
       case 'educator':

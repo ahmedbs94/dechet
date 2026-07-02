@@ -45,3 +45,19 @@ class UserUpdate(BaseModel):
 class ChangePasswordRequest(BaseModel):
     old_password: str
     new_password: str
+
+
+class MFASetupResponse(BaseModel):
+    secret: str
+    otpauth_url: str
+
+
+class MFAVerifyEnableRequest(BaseModel):
+    code: str
+
+
+class MFADisableRequest(BaseModel):
+    password: Optional[str] = None
+    code: Optional[str] = None
+
+

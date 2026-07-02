@@ -1,4 +1,4 @@
-enum UserRole { user, admin, educator, intercommunality, pointManager, collector }
+enum UserRole { user, admin, superadmin, educator, intercommunality, pointManager, collector }
 
 class User {
   final String id;
@@ -9,6 +9,7 @@ class User {
   final double globalScore;
   final String avatarUrl;
   final String qrCode;
+  final bool mfaEnabled;
 
   User({
     required this.id,
@@ -19,6 +20,7 @@ class User {
     this.globalScore = 0.0,
     this.avatarUrl = '',
     this.qrCode = '',
+    this.mfaEnabled = false,
   });
 
   /// Crée un User depuis la réponse du backend
@@ -32,11 +34,14 @@ class User {
       globalScore: (data['global_score'] ?? 0.0).toDouble(),
       avatarUrl: data['avatar_url'] ?? '',
       qrCode: data['qr_code'] ?? '',
+      mfaEnabled: data['mfa_enabled'] ?? false,
     );
   }
 
   static UserRole _parseRole(String role) {
     switch (role) {
+      case 'superadmin':
+        return UserRole.superadmin;
       case 'admin':
         return UserRole.admin;
       case 'educator':
@@ -54,6 +59,8 @@ class User {
 
   String get roleDisplayName {
     switch (role) {
+      case UserRole.superadmin:
+        return 'Super Administrateur';
       case UserRole.admin:
         return 'Administrateur';
       case UserRole.educator:
@@ -73,6 +80,7 @@ class User {
     id: id, name: name, email: email, role: role,
     points: points, globalScore: newScore,
     avatarUrl: avatarUrl, qrCode: qrCode,
+    mfaEnabled: mfaEnabled,
   );
 }
 
@@ -98,5 +106,5 @@ class AuthState {
       authToken != null ? {'Authorization': 'Bearer $authToken'} : {};
 
   static bool get isLoggedIn => currentUser != null;
-  static bool get isAdmin => currentUser?.role == UserRole.admin;
+  static bool get isAdmin => currentUser?.role == UserRole.admin || currentUser?.role == UserRole.superadmin;
 }

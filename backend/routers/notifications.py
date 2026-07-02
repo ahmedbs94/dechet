@@ -39,7 +39,9 @@ async def get_notifications(skip: int = 0, limit: int = 50,
         {
             "id": n.id, "type": n.type, "title": n.title, "body": n.body,
             "from_user_name": n.from_user_name, "post_id": n.post_id,
-            "comment_id": getattr(n, "comment_id", None),
+            "comment_id":             getattr(n, "comment_id",             None),
+            "sender_id":              getattr(n, "sender_id",              None),
+            "source_notification_id": getattr(n, "source_notification_id", None),
             "is_read": n.is_read, "created_at": _utc_iso(n.created_at),
         }
         for n in notifs
@@ -93,6 +95,91 @@ async def mark_unread(notif_id: int, db: Session = Depends(get_db),
     notif.is_read = False
     db.commit()
     return {"message": "Notification marquée comme non lue"}
+
+
+class ActorReplyRequest(BaseModel):
+    message: str
+
+
+@router.post("/{notif_id}/reply")
+async def actor_reply(
+    notif_id: int,
+    data: ActorReplyRequest,
+    db: Session = Depends(get_db),
+    current_user: db_models.User = Depends(get_current_user),
+):
+    """
+    Permet à un acteur (gestionnaire, collecteur, éducateur) de répondre
+    à un message reu de l'intercommunalité.
+    Crée une notification de type 'actor_reply' dans la boîte de l'expéditeur d'origine.
+    """
+    # Vérifier que l'acteur est bien le destinataire de la notification d'origine
+    original = db.query(db_models.Notification).filter(
+        db_models.Notification.id == notif_id,
+        db_models.Notification.user_id == current_user.id,
+        db_models.Notification.type.in_([
+            "intercommunality_message",
+            "intercommunality_group_message",
+        ]),
+    ).first()
+    if not original:
+        raise HTTPException(
+            status_code=404,
+            detail="Message introuvable ou vous n'êtes pas autorisé à répondre",
+        )
+
+    # Retrouver l'expéditeur (l'intercommunalité qui a envoyé le message)
+    sender_id = getattr(original, "sender_id", None)
+    if not sender_id:
+        # Fallback : chercher par from_user_name
+        sender = db.query(db_models.User).filter(
+            db_models.User.full_name == original.from_user_name,
+            db_models.User.role == "intercommunality",
+        ).first()
+        if sender:
+            sender_id = sender.id
+
+    if not sender_id:
+        raise HTTPException(status_code=422, detail="Impossible d'identifier le destinataire de la réponse")
+
+    # Créer la notification de réponse dans la boîte de l'intercommunalité
+    reply_notif = db_models.Notification(
+        user_id                = sender_id,
+        sender_id              = current_user.id,
+        type                   = "actor_reply",
+        title                  = f"Réponse de {current_user.full_name}",
+        body                   = data.message,
+        from_user_name         = current_user.full_name,
+        source_notification_id = notif_id,
+        is_read                = False,
+    )
+    db.add(reply_notif)
+
+    # Marquer le message original comme lu (l'acteur a répondu, donc l'a lu)
+    original.is_read = True
+    db.commit()
+    db.refresh(reply_notif)
+
+    # ── Push FCM : notifier l'intercommunalité de la réponse ─────────────────
+    try:
+        from services.fcm_push_service import send_push_to_user as _fcm_push
+        _fcm_push(
+            db, sender_id,
+            title=f"Réponse de {current_user.full_name}",
+            body=data.message,
+            data={
+                "type":     "actor_reply",
+                "from":     str(current_user.id),
+                "notif_id": str(reply_notif.id),
+            },
+        )
+    except Exception:
+        pass  # Non bloquant
+
+    return {
+        "message":       "Réponse envoyée avec succès",
+        "reply_notif_id": reply_notif.id,
+    }
 
 
 # ── FCM Push Notifications ─────────────────────────────────────────────────────

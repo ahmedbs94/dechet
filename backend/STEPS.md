@@ -101,14 +101,14 @@ POST /posts
 
 | Suite de tests | Résultat |
 |---|---|
-| `test_rules_only.py` (couche règles) | **22/22 PASS** ✅ |
+| `tests/manual_test_rules_only.py` (couche règles) | **22/22 PASS** ✅ |
 | `moderation_ai/test_cnn.py` (Text CNN) | **16/16 PASS** ✅ |
 | Pipeline complet `EcoCNNModerator` | **8/8 PASS** ✅ |
 
 ### Lancer les tests
 ```bash
 # Couche règles uniquement (< 5s)
-python -X utf8 test_rules_only.py
+python -X utf8 tests/manual_test_rules_only.py
 
 # Text CNN (modèle entraîné)
 python -X utf8 moderation_ai/test_cnn.py

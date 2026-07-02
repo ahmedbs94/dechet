@@ -35,6 +35,7 @@ class User(Base):
     created_at = Column(DateTime, default=datetime.utcnow, index=True)  # Date d'inscription
     fcm_token = Column(String, nullable=True)  # Firebase Cloud Messaging token (push notifications mobiles)
     mfa_enabled = Column(Boolean, default=False, nullable=False)  # Authentification forte (TOTP)
+    mfa_secret = Column(String, nullable=True)  # Clé TOTP secrète pour MFA
 
     posts = relationship("Post", back_populates="author")
     saved_posts = relationship("SavedPost", back_populates="user")

@@ -485,12 +485,14 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                       Text('$commentCount', style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 14, color: AppTheme.textMuted)),
                     ]),
                   ),
-                  const Spacer(),
-                  // Save
-                  IconButton(
-                    onPressed: _handleSave,
-                    icon: Icon(_isSaved ? Icons.bookmark_rounded : Icons.bookmark_border_rounded, color: _isSaved ? AppTheme.primaryGreen : AppTheme.textMuted, size: 24),
-                  ),
+                  if (AuthState.currentUser?.role == UserRole.user) ...[
+                    const Spacer(),
+                    // Save
+                    IconButton(
+                      onPressed: _handleSave,
+                      icon: Icon(_isSaved ? Icons.bookmark_rounded : Icons.bookmark_border_rounded, color: _isSaved ? AppTheme.primaryGreen : AppTheme.textMuted, size: 24),
+                    ),
+                  ],
                 ]),
               ),
 

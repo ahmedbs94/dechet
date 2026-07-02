@@ -274,7 +274,7 @@ async def get_quiz(
     result = _format_quiz(quiz)
 
     # Masquer les réponses correctes pour les étudiants (sauf si éducateur)
-    is_educator = current_user.id == quiz.educator_id or current_user.role == "admin"
+    is_educator = current_user.id == quiz.educator_id or current_user.role in ["admin", "superadmin"]
     if not is_educator:
         for q in result["questions"]:
             q.pop("correct_answer", None)
@@ -454,7 +454,7 @@ async def get_quiz_results(
         raise HTTPException(status_code=404, detail="Quiz non trouvé")
 
     # Seuls l'éducateur créateur et les admins peuvent voir les résultats
-    if current_user.id != quiz.educator_id and current_user.role != "admin":
+    if current_user.id != quiz.educator_id and current_user.role not in ["admin", "superadmin"]:
         raise HTTPException(status_code=403, detail="Accès non autorisé")
 
     submissions = (
@@ -522,7 +522,7 @@ async def delete_quiz(
     quiz = db.query(db_models.Quiz).filter(db_models.Quiz.id == quiz_id).first()
     if not quiz:
         raise HTTPException(status_code=404, detail="Quiz non trouvé")
-    if quiz.educator_id != current_user.id and current_user.role != "admin":
+    if quiz.educator_id != current_user.id and current_user.role not in ["admin", "superadmin"]:
         raise HTTPException(status_code=403, detail="Non autorisé")
 
     # Supprimer le fichier PDF si présent

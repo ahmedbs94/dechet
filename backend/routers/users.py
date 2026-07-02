@@ -6,7 +6,7 @@ from typing import List
 
 import db_models as db_models
 import models as models
-from auth import get_password_hash
+from app.auth.service import get_password_hash
 from database import get_db
 from core.deps import get_current_user, get_admin_user
 
@@ -26,12 +26,20 @@ class ProfileUpdate(BaseModel):
 @router.get("/users", response_model=List[models.User])
 async def list_users(skip: int = 0, limit: int = 100, db: Session = Depends(get_db),
                      admin: db_models.User = Depends(get_admin_user)):
-    return db.query(db_models.User).offset(skip).limit(limit).all()
+    query = db.query(db_models.User)
+    if admin.role != "superadmin":
+        query = query.filter(db_models.User.role.notin_(["admin", "superadmin"]))
+    return query.offset(skip).limit(limit).all()
 
 
 @router.post("/admin/users", response_model=models.User)
 async def create_user(user: models.UserCreate, db: Session = Depends(get_db),
                       admin: db_models.User = Depends(get_admin_user)):
+    if admin.role != "superadmin" and user.role in ["admin", "superadmin"]:
+        raise HTTPException(
+            status_code=403,
+            detail="Seul le super-administrateur peut créer des administrateurs ou super-administrateurs"
+        )
     if db.query(db_models.User).filter(db_models.User.email == user.email).first():
         raise HTTPException(status_code=400, detail="Cet email est déjà utilisé")
     new_user = db_models.User(
@@ -52,6 +60,17 @@ async def update_user(user_id: int, user_update: models.UserUpdate,
     db_user = db.query(db_models.User).filter(db_models.User.id == user_id).first()
     if not db_user:
         raise HTTPException(status_code=404, detail="Utilisateur non trouvé")
+    if admin.role != "superadmin":
+        if db_user.role in ["admin", "superadmin"]:
+            raise HTTPException(
+                status_code=403,
+                detail="Seul le super-administrateur peut modifier un administrateur ou super-administrateur"
+            )
+        if user_update.role in ["admin", "superadmin"]:
+            raise HTTPException(
+                status_code=403,
+                detail="Seul le super-administrateur peut attribuer le rôle d'administrateur ou super-administrateur"
+            )
     if user_update.full_name:
         db_user.full_name = user_update.full_name
     if user_update.role:
@@ -69,6 +88,11 @@ async def delete_user(user_id: int, db: Session = Depends(get_db),
     db_user = db.query(db_models.User).filter(db_models.User.id == user_id).first()
     if not db_user:
         raise HTTPException(status_code=404, detail="Utilisateur non trouvé")
+    if admin.role != "superadmin" and db_user.role in ["admin", "superadmin"]:
+        raise HTTPException(
+            status_code=403,
+            detail="Seul le super-administrateur peut supprimer un administrateur ou super-administrateur"
+        )
     db.delete(db_user)
     db.commit()
     return {"message": "Utilisateur supprimé"}
@@ -115,24 +139,65 @@ async def update_avatar(data: AvatarUpdate, db: Session = Depends(get_db),
 
 # ── MFA (Authentification Forte) ──────────────────────────────────────────────
 
-@router.post("/users/me/mfa/enable")
-async def enable_mfa(db: Session = Depends(get_db),
-                     current_user: db_models.User = Depends(get_current_user)):
-    """Active l'authentification forte (MFA) pour l'utilisateur connecte."""
+@router.post("/users/me/mfa/setup", response_model=models.MFASetupResponse)
+async def setup_mfa(db: Session = Depends(get_db),
+                    current_user: db_models.User = Depends(get_current_user)):
+    """Initialise l'authentification forte en générant un secret TOTP."""
+    import pyotp
+    secret = pyotp.random_base32()
+    totp = pyotp.TOTP(secret)
+    otpauth_url = totp.provisioning_uri(name=current_user.email, issuer_name="EcoRewind")
+    
+    current_user.mfa_secret = secret
+    db.commit()
+    db.refresh(current_user)
+    
+    return {"secret": secret, "otpauth_url": otpauth_url}
+
+
+@router.post("/users/me/mfa/verify-enable")
+async def verify_enable_mfa(data: models.MFAVerifyEnableRequest, db: Session = Depends(get_db),
+                            current_user: db_models.User = Depends(get_current_user)):
+    """Valide le code d'activation et active définitivement la MFA pour l'utilisateur."""
+    import pyotp
+    if not current_user.mfa_secret:
+        raise HTTPException(status_code=400, detail="L'initialisation de la MFA n'a pas été demandée.")
+        
+    totp = pyotp.TOTP(current_user.mfa_secret)
+    if not totp.verify(data.code, valid_window=1):
+        raise HTTPException(status_code=400, detail="Code de validation incorrect ou expiré.")
+        
     current_user.mfa_enabled = True
     db.commit()
     db.refresh(current_user)
-    return {"message": "Authentification forte activee", "mfa_enabled": True}
+    return {"message": "Authentification forte activée avec succès", "mfa_enabled": True}
 
 
 @router.post("/users/me/mfa/disable")
-async def disable_mfa(db: Session = Depends(get_db),
+async def disable_mfa(data: models.MFADisableRequest, db: Session = Depends(get_db),
                       current_user: db_models.User = Depends(get_current_user)):
-    """Desactive l'authentification forte (MFA) pour l'utilisateur connecte."""
+    """Désactive l'authentification forte de manière sécurisée en exigeant une double confirmation."""
+    import pyotp
+    from app.auth.service import verify_password
+
+    # Cas 1: L'utilisateur a un mot de passe (connexion classique)
+    if current_user.hashed_password:
+        if not data.password or not verify_password(data.password, current_user.hashed_password):
+            raise HTTPException(status_code=400, detail="Mot de passe incorrect.")
+    
+    # Cas 2: L'utilisateur est connecté via un compte social et n'a pas de mot de passe
+    else:
+        if not data.code:
+            raise HTTPException(status_code=400, detail="Code de validation MFA requis pour désactiver l'authentification forte.")
+        totp = pyotp.TOTP(current_user.mfa_secret)
+        if not totp.verify(data.code, valid_window=1):
+            raise HTTPException(status_code=400, detail="Code de validation incorrect ou expiré.")
+
     current_user.mfa_enabled = False
+    current_user.mfa_secret = None
     db.commit()
     db.refresh(current_user)
-    return {"message": "Authentification forte desactivee", "mfa_enabled": False}
+    return {"message": "Authentification forte désactivée", "mfa_enabled": False}
 
 
 @router.get("/users/me/stats")

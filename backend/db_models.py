@@ -44,3 +44,13 @@ from app.education.models import (  # noqa: F401
 
 # ── QR Bins ───────────────────────────────────────────────────────────────────
 from app.qr_bins.models import SmartBin, BinScan, CollectorLog  # noqa: F401
+
+# ── Intercommunalité ──────────────────────────────────────────────────────────
+from app.intercommunality.models import LocalInstruction, CustomActorGroup  # noqa: F401
+from app.intercommunality.zone_models import CollectorZone, CollectorZoneAssignment  # noqa: F401
+
+# ── Signalements citoyens ─────────────────────────────────────────────────────
+from app.reports.models import CitizenReport  # noqa: F401
+
+# ── Tournées de collecte ──────────────────────────────────────────────────────
+from app.collector_routes.models import CollectionRoute  # noqa: F401

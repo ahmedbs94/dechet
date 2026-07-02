@@ -20,7 +20,7 @@ async def get_current_user(
     db: Session = Depends(get_db),
 ) -> db_models.User:
     from jose import jwt, JWTError
-    from auth import SECRET_KEY, ALGORITHM
+    from app.auth.service import SECRET_KEY, ALGORITHM
 
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
@@ -29,6 +29,12 @@ async def get_current_user(
     )
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        if payload.get("mfa_pending") is True:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="MFA verification pending",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
         email: str = payload.get("sub")
         if email is None:
             raise credentials_exception
@@ -44,9 +50,21 @@ async def get_current_user(
 async def get_admin_user(
     current_user: db_models.User = Depends(get_current_user),
 ) -> db_models.User:
-    if current_user.role != "admin":
+    if current_user.role not in ["admin", "superadmin"]:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Seuls les administrateurs peuvent effectuer cette action",
         )
     return current_user
+
+
+async def get_superadmin_user(
+    current_user: db_models.User = Depends(get_current_user),
+) -> db_models.User:
+    if current_user.role != "superadmin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Seuls les super-administrateurs peuvent effectuer cette action",
+        )
+    return current_user
+

@@ -138,7 +138,7 @@ async def delete_testimonial(testimonial_id: int, db: Session = Depends(get_db),
     t = db.query(db_models.Testimonial).filter(db_models.Testimonial.id == testimonial_id).first()
     if not t:
         raise HTTPException(status_code=404, detail="Témoignage non trouvé")
-    if t.user_id != current_user.id and current_user.role != "admin":
+    if t.user_id != current_user.id and current_user.role not in ["admin", "superadmin"]:
         raise HTTPException(status_code=403, detail="Non autorisé")
     db.delete(t)
     db.commit()
@@ -183,7 +183,7 @@ async def delete_proposal(proposal_id: int, db: Session = Depends(get_db),
         db_models.CenterProposal.id == proposal_id).first()
     if not proposal:
         raise HTTPException(status_code=404, detail="Proposition non trouvée")
-    if proposal.user_id != current_user.id and current_user.role != "admin":
+    if proposal.user_id != current_user.id and current_user.role not in ["admin", "superadmin"]:
         raise HTTPException(status_code=403, detail="Non autorisé")
     db.delete(proposal)
     db.commit()

@@ -51,10 +51,11 @@ class _ManageGroupsScreenState extends State<ManageGroupsScreen> {
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
           child: Padding(
             padding: const EdgeInsets.all(24),
-            child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(existing == null ? (L10n.isArabic ? 'مجموعة جديدة' : 'Nouveau groupe') : (L10n.isArabic ? 'تعديل المجموعة' : 'Modifier le groupe'),
-                style: GoogleFonts.outfit(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 20),
+            child: SingleChildScrollView(
+              child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text(existing == null ? (L10n.isArabic ? 'مجموعة جديدة' : 'Nouveau groupe') : (L10n.isArabic ? 'تعديل المجموعة' : 'Modifier le groupe'),
+                  style: GoogleFonts.outfit(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 20),
 
               // Nom
               TextField(
@@ -132,7 +133,8 @@ class _ManageGroupsScreenState extends State<ManageGroupsScreen> {
               ]),
             ]),
           ),
-        );
+        ),
+      );
       }),
     );
   }

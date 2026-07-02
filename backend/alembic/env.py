@@ -30,6 +30,9 @@ from database import Base  # noqa: E402
 
 # Import de tous les modèles enregistrés sur Base.metadata
 import db_models  # noqa: F401, E402 — side-effect import (enregistre les tables)
+from app.intercommunality import zone_models  # noqa: F401, E402 — tables F5 zones/assignments
+from app.intercommunality import models as intercommunality_models  # noqa: F401, E402
+
 
 # ── Résoudre l'URL de la base de données ────────────────────────────────────
 DATABASE_URL = os.getenv("DATABASE_URL", "")

@@ -67,8 +67,19 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
   void _onTabSelected(int index) {
     if (_currentIndex == index) return;
     final role = AuthState.currentUser?.role ?? UserRole.user;
-    // Rafraîchir le score quand on arrive sur l'onglet Profil
-    final profileIndex = (role == UserRole.educator) ? 1 : (role == UserRole.user ? 5 : 4);
+    // Index de l'onglet Profil selon le rôle
+    int profileIndex;
+    if (role == UserRole.educator) {
+      profileIndex = 1;
+    } else if (role == UserRole.user) {
+      profileIndex = 5;
+    } else if (role == UserRole.intercommunality ||
+               role == UserRole.pointManager ||
+               role == UserRole.collector) {
+      profileIndex = 2; // [EspaceMetier, Carte, Profil]
+    } else {
+      profileIndex = 4;
+    }
     if (index == profileIndex) _profileKey.currentState?.refreshScore();
     setState(() => _currentIndex = index);
   }
@@ -91,32 +102,26 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
           ProfileTab(key: _profileKey),
         ];
 
-      // ── Rôle Collecteur : même structure, Formation → Espace Collecteur ──
+      // ── Rôle Collecteur : Espace Collecteur + Carte + Profil (sans Fil ni Impact) ──
       case UserRole.collector:
         return [
-          const FeedTab(key: ValueKey('feed')),
           const CollectorTab(key: ValueKey('collector')),
-          const RewardsTab(key: ValueKey('rewards')),
           const MapTab(key: ValueKey('map')),
           ProfileTab(key: _profileKey),
         ];
 
-      // ── Rôle Intercommunalité : même structure, Formation → Espace Intercommunalité ──
+      // ── Rôle Intercommunalité : 3 fonctions + Carte + Profil (sans Fil ni Impact) ──
       case UserRole.intercommunality:
         return [
-          const FeedTab(key: ValueKey('feed')),
           const IntercommunalityTab(key: ValueKey('intercommunality')),
-          const RewardsTab(key: ValueKey('rewards')),
           const MapTab(key: ValueKey('map')),
           ProfileTab(key: _profileKey),
         ];
 
-      // ── Rôle Gestionnaire de point : même structure, Formation → Gestionnaire ──
+      // ── Rôle Gestionnaire : Signalements + Carte + Profil (sans Fil ni Impact) ──
       case UserRole.pointManager:
         return [
-          const FeedTab(key: ValueKey('feed')),
           const PointManagerTab(key: ValueKey('pointmanager')),
-          const RewardsTab(key: ValueKey('rewards')),
           const MapTab(key: ValueKey('map')),
           ProfileTab(key: _profileKey),
         ];
@@ -190,6 +195,18 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
       ];
     }
 
+    // ── Intercommunalité / Gestionnaire / Collecteur : 3 onglets ciblés ──
+    // Pas de Fil ni d'Impact — uniquement espace métier + Carte + Profil
+    if (role == UserRole.intercommunality ||
+        role == UserRole.pointManager ||
+        role == UserRole.collector) {
+      return [
+        NavigationDestination(icon: _proTabIcon(role), label: _proTabLabel(role)),
+        NavigationDestination(icon: const FaIcon(FontAwesomeIcons.mapLocationDot, size: 20), label: L10n.tr('tab_map')),
+        NavigationDestination(icon: const FaIcon(FontAwesomeIcons.user, size: 20), label: L10n.tr('tab_profile')),
+      ];
+    }
+
     // ── Citoyen : 6 onglets avec Communauté ──
     if (role == UserRole.user) {
       return [
@@ -202,7 +219,7 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
       ];
     }
 
-    // Tous les autres rôles connectés : 5 onglets
+    // Admin et autres : 5 onglets standard
     return [
       NavigationDestination(icon: const FaIcon(FontAwesomeIcons.house, size: 20), label: L10n.tr('tab_feed')),
       NavigationDestination(icon: _proTabIcon(role), label: _proTabLabel(role)),

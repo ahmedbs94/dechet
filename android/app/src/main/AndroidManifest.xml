@@ -4,6 +4,10 @@
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
     <!-- ── Permission notifications (Android 13+) ── -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+    <!-- ── Vibration + veille (FCM push) ── -->
+    <uses-permission android:name="android.permission.VIBRATE"/>
+    <uses-permission android:name="android.permission.WAKE_LOCK"/>
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
     <application
         android:label="EcoRewind"
         android:name="${applicationName}"

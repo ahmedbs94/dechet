@@ -8,16 +8,18 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi_mail import FastMail, MessageSchema, MessageType
 from sqlalchemy.orm import Session
+from typing import Union
+
 
 import db_models as db_models
 import models as models
-from auth import (
+from app.auth.service import (
     verify_password, get_password_hash,
     create_access_token, create_refresh_token, decode_refresh_token,
 )
 from database import get_db
 from core.deps import get_current_user
-from services.firebase_service import generate_custom_token
+from services.firebase_service import generate_custom_token, sync_user_to_firebase
 
 router = APIRouter(tags=["auth"])
 
@@ -142,7 +144,25 @@ async def verify_otp(request: models.OTPVerifyRequest, db: Session = Depends(get
         user.is_verified = True
         db.commit()
         db.refresh(user)
+        if getattr(user, "mfa_enabled", False):
+            mfa_token = create_access_token({"sub": user.email, "mfa_pending": True}, expires_delta=timedelta(minutes=5))
+            return {
+                "success": True, "message": "MFA requis",
+                "status": "mfa_required",
+                "mfa_token": mfa_token,
+                "id": user.id,
+                "email": user.email,
+            }
         access_token = create_access_token(data={"sub": user.email})
+        # Synchronise les infos utilisateur dans Firebase pour identifier le QR code
+        sync_user_to_firebase(
+            user_id=user.id,
+            role=user.role or "user",
+            qr_code=user.qr_code or "",
+            full_name=user.full_name or "",
+            email=user.email or "",
+            score=getattr(user, 'global_score', 0) or 0,
+        )
         return {
             "success": True, "message": "Compte vérifié",
             "access_token": access_token, "token_type": "bearer",
@@ -155,13 +175,32 @@ async def verify_otp(request: models.OTPVerifyRequest, db: Session = Depends(get
 
 # ── Token login ───────────────────────────────────────────────────────────────
 
-@router.post("/token", response_model=models.Token)
+@router.post("/token", response_model=Union[models.Token, models.MFAPendingResponse])
 async def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
     user = db.query(db_models.User).filter(db_models.User.email == form_data.username).first()
     if not user or not verify_password(form_data.password, user.hashed_password):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
                             detail="Incorrect email or password",
                             headers={"WWW-Authenticate": "Bearer"})
+    
+    if getattr(user, "mfa_enabled", False):
+        mfa_token = create_access_token({"sub": user.email, "mfa_pending": True}, expires_delta=timedelta(minutes=5))
+        return {
+            "status": "mfa_required",
+            "mfa_token": mfa_token,
+            "id": user.id,
+            "email": user.email,
+        }
+
+    # Synchronise les infos utilisateur dans Firebase pour identifier le QR code
+    sync_user_to_firebase(
+        user_id=user.id,
+        role=user.role or "user",
+        qr_code=user.qr_code or "",
+        full_name=user.full_name or "",
+        email=user.email or "",
+        score=getattr(user, 'global_score', 0) or 0,
+    )
     return {
         "access_token": create_access_token({"sub": user.email}),
         "refresh_token": create_refresh_token({"sub": user.email}),
@@ -191,9 +230,60 @@ async def refresh_token(body: models.RefreshTokenRequest, db: Session = Depends(
     }
 
 
+@router.post("/auth/mfa/verify", response_model=models.Token)
+async def verify_mfa_login(body: models.MFAVerifyLoginRequest, db: Session = Depends(get_db)):
+    from jose import jwt, JWTError
+    from app.auth.service import SECRET_KEY, ALGORITHM
+    import pyotp
+
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Jeton MFA invalide ou expiré",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+    try:
+        payload = jwt.decode(body.mfa_token, SECRET_KEY, algorithms=[ALGORITHM])
+        email: str = payload.get("sub")
+        mfa_pending: bool = payload.get("mfa_pending", False)
+        if email is None or not mfa_pending:
+            raise credentials_exception
+    except JWTError:
+        raise credentials_exception
+
+    user = db.query(db_models.User).filter(db_models.User.email == email).first()
+    if not user or not user.is_active:
+        raise HTTPException(status_code=401, detail="Utilisateur introuvable ou désactivé")
+
+    if not user.mfa_secret:
+        raise HTTPException(status_code=400, detail="MFA non configuré pour cet utilisateur")
+
+    totp = pyotp.TOTP(user.mfa_secret)
+    if not totp.verify(body.code, valid_window=1):
+        raise HTTPException(status_code=401, detail="Code de validation incorrect ou expiré")
+
+    # Synchronise les infos utilisateur dans Firebase pour identifier le QR code
+    sync_user_to_firebase(
+        user_id=user.id,
+        role=user.role or "user",
+        qr_code=user.qr_code or "",
+        full_name=user.full_name or "",
+        email=user.email or "",
+        score=getattr(user, 'global_score', 0) or 0,
+    )
+    return {
+        "access_token": create_access_token({"sub": user.email}),
+        "refresh_token": create_refresh_token({"sub": user.email}),
+        "token_type": "bearer", "role": user.role,
+        "id": user.id, "email": user.email,
+        "full_name": user.full_name, "qr_code": user.qr_code,
+        "avatar_url": user.avatar_url or "",
+        "firebase_token": generate_custom_token(user.id),  # pour signInWithCustomToken() Flutter
+    }
+
+
 # ── Social Auth ───────────────────────────────────────────────────────────────
 
-@router.post("/auth/google", response_model=models.Token)
+@router.post("/auth/google", response_model=Union[models.Token, models.MFAPendingResponse])
 async def google_auth(google_data: models.GoogleAuth, db: Session = Depends(get_db)):
     from google.oauth2 import id_token
     from google.auth.transport import requests as g_requests
@@ -221,6 +311,24 @@ async def google_auth(google_data: models.GoogleAuth, db: Session = Depends(get_
             db.commit()
             db.refresh(user)
 
+        if getattr(user, "mfa_enabled", False):
+            mfa_token = create_access_token({"sub": user.email, "mfa_pending": True}, expires_delta=timedelta(minutes=5))
+            return {
+                "status": "mfa_required",
+                "mfa_token": mfa_token,
+                "id": user.id,
+                "email": user.email,
+            }
+
+        # Synchronise les infos utilisateur dans Firebase pour identifier le QR code
+        sync_user_to_firebase(
+            user_id=user.id,
+            role=user.role or "user",
+            qr_code=user.qr_code or "",
+            full_name=user.full_name or "",
+            email=user.email or "",
+            score=getattr(user, 'global_score', 0) or 0,
+        )
         return {"access_token": create_access_token({"sub": email}),
                 "token_type": "bearer", "role": user.role,
                 "id": user.id, "email": user.email,
@@ -231,7 +339,7 @@ async def google_auth(google_data: models.GoogleAuth, db: Session = Depends(get_
         raise HTTPException(status_code=401, detail=f"Erreur Google: {str(e)}")
 
 
-@router.post("/auth/facebook", response_model=models.Token)
+@router.post("/auth/facebook", response_model=Union[models.Token, models.MFAPendingResponse])
 async def facebook_auth(fb_data: models.FacebookAuth, db: Session = Depends(get_db)):
     import requests as http_req
     try:
@@ -267,6 +375,24 @@ async def facebook_auth(fb_data: models.FacebookAuth, db: Session = Depends(get_
                 db.commit()
                 db.refresh(user)
 
+        if getattr(user, "mfa_enabled", False):
+            mfa_token = create_access_token({"sub": user.email, "mfa_pending": True}, expires_delta=timedelta(minutes=5))
+            return {
+                "status": "mfa_required",
+                "mfa_token": mfa_token,
+                "id": user.id,
+                "email": user.email,
+            }
+
+        # Synchronise les infos utilisateur dans Firebase pour identifier le QR code
+        sync_user_to_firebase(
+            user_id=user.id,
+            role=user.role or "user",
+            qr_code=user.qr_code or "",
+            full_name=user.full_name or "",
+            email=user.email or "",
+            score=getattr(user, 'global_score', 0) or 0,
+        )
         return {"access_token": create_access_token({"sub": user.email}),
                 "token_type": "bearer", "role": user.role,
                 "id": user.id, "email": user.email,

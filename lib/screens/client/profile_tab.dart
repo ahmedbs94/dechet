@@ -7,7 +7,6 @@ import 'package:image_picker/image_picker.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import '../../theme/app_theme.dart';
 import '../../models/user_model.dart';
-import '../../widgets/premium_widgets.dart';
 import '../../services/auth_service.dart';
 import '../../services/l10n_service.dart';
 import 'notifications_screen.dart';
@@ -34,6 +33,7 @@ class ProfileTabState extends State<ProfileTab> {
   @override
   void initState() {
     super.initState();
+    _mfaEnabled = AuthState.currentUser?.mfaEnabled ?? false;
     L10n.addListener(_onLocaleChange);
     ThemeService.addListener(_onThemeChange);
     _loadUnreadCount();
@@ -68,6 +68,7 @@ class ProfileTabState extends State<ProfileTab> {
       final userData = await _authService.fetchUserProfile();
       if (userData != null && mounted) {
         AuthState.currentUser = User.fromBackend(userData);
+        _mfaEnabled = AuthState.currentUser?.mfaEnabled ?? false;
         if (mounted) setState(() {});
       }
     } catch (_) {}
@@ -249,33 +250,342 @@ class ProfileTabState extends State<ProfileTab> {
   void _showMfaDialog(BuildContext context) {
     showDialog(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-          title: Text('Authentification Forte', style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(Icons.security_rounded, size: 60, color: AppTheme.primaryGreen),
-              const SizedBox(height: 20),
-              const Text('Activez la validation en deux étapes pour sécuriser votre compte éco-responsable.'),
-              const SizedBox(height: 20),
-              ListTile(
-                title: const Text('Utiliser l\'application'),
-                subtitle: const Text('Google Authenticator / Authy'),
-                trailing: Switch(
-                    value: _mfaEnabled,
-                    onChanged: (v) {
-                      setState(() => _mfaEnabled = v);
-                      Navigator.pop(dialogContext);
-                    },
-                    activeColor: AppTheme.primaryGreen),
+      barrierDismissible: false,
+      builder: (dialogContext) {
+        bool showSetupStep = false;
+        bool showDisableStep = false;
+        bool setupLoading = false;
+        bool actionLoading = false;
+        String? setupSecret;
+        String? setupOtpauthUrl;
+        String? dialogError;
+        
+        final TextEditingController codeController = TextEditingController();
+        final TextEditingController passwordController = TextEditingController();
+
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            Future<void> startSetup() async {
+              setDialogState(() {
+                setupLoading = true;
+                dialogError = null;
+              });
+              final result = await _authService.setupMfa();
+              if (result['success'] == true) {
+                setDialogState(() {
+                  setupSecret = result['secret'];
+                  setupOtpauthUrl = result['otpauth_url'];
+                  showSetupStep = true;
+                  setupLoading = false;
+                });
+              } else {
+                setDialogState(() {
+                  dialogError = result['message'];
+                  setupLoading = false;
+                });
+              }
+            }
+
+            Future<void> submitEnable() async {
+              final code = codeController.text.trim();
+              if (code.isEmpty || code.length != 6) {
+                setDialogState(() => dialogError = 'Veuillez entrer le code à 6 chiffres');
+                return;
+              }
+              setDialogState(() {
+                actionLoading = true;
+                dialogError = null;
+              });
+              final result = await _authService.verifyEnableMfa(code);
+              if (result['success'] == true) {
+                Navigator.pop(dialogContext);
+                if (mounted) {
+                  setState(() => _mfaEnabled = true);
+                  refreshScore();
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                    content: Text('Authentification forte activée avec succès.', style: GoogleFonts.inter(fontWeight: FontWeight.w500)),
+                    backgroundColor: AppTheme.primaryGreen,
+                    behavior: SnackBarBehavior.floating,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ));
+                }
+              } else {
+                setDialogState(() {
+                  dialogError = result['message'];
+                  actionLoading = false;
+                });
+              }
+            }
+
+            Future<void> submitDisable() async {
+              final password = passwordController.text.trim();
+              final code = codeController.text.trim();
+
+              if (password.isEmpty && code.isEmpty) {
+                setDialogState(() => dialogError = 'Veuillez saisir votre mot de passe ou un code MFA.');
+                return;
+              }
+
+              setDialogState(() {
+                actionLoading = true;
+                dialogError = null;
+              });
+
+              final result = await _authService.disableMfa(
+                password: password.isNotEmpty ? password : null,
+                code: code.isNotEmpty ? code : null,
+              );
+
+              if (result['success'] == true) {
+                Navigator.pop(dialogContext);
+                if (mounted) {
+                  setState(() => _mfaEnabled = false);
+                  refreshScore();
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                    content: Text('Authentification forte désactivée.', style: GoogleFonts.inter(fontWeight: FontWeight.w500)),
+                    backgroundColor: Colors.amber.shade700,
+                    behavior: SnackBarBehavior.floating,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ));
+                }
+              } else {
+                setDialogState(() {
+                  dialogError = result['message'];
+                  actionLoading = false;
+                });
+              }
+            }
+
+            if (setupLoading) {
+              return AlertDialog(
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+                content: const SizedBox(
+                  height: 100,
+                  child: Center(child: CircularProgressIndicator(color: AppTheme.primaryGreen)),
+                ),
+              );
+            }
+
+            if (showSetupStep) {
+              return AlertDialog(
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+                title: Text('Activer la validation TOTP', style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
+                content: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        '1. Scannez ce code QR avec Google Authenticator ou Authy :',
+                        style: GoogleFonts.inter(fontSize: 14),
+                      ),
+                      const SizedBox(height: 15),
+                      if (setupOtpauthUrl != null)
+                        Container(
+                          width: 200,
+                          height: 200,
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(16),
+                            boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 8)],
+                          ),
+                          child: QrImageView(
+                            data: setupOtpauthUrl!,
+                            version: QrVersions.auto,
+                          ),
+                        ),
+                      const SizedBox(height: 15),
+                      Text(
+                        'Ou saisissez cette clé manuellement :',
+                        style: GoogleFonts.inter(fontSize: 14),
+                      ),
+                      const SizedBox(height: 5),
+                      SelectableText(
+                        setupSecret ?? '',
+                        style: GoogleFonts.outfit(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: AppTheme.primaryGreen,
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      Text(
+                        '2. Entrez le code à 6 chiffres affiché par l\'application :',
+                        style: GoogleFonts.inter(fontSize: 14),
+                      ),
+                      const SizedBox(height: 10),
+                      TextField(
+                        controller: codeController,
+                        keyboardType: TextInputType.number,
+                        maxLength: 6,
+                        textAlign: TextAlign.center,
+                        style: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.bold, letterSpacing: 4),
+                        decoration: InputDecoration(
+                          hintText: '000000',
+                          counterText: '',
+                          filled: true,
+                          fillColor: Colors.grey.shade100,
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                        ),
+                        onSubmitted: (_) => actionLoading ? null : submitEnable(),
+                      ),
+                      if (dialogError != null) ...[
+                        const SizedBox(height: 12),
+                        Text(
+                          dialogError!,
+                          style: GoogleFonts.inter(color: Colors.red.shade400, fontSize: 12, fontWeight: FontWeight.w500),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: actionLoading ? null : () => Navigator.pop(dialogContext),
+                    child: const Text('ANNULER'),
+                  ),
+                  ElevatedButton(
+                    onPressed: actionLoading ? null : submitEnable,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppTheme.primaryGreen,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    child: actionLoading
+                        ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                        : const Text('ACTIVER'),
+                  ),
+                ],
+              );
+            }
+
+            if (showDisableStep) {
+              return AlertDialog(
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+                title: Text('Désactiver l\'authentification forte', style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
+                content: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Pour des raisons de sécurité, veuillez confirmer votre identité.',
+                        style: GoogleFonts.inter(fontSize: 14, color: Colors.grey.shade600),
+                      ),
+                      const SizedBox(height: 20),
+                      Text(
+                        'Entrez votre mot de passe actuel :',
+                        style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w500),
+                      ),
+                      const SizedBox(height: 8),
+                      TextField(
+                        controller: passwordController,
+                        obscureText: true,
+                        decoration: InputDecoration(
+                          hintText: 'Votre mot de passe',
+                          filled: true,
+                          fillColor: Colors.grey.shade100,
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                        ),
+                        onSubmitted: (_) => actionLoading ? null : submitDisable(),
+                      ),
+                      const SizedBox(height: 15),
+                      Text(
+                        'Ou entrez un code MFA actuel (si compte social) :',
+                        style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w500),
+                      ),
+                      const SizedBox(height: 8),
+                      TextField(
+                        controller: codeController,
+                        keyboardType: TextInputType.number,
+                        maxLength: 6,
+                        textAlign: TextAlign.center,
+                        style: GoogleFonts.outfit(fontSize: 16, fontWeight: FontWeight.bold, letterSpacing: 4),
+                        decoration: InputDecoration(
+                          hintText: '000000',
+                          counterText: '',
+                          filled: true,
+                          fillColor: Colors.grey.shade100,
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                        ),
+                        onSubmitted: (_) => actionLoading ? null : submitDisable(),
+                      ),
+                      if (dialogError != null) ...[
+                        const SizedBox(height: 12),
+                        Text(
+                          dialogError!,
+                          style: GoogleFonts.inter(color: Colors.red.shade400, fontSize: 12, fontWeight: FontWeight.w500),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: actionLoading ? null : () => Navigator.pop(dialogContext),
+                    child: const Text('ANNULER'),
+                  ),
+                  ElevatedButton(
+                    onPressed: actionLoading ? null : submitDisable,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.red.shade400,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    child: actionLoading
+                        ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                        : const Text('DÉSACTIVER'),
+                  ),
+                ],
+              );
+            }
+
+            return AlertDialog(
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+              title: Text('Authentification Forte', style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.security_rounded, size: 60, color: AppTheme.primaryGreen),
+                    const SizedBox(height: 20),
+                    const Text('Sécurisez l\'accès à votre compte en activant la validation en deux étapes (MFA/TOTP).'),
+                    const SizedBox(height: 20),
+                    ListTile(
+                      title: const Text('Validation TOTP'),
+                      subtitle: const Text('Google Authenticator / Authy'),
+                      trailing: Switch(
+                        value: _mfaEnabled,
+                        onChanged: (v) {
+                          if (v) {
+                            startSetup();
+                          } else {
+                            setDialogState(() {
+                              showDisableStep = true;
+                              dialogError = null;
+                            });
+                          }
+                        },
+                        activeColor: AppTheme.primaryGreen,
+                      ),
+                    ),
+                    if (dialogError != null) ...[
+                      const SizedBox(height: 12),
+                      Text(
+                        dialogError!,
+                        style: GoogleFonts.inter(color: Colors.red.shade400, fontSize: 12, fontWeight: FontWeight.w500),
+                      ),
+                    ],
+                  ],
+                ),
               ),
-            ],
-          ),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('FERMER')),
-          ],
-        ),
+              actions: [
+                TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('FERMER')),
+              ],
+            );
+          },
+        );
+      },
     );
   }
 
@@ -302,6 +612,7 @@ class ProfileTabState extends State<ProfileTab> {
     final user = AuthState.currentUser;
     // Masquer les statistiques de gamification pour les rôles Admin/Directeur
     final showStats = user?.role == UserRole.user;
+    final isCollector = user?.role == UserRole.collector;
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
@@ -333,13 +644,23 @@ class ProfileTabState extends State<ProfileTab> {
                     const SizedBox(height: 32),
                   ],
 
-                  // Section QR Code Eco-Badge (citoyens uniquement)
-                  if (showStats) ...[ 
+                  // Section QR Code Eco-Badge (citoyens)
+                  if (showStats) ...[
                     const SizedBox(height: 24),
                     Animate(
                       effects: [FadeEffect(delay: 400.ms), const SlideEffect(begin: Offset(0, 0.1))],
                       child: _buildQrBadgeButton(context),
                     ),
+                  ],
+
+                  // Section QR Code Badge Collecteur
+                  if (isCollector) ...[
+                    const SizedBox(height: 8),
+                    Animate(
+                      effects: [FadeEffect(delay: 400.ms), const SlideEffect(begin: Offset(0, 0.1))],
+                      child: _buildCollectorQrButton(context),
+                    ),
+                    const SizedBox(height: 8),
                   ],
 
                   const SizedBox(height: 40),
@@ -357,13 +678,14 @@ class ProfileTabState extends State<ProfileTab> {
                       subtitle: L10n.tr('menu_change_pass_sub'),
                       onTap: () => _showPasswordDialog(context),
                     ),
-                    _MenuAction(
-                      // New menu item for saved posts
-                      icon: FontAwesomeIcons.bookmark,
-                      title: L10n.tr('menu_saved_posts'),
-                      subtitle: L10n.tr('menu_saved_posts_sub'),
-                      onTap: () => _viewSavedPosts(context),
-                    ),
+                    if (showStats)
+                      _MenuAction(
+                        // New menu item for saved posts
+                        icon: FontAwesomeIcons.bookmark,
+                        title: L10n.tr('menu_saved_posts'),
+                        subtitle: L10n.tr('menu_saved_posts_sub'),
+                        onTap: () => _viewSavedPosts(context),
+                      ),
                     if (showStats)
                       _MenuAction(
                         icon: FontAwesomeIcons.clockRotateLeft,
@@ -421,7 +743,63 @@ class ProfileTabState extends State<ProfileTab> {
                   Animate(
                     effects: const [FadeEffect(delay: Duration(seconds: 1))],
                     child: GestureDetector(
-                      onTap: () => Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false),
+                      onTap: () async {
+                        // Afficher une confirmation avant de déconnecter
+                        final confirm = await showDialog<bool>(
+                          context: context,
+                          builder: (ctx) => AlertDialog(
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                            title: Row(children: [
+                              Icon(Icons.logout_rounded, color: Colors.red.shade400, size: 22),
+                              const SizedBox(width: 10),
+                              Text(L10n.tr('menu_logout'),
+                                  style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 18)),
+                            ]),
+                            content: Text(
+                              L10n.isArabic
+                                  ? 'هل أنت متأكد أنك تريد تسجيل الخروج؟'
+                                  : 'Voulez-vous vraiment vous déconnecter ?',
+                              style: GoogleFonts.inter(fontSize: 14),
+                            ),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.pop(ctx, false),
+                                child: Text(L10n.isArabic ? 'إلغاء' : 'Annuler',
+                                    style: GoogleFonts.outfit(fontWeight: FontWeight.w600)),
+                              ),
+                              ElevatedButton(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.red.shade400,
+                                  foregroundColor: Colors.white,
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                ),
+                                onPressed: () => Navigator.pop(ctx, true),
+                                child: Text(
+                                  L10n.isArabic ? 'تسجيل الخروج' : 'Se déconnecter',
+                                  style: GoogleFonts.outfit(fontWeight: FontWeight.bold),
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                        if (confirm != true) return;
+                        if (!mounted) return;
+
+                        // ── Déconnexion complète ──────────────────────────────
+                        // 1. Appel service : efface jwt_token + refresh_token de
+                        //    SharedPreferences, déconnecte Firebase et FCM.
+                        await AuthService().logout();
+                        // 2. Vider la mémoire en-cours (AuthState statique)
+                        AuthState.logout();
+                        AuthState.authToken = null;
+
+                        if (!mounted) return;
+                        // 3. Naviguer vers la page d'accueil publique (landing)
+                        //    et supprimer tout l'historique de navigation.
+                        Navigator.pushNamedAndRemoveUntil(
+                          context, '/', (route) => false,
+                        );
+                      },
                       child: Container(
                         width: double.infinity,
                         padding: const EdgeInsets.symmetric(vertical: 16),
@@ -438,6 +816,7 @@ class ProfileTabState extends State<ProfileTab> {
                       ),
                     ),
                   ),
+
 
                   const SizedBox(height: 100),
                   ],
@@ -575,7 +954,12 @@ class ProfileTabState extends State<ProfileTab> {
             borderRadius: BorderRadius.circular(30),
             border: Border.all(color: AppTheme.primaryGreen.withOpacity(0.2)),
           ),
-          child: Text(user?.role == UserRole.admin ? L10n.tr('prof_role_admin') : L10n.tr('prof_role_user'),
+          child: Text(
+              user?.role == UserRole.superadmin
+                  ? L10n.tr('prof_role_superadmin')
+                  : (user?.role == UserRole.admin
+                      ? L10n.tr('prof_role_admin')
+                      : L10n.tr('prof_role_user')),
               style: GoogleFonts.outfit(
                   color: AppTheme.primaryGreen, fontWeight: FontWeight.w900, fontSize: 10, letterSpacing: 1.5)),
         ),
@@ -670,7 +1054,7 @@ class ProfileTabState extends State<ProfileTab> {
 
   Widget _buildQrBadgeButton(BuildContext context) {
     return GestureDetector(
-      onTap: () => _showQrBadge(context),
+      onTap: () => _showQrBadge(context, isCollector: false),
       child: Container(
         width: double.infinity,
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
@@ -727,9 +1111,87 @@ class ProfileTabState extends State<ProfileTab> {
     );
   }
 
+  // ── Bouton QR pour le collecteur ─────────────────────────────────────────────
+  Widget _buildCollectorQrButton(BuildContext context) {
+    return GestureDetector(
+      onTap: () => _showQrBadge(context, isCollector: true),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [Color(0xFF0D2137), Color(0xFF0F3460)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: AppTheme.primaryGreen.withOpacity(0.35), width: 1.5),
+          boxShadow: [
+            BoxShadow(
+              color: AppTheme.primaryGreen.withOpacity(0.18),
+              blurRadius: 20,
+              offset: const Offset(0, 8),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: AppTheme.primaryGreen.withOpacity(0.15),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: AppTheme.primaryGreen.withOpacity(0.4)),
+              ),
+              child: const Icon(Icons.qr_code_2_rounded, color: AppTheme.primaryGreen, size: 32),
+            ),
+            const SizedBox(width: 20),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    L10n.isArabic ? 'بطاقة الجمع' : 'Badge Collecteur',
+                    style: GoogleFonts.outfit(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w800,
+                      color: Colors.white,
+                    ),
+                  ),
+                  Text(
+                    L10n.isArabic
+                        ? 'رمز QR الخاص بك للتعريف'
+                        : 'Votre QR d\'identification pour les collectes',
+                    style: GoogleFonts.inter(
+                      fontSize: 13,
+                      color: AppTheme.primaryGreen.withOpacity(0.85),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(Icons.arrow_forward_ios_rounded, color: AppTheme.primaryGreen, size: 16),
+          ],
+        ),
+      ),
+    );
+  }
 
+  // ── Dialog QR partagé (citoyen + collecteur) ─────────────────────────────────
+  void _showQrBadge(BuildContext context, {bool isCollector = false}) {
+    final qrData = AuthState.currentUser?.qrCode ?? '';
+    final qrColor  = isCollector ? AppTheme.primaryGreen : AppTheme.primaryGreen;
+    final eyeColor = isCollector ? AppTheme.deepSlate    : AppTheme.deepSlate;
+    final title    = isCollector
+        ? (L10n.isArabic ? 'بطاقة الجمع' : 'Badge Collecteur')
+        : 'Mon Eco-Badge';
+    final subtitle = isCollector
+        ? (L10n.isArabic
+            ? 'يُستخدم هذا الرمز للتعريف بك أثناء عمليات الجمع.'
+            : 'Présentez ce QR lors de vos opérations de collecte.')
+        : 'Scannez ce code sur une borne pour ouvrir la trappe.';
+    final accentColor = isCollector ? AppTheme.primaryGreen : AppTheme.primaryGreen;
 
-  void _showQrBadge(BuildContext context) {
     showDialog(
       context: context,
       useRootNavigator: true,
@@ -739,66 +1201,176 @@ class ProfileTabState extends State<ProfileTab> {
         insetPadding: const EdgeInsets.symmetric(horizontal: 20),
         child: Material(
           color: Colors.transparent,
-          child: PremiumGlassCard(
+          child: Container(
+            decoration: BoxDecoration(
+              color: _isDarkMode ? const Color(0xFF1E293B) : Colors.white,
+              borderRadius: BorderRadius.circular(28),
+              border: Border.all(
+                color: isCollector
+                    ? AppTheme.primaryGreen.withOpacity(0.35)
+                    : Colors.transparent,
+                width: 1.5,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: accentColor.withOpacity(0.15),
+                  blurRadius: 40,
+                  offset: const Offset(0, 16),
+                ),
+              ],
+            ),
             padding: const EdgeInsets.all(32),
-            backgroundColor: _isDarkMode ? const Color(0xFF1E293B).withOpacity(0.85) : null,
-            borderColor: _isDarkMode ? Colors.white.withOpacity(0.1) : null,
-            boxShadow: _isDarkMode ? [] : null,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  'Mon Eco-Badge',
-                  textAlign: TextAlign.center,
-                  style: GoogleFonts.outfit(
-                    fontSize: 24,
-                    fontWeight: FontWeight.w900,
-                    color: _isDarkMode ? Colors.white : AppTheme.deepSlate,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // ── Icône en tête ──
+                  Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: accentColor.withOpacity(0.12),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      isCollector ? Icons.local_shipping_rounded : Icons.eco_rounded,
+                      color: accentColor,
+                      size: 28,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Scannez ce code sur une borne pour ouvrir la trappe.',
-                  textAlign: TextAlign.center,
-                  style: GoogleFonts.inter(
-                    fontSize: 14,
-                    color: _isDarkMode ? const Color(0xFF94A3B8) : AppTheme.textMuted,
+                  const SizedBox(height: 16),
+
+                  // ── Titre ──
+                  Text(
+                    title,
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.outfit(
+                      fontSize: 22,
+                      fontWeight: FontWeight.w900,
+                      color: _isDarkMode ? Colors.white : AppTheme.deepSlate,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 32),
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(20),
-                    boxShadow: [
-                      BoxShadow(
-                        color: AppTheme.primaryGreen.withOpacity(0.1),
-                        blurRadius: 20,
+                  const SizedBox(height: 6),
+
+                  // ── Sous-titre ──
+                  Text(
+                    subtitle,
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.inter(
+                      fontSize: 13,
+                      height: 1.5,
+                      color: _isDarkMode ? const Color(0xFF94A3B8) : AppTheme.textMuted,
+                    ),
+                  ),
+                  const SizedBox(height: 28),
+
+                  // ── QR Code ──
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(20),
+                      boxShadow: [
+                        BoxShadow(
+                          color: accentColor.withOpacity(0.12),
+                          blurRadius: 24,
+                        ),
+                      ],
+                    ),
+                    child: qrData.isNotEmpty
+                      ? QrImageView(
+                          data: qrData,
+                          version: QrVersions.auto,
+                          size: 200.0,
+                          eyeStyle: QrEyeStyle(
+                            eyeShape: QrEyeShape.square,
+                            color: eyeColor,
+                          ),
+                          dataModuleStyle: QrDataModuleStyle(
+                            dataModuleShape: QrDataModuleShape.square,
+                            color: qrColor,
+                          ),
+                        )
+                      : SizedBox(
+                          width: 200,
+                          height: 200,
+                          child: Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.qr_code_2_rounded,
+                                    size: 60, color: Colors.grey.shade300),
+                                const SizedBox(height: 12),
+                                Text(
+                                  L10n.isArabic
+                                      ? 'لا يوجد رمز QR'
+                                      : 'QR code absent',
+                                  style: GoogleFonts.inter(
+                                      fontSize: 13, color: Colors.grey),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // ── Identifiant tronqué ──
+                  if (qrData.isNotEmpty)
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: accentColor.withOpacity(0.07),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: accentColor.withOpacity(0.2)),
                       ),
-                    ],
-                  ),
-                  child: SizedBox(
-                    width: 200,
-                    height: 200,
-                    child: QrImageView(
-                      data: AuthState.currentUser?.qrCode ?? 'INVALID-NO-QR',
-                      version: QrVersions.auto,
-                      size: 200.0,
-                      eyeStyle: const QrEyeStyle(eyeShape: QrEyeShape.square, color: AppTheme.deepSlate),
-                      dataModuleStyle: const QrDataModuleStyle(
-                        dataModuleShape: QrDataModuleShape.square,
-                        color: AppTheme.primaryGreen,
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.tag_rounded, size: 14, color: accentColor),
+                          const SizedBox(width: 6),
+                          Text(
+                            qrData.length > 20
+                                ? '${qrData.substring(0, 8)}...${qrData.substring(qrData.length - 6)}'
+                                : qrData,
+                            style: GoogleFonts.sourceCodePro(
+                              fontSize: 11,
+                              color: accentColor,
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                  const SizedBox(height: 28),
+
+                  // ── Bouton fermer ──
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: () => Navigator.pop(dialogContext),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: accentColor,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        elevation: 0,
+                      ),
+                      child: Text(
+                        L10n.isArabic ? 'إغلاق' : 'FERMER',
+                        style: GoogleFonts.outfit(
+                          fontWeight: FontWeight.w800,
+                          fontSize: 15,
+                          letterSpacing: 1,
+                        ),
                       ),
                     ),
                   ),
-                ),
-                const SizedBox(height: 32),
-                PremiumButton(
-                  text: 'FERMER',
-                  onPressed: () => Navigator.pop(dialogContext),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),

@@ -52,7 +52,7 @@ import db_models as db_models
 from database import get_db
 from core.deps import get_current_user, get_admin_user
 from services.firebase_service import (
-    calculate_points, update_user_score, WASTE_POINTS, update_bin_status, get_bin_status
+    calculate_points, update_user_score, WASTE_POINTS, update_bin_status, get_bin_status, update_admin_stats
 )
 from services.fcm_push_service import send_push_to_user
 
@@ -255,6 +255,12 @@ async def scan_bin(data: BinScanRequest, db: Session = Depends(get_db)):
         except Exception:
             pass  # Notifications non bloquantes
 
+        # Mise à jour des stats globales admin dans Firebase RTDB (non bloquant)
+        try:
+            update_admin_stats(db)
+        except Exception:
+            pass  # Non bloquant — la collecte est déjà sauvegardée
+
         return BinScanResponse(
             success             = True,
             user_id             = user.id,
@@ -350,11 +356,12 @@ async def scan_bin(data: BinScanRequest, db: Session = Depends(get_db)):
     firebase_ok = False
     try:
         firebase_ok = update_user_score(
-            user_id     = user.id,
-            new_total   = score_after,
-            points_added= points,
-            bin_type    = waste_type,
-            bin_id      = bin_code,
+            user_id      = user.id,
+            new_total    = score_after,
+            points_added = points,
+            bin_type     = waste_type,
+            bin_id       = bin_code,
+            qr_code      = user.qr_code or "",  # pour sync /utilisateurs/{qr_code}/score
         )
     except Exception:
         firebase_ok = False  # Firebase en panne : non bloquant
@@ -408,6 +415,12 @@ async def scan_bin(data: BinScanRequest, db: Session = Depends(get_db)):
         except Exception:
             db.rollback()
             # Non critique : le score SQL est correct, la sync Firebase aussi
+
+    # Mise à jour des stats globales admin dans Firebase RTDB (non bloquant)
+    try:
+        update_admin_stats(db)
+    except Exception:
+        pass  # Non bloquant — le scan est déjà sauvegardé
 
     return BinScanResponse(
         success             = True,

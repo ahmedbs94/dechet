@@ -106,6 +106,7 @@ class L10n {
       'fr': 'Vous avez accès aux outils d\'administration avancés.',
       'ar': 'لديك صلاحية الوصول إلى أدوات الإدارة المتقدمة.'
     },
+    'prof_role_superadmin': {'fr': 'SUPER ADMINISTRATEUR', 'ar': 'المدير العام'},
     'prof_role_admin': {'fr': 'DIRECTEUR TECHNIQUE', 'ar': 'المدير الفني'},
     'prof_role_user': {'fr': 'USER ENGAGÉ', 'ar': 'مواطن ملتزم'},
     

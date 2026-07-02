@@ -141,7 +141,7 @@ async def delete_category(
     cat = db.query(db_models.VideoCategory).filter(db_models.VideoCategory.id == cat_id).first()
     if not cat:
         raise HTTPException(status_code=404, detail="Catégorie non trouvée")
-    if cat.educator_id != current_user.id and current_user.role != "admin":
+    if cat.educator_id != current_user.id and current_user.role not in ["admin", "superadmin"]:
         raise HTTPException(status_code=403, detail="Non autorisé")
 
     # Détacher les vidéos
@@ -173,7 +173,7 @@ async def upload_video(
     current_user: db_models.User = Depends(get_current_user),
 ):
     """Upload un fichier vidéo, optionnellement dans une catégorie."""
-    if current_user.role not in ("educator", "admin"):
+    if current_user.role not in ("educator", "admin", "superadmin"):
         raise HTTPException(status_code=403, detail="Réservé aux éducateurs.")
 
     if not file.filename:
@@ -234,7 +234,7 @@ async def delete_video(video_id: int, db: Session = Depends(get_db), current_use
     video = db.query(db_models.EducatorVideo).filter(db_models.EducatorVideo.id == video_id).first()
     if not video:
         raise HTTPException(status_code=404, detail="Vidéo non trouvée")
-    if video.educator_id != current_user.id and current_user.role != "admin":
+    if video.educator_id != current_user.id and current_user.role not in ["admin", "superadmin"]:
         raise HTTPException(status_code=403, detail="Non autorisé")
     if video.video_url and video.video_url.startswith("/uploads/videos/"):
         path = os.path.join(VIDEOS_DIR, os.path.basename(video.video_url))

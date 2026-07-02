@@ -8,7 +8,7 @@ echo.
 
 cd backend
 call venv\Scripts\activate.bat
-python manage_users.py
+python scripts\utils\manage_users.py
 cd ..
 
 echo.

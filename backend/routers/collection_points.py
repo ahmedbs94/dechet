@@ -306,7 +306,7 @@ async def update_point(point_id: int, update: models.CollectionPointUpdate,
 async def backfill_addresses(db: Session = Depends(get_db),
                              current_user: db_models.User = Depends(get_current_user)):
     """Met à jour l'adresse de tous les centres sans adresse via géocodage inverse."""
-    if current_user.role != "admin":
+    if current_user.role not in ["admin", "superadmin"]:
         raise HTTPException(status_code=403, detail="Réservé aux administrateurs")
     points = db.query(db_models.CollectionPoint).filter(
         (db_models.CollectionPoint.address == None) |
