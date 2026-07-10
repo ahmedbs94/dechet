@@ -740,6 +740,8 @@ class AuthService {
     await prefs.remove('fcm_shown_notif_ids');
     await prefs.remove('jwt_token');
     await prefs.remove('refresh_token');
+    // Réinitialiser le token FCM sauvegardé — le prochain login forcera un re-enregistrement
+    await prefs.remove('fcm_last_sent_token');
     // Déconnexion Firebase : les Security Rules refuseront toute lecture ultérieure
     try {
       await FirebaseAuth.instance.signOut();

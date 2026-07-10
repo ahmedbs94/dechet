@@ -8,6 +8,8 @@ import '../../models/user_model.dart';
 import '../../services/auth_service.dart';
 import '../../services/l10n_service.dart';
 
+
+
 class RewardsTab extends StatefulWidget {
   const RewardsTab({Key? key}) : super(key: key);
 
@@ -185,40 +187,41 @@ class _RewardsTabState extends State<RewardsTab> {
   Widget _buildSliverAppBar() {
     return SliverAppBar(
       automaticallyImplyLeading: false,
-      expandedHeight: 120.0,
-      floating: true,
       pinned: true,
-      elevation: 0,
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      floating: false,
+      expandedHeight: 110 + MediaQuery.of(context).padding.top,
+      backgroundColor: Theme.of(context).colorScheme.surface,
       surfaceTintColor: Colors.transparent,
+      elevation: 0,
       flexibleSpace: FlexibleSpaceBar(
-        titlePadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-        title: Text(
-          L10n.tr('tab_rewards_title'),
-          style: GoogleFonts.spaceGrotesk(
-            color: Theme.of(context).brightness == Brightness.dark
-                ? Colors.white
-                : AppTheme.deepNavy,
-            fontWeight: FontWeight.w900,
-            fontSize: 24,
-            letterSpacing: -0.5,
-          ),
-        ),
-        background: Stack(
+        titlePadding: const EdgeInsets.fromLTRB(20, 0, 20, 14),
+        title: Row(
           children: [
-            Positioned(
-              right: -50,
-              top: -50,
-              child: Container(
-                width: 150,
-                height: 150,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: AppTheme.primaryGreen.withOpacity(0.05),
-                ),
+            Container(
+              width: 28, height: 28,
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(colors: [AppTheme.primaryGreen, AppTheme.accentTeal]),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(Icons.workspace_premium_rounded, color: Colors.white, size: 16),
+            ),
+            const SizedBox(width: 8),
+            Text(
+              L10n.tr('tab_rewards_title'),
+              style: GoogleFonts.outfit(
+                fontSize: 20,
+                fontWeight: FontWeight.w900,
+                color: Theme.of(context).textTheme.titleLarge?.color ?? const Color(0xFF0F172A),
               ),
             ),
           ],
+        ),
+      ),
+      bottom: PreferredSize(
+        preferredSize: const Size.fromHeight(1),
+        child: Container(
+          height: 1,
+          color: Theme.of(context).dividerColor,
         ),
       ),
     );

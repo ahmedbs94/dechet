@@ -8,8 +8,10 @@ import '../../theme/app_theme.dart';
 import '../../services/auth_service.dart';
 import '../../services/l10n_service.dart';
 import '../../services/meetings_service.dart';
+import '../../services/messaging_service.dart';
 import '../educator/create_meeting_screen.dart';
 import '../educator/manage_groups_screen.dart';
+import '../messaging/messaging_screen.dart';
 
 
 class EducatorTab extends StatefulWidget {
@@ -28,6 +30,7 @@ class _EducatorTabState extends State<EducatorTab> {
   bool _isLoading = false;
   bool _isUploading = false;
   bool _isPublishingVideo = false;
+  int _unreadMessages = 0;
 
   @override
   void initState() {
@@ -37,6 +40,7 @@ class _EducatorTabState extends State<EducatorTab> {
     _loadMyVideos();
     _loadCategories();
     _loadMeetings();
+    _loadUnreadMessages();
   }
 
   void _onLocaleChange() {
@@ -50,6 +54,11 @@ class _EducatorTabState extends State<EducatorTab> {
   }
 
   String _t(String fr, String ar) => L10n.isArabic ? ar : fr;
+
+  Future<void> _loadUnreadMessages() async {
+    final count = await MessagingService.getUnreadCount();
+    if (mounted) setState(() => _unreadMessages = count);
+  }
 
   Future<void> _loadQuizzes() async {
     setState(() => _isLoading = true);
@@ -545,15 +554,19 @@ class _EducatorTabState extends State<EducatorTab> {
           ],
         ),
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        heroTag: 'fab_educator_new_quiz',
-        onPressed: _isUploading ? null : _uploadQuizPdf,
-        backgroundColor: _isUploading ? Colors.grey : AppTheme.primaryGreen,
-        icon: _isUploading
-            ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-            : const Icon(Icons.upload_file_rounded),
-        label: Text(L10n.isArabic ? (_isUploading ? 'جار التحليل...' : 'رفع اختبار PDF') : (_isUploading ? 'ANALYSE IA...' : 'UPLOADER UN QUIZ PDF')),
+      floatingActionButton: Padding(
+        padding: const EdgeInsets.only(bottom: 76),
+        child: FloatingActionButton.extended(
+          heroTag: 'fab_educator_new_quiz',
+          onPressed: _isUploading ? null : _uploadQuizPdf,
+          backgroundColor: _isUploading ? Colors.grey : AppTheme.primaryGreen,
+          icon: _isUploading
+              ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+              : const Icon(Icons.upload_file_rounded),
+          label: Text(L10n.isArabic ? (_isUploading ? 'جار التحليل...' : 'رفع اختبار PDF') : (_isUploading ? 'ANALYSE IA...' : 'UPLOADER UN QUIZ PDF')),
+        ),
       ),
+
     );
   }
 
@@ -564,16 +577,79 @@ class _EducatorTabState extends State<EducatorTab> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(_t('Espace Éducateur','فضاء المعلم'), style: GoogleFonts.outfit(fontSize: 32, fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onSurface)),
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(color: AppTheme.primaryGreen.withOpacity(0.1), shape: BoxShape.circle),
-              child: const Icon(Icons.verified_user_rounded, color: AppTheme.primaryGreen),
+            Expanded(
+              child: Text(
+                _t('Espace Éducateur', 'فضاء المعلم'),
+                style: GoogleFonts.outfit(
+                  fontSize: 32,
+                  fontWeight: FontWeight.bold,
+                  color: Theme.of(context).colorScheme.onSurface,
+                ),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            Row(
+              children: [
+                // Messages Button
+                Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    IconButton(
+                      onPressed: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const MessagingScreen()),
+                      ),
+                      icon: Icon(
+                        Icons.forum_rounded,
+                        color: Theme.of(context).colorScheme.onSurface.withOpacity(0.8),
+                        size: 26,
+                      ),
+                    ),
+                    if (_unreadMessages > 0)
+                      Positioned(
+                        top: 2,
+                        right: 2,
+                        child: Container(
+                          padding: const EdgeInsets.all(4),
+                          decoration: const BoxDecoration(
+                            color: Colors.red,
+                            shape: BoxShape.circle,
+                          ),
+                          constraints: const BoxConstraints(
+                            minWidth: 16,
+                            minHeight: 16,
+                          ),
+                          child: Text(
+                            '$_unreadMessages',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 9,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+                const SizedBox(width: 8),
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: AppTheme.primaryGreen.withOpacity(0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.verified_user_rounded, color: AppTheme.primaryGreen),
+                ),
+              ],
             ),
           ],
         ),
         const SizedBox(height: 8),
-        Text(_t('Gérez vos quiz et contenus pédagogiques.','أدر اختباراتك ومحتوياتك التعليمية.'), style: GoogleFonts.inter(color: AppTheme.textMuted, fontSize: 16)),
+        Text(
+          _t('Gérez vos quiz et contenus pédagogiques.', 'أدر اختباراتك ومحتوياتك التعليمية.'),
+          style: GoogleFonts.inter(color: AppTheme.textMuted, fontSize: 16),
+        ),
       ],
     ).animate().fadeIn().slideX();
   }

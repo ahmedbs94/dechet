@@ -85,8 +85,10 @@ def upgrade() -> None:
         sa.Column("description", sa.Text(), nullable=True),
         sa.Column("created_at", sa.DateTime(), nullable=True),
         sa.Column("likes_count", sa.Integer(), nullable=True),
-        # ── Modération IA ────────────────────────────────────────────────────
-        # Flux : pending_ai → published | pending_review | rejected
+        # ── Modération IA ─────────────────────────────────────────────────────────────
+        # Flux réel : pending_review → published | pending_review (admin) | rejected
+        # Note : le server_default ici est 'pending_ai' (valeur historique).
+        # Corrigé vers 'pending_review' via migration 0002_fix_status_default.py
         sa.Column("status", sa.String(), nullable=False, server_default="pending_ai"),
         sa.Column("moderation_score", sa.Float(), nullable=False, server_default="0.0"),
         sa.Column("moderation_reason", sa.String(), nullable=True),

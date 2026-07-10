@@ -19,7 +19,7 @@ from app.auth.service import (
 )
 from database import get_db
 from core.deps import get_current_user
-from services.firebase_service import generate_custom_token, sync_user_to_firebase
+from services.firebase_service import generate_custom_token, sync_user_to_firebase, update_admin_stats
 
 router = APIRouter(tags=["auth"])
 
@@ -61,6 +61,11 @@ async def register(user: models.UserCreate, db: Session = Depends(get_db)):
     db.add(new_user)
     db.commit()
     db.refresh(new_user)
+    # ── Sync Firebase : met à jour total_users et new_users_month ────────────
+    try:
+        update_admin_stats(db)
+    except Exception:
+        pass  # Non bloquant
     return new_user
 
 

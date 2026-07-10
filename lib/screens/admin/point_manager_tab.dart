@@ -8,6 +8,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../theme/app_theme.dart';
 import '../../services/auth_service.dart';
 import '../../services/l10n_service.dart';
+import '../../services/messaging_service.dart';
+import '../messaging/messaging_screen.dart';
 
 class PointManagerTab extends StatefulWidget {
   const PointManagerTab({Key? key}) : super(key: key);
@@ -26,6 +28,7 @@ class _PointManagerTabState extends State<PointManagerTab>
   List<Map<String, dynamic>> _alerts = [];
   List<Map<String, dynamic>> _centers = [];
   int _unreadCount = 0;
+  int _unreadMessages = 0;
   bool _loadingAlerts = true;
   bool _loadingCenters = true;
   bool _markingRead = false;
@@ -35,8 +38,12 @@ class _PointManagerTabState extends State<PointManagerTab>
     super.initState();
     L10n.addListener(_onLocaleChange);
     _loadAll();
+    _loadUnreadMessages();
     // Polling toutes les 30 secondes
-    _pollingTimer = Timer.periodic(const Duration(seconds: 30), (_) => _loadAll());
+    _pollingTimer = Timer.periodic(const Duration(seconds: 30), (_) {
+      _loadAll();
+      _loadUnreadMessages();
+    });
   }
 
   void _onLocaleChange() {
@@ -52,6 +59,11 @@ class _PointManagerTabState extends State<PointManagerTab>
 
   Future<void> _loadAll() async {
     await Future.wait([_loadAlerts(), _loadCenters()]);
+  }
+
+  Future<void> _loadUnreadMessages() async {
+    final count = await MessagingService.getUnreadCount();
+    if (mounted) setState(() => _unreadMessages = count);
   }
 
   Future<void> _loadAlerts() async {
@@ -96,8 +108,15 @@ class _PointManagerTabState extends State<PointManagerTab>
       if (!mounted) return;
       if (response.statusCode == 200) {
         final data = json.decode(utf8.decode(response.bodyBytes)) as List;
+        final sorted = data.cast<Map<String, dynamic>>();
+        sorted.sort((a, b) {
+          const order = {'saturé': 0, 'maintenance': 1, 'disponible': 2};
+          final sa = order[a['status'] ?? 'disponible'] ?? 2;
+          final sb = order[b['status'] ?? 'disponible'] ?? 2;
+          return sa.compareTo(sb);
+        });
         setState(() {
-          _centers = data.cast<Map<String, dynamic>>();
+          _centers = sorted;
           _loadingCenters = false;
         });
       } else {
@@ -150,9 +169,13 @@ class _PointManagerTabState extends State<PointManagerTab>
     final satureCenters = _centers.where((c) => (c['status'] ?? '') == 'saturé').toList();
     final maintenanceCenters = _centers.where((c) => (c['status'] ?? '') == 'maintenance').toList();
 
-    return CustomScrollView(
-      physics: const BouncingScrollPhysics(),
-      slivers: [
+    return RefreshIndicator(
+      color: AppTheme.primaryGreen,
+      backgroundColor: Theme.of(context).colorScheme.surface,
+      onRefresh: _loadAll,
+      child: CustomScrollView(
+        physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+        slivers: [
         // ── AppBar ─────────────────────────────────────────────────────────
         SliverAppBar(
           automaticallyImplyLeading: false,
@@ -180,6 +203,8 @@ class _PointManagerTabState extends State<PointManagerTab>
             const Spacer(),
             if (_unreadCount > 0)
               _buildBadge(_unreadCount),
+            const SizedBox(width: 8),
+            _buildMessagesButton(),
           ]),
         ),
 
@@ -281,7 +306,40 @@ class _PointManagerTabState extends State<PointManagerTab>
                 child: Material(
                   color: Colors.transparent,
                   child: InkWell(
-                    onTap: () {},
+                    onTap: () {
+                      showDialog(
+                        context: context,
+                        builder: (context) => AlertDialog(
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                          title: Row(
+                            children: [
+                              const Icon(Icons.info_outline_rounded, color: AppTheme.primaryGreen),
+                              const SizedBox(width: 8),
+                              Text(
+                                _t('Planifier une intervention', 'جدولة تدخل'),
+                                style: GoogleFonts.outfit(fontWeight: FontWeight.bold),
+                              ),
+                            ],
+                          ),
+                          content: Text(
+                            _t(
+                              "Le module de planification et d'affectation automatique des équipes d'intervention est en cours de développement.\n\nPour toute urgence sur un centre de tri, veuillez contacter directement le support terrain.",
+                              "وحدة الجدولة والتعيين التلقائي لفرق التدخل قيد التطوير حالياً.\n\nلأي حالة طarئة في مركز الفرز، يرجى الاتصال بالدعم الميداني مباشرة."
+                            ),
+                            style: GoogleFonts.inter(height: 1.5),
+                          ),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.pop(context),
+                              child: Text(
+                                _t('Fermer', 'إغلاق'),
+                                style: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: AppTheme.primaryGreen),
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
                     borderRadius: BorderRadius.circular(20),
                     child: Padding(
                       padding: const EdgeInsets.all(20),
@@ -306,8 +364,9 @@ class _PointManagerTabState extends State<PointManagerTab>
           ),
         ),
       ],
-    );
-  }
+    ),
+  );
+}
 
   // ── Header animé ────────────────────────────────────────────────────────────
   Widget _buildHeader(int criticalCount) {
@@ -346,8 +405,8 @@ class _PointManagerTabState extends State<PointManagerTab>
                 RichText(text: TextSpan(
                   style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 22, height: 1.15),
                   children: [
-                    const TextSpan(text: 'Supervision des '),
-                    TextSpan(text: 'Centres de Tri',
+                    TextSpan(text: _t('Supervision des ', 'مراقبة ')),
+                    TextSpan(text: _t('Centres de Tri', 'مراكز الفرز'),
                       style: TextStyle(
                         foreground: Paint()..shader = const LinearGradient(
                           colors: [Color(0xFF16DB93), Color(0xFF00B4D8)],
@@ -389,6 +448,41 @@ class _PointManagerTabState extends State<PointManagerTab>
         style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 11)),
   ).animate(onPlay: (c) => c.repeat()).shimmer(duration: 2.seconds, color: Colors.white30);
 
+  Widget _buildMessagesButton() {
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        GestureDetector(
+          onTap: () => Navigator.push(context,
+            MaterialPageRoute(builder: (_) => const MessagingScreen())),
+          child: Container(
+            padding: const EdgeInsets.all(7),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.12),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: Colors.white24),
+            ),
+            child: const Icon(Icons.forum_rounded, color: Colors.white, size: 18),
+          ),
+        ),
+        if (_unreadMessages > 0)
+          Positioned(
+            top: -4, right: -4,
+            child: Container(
+              width: 16, height: 16,
+              decoration: const BoxDecoration(
+                color: AppTheme.primaryGreen, shape: BoxShape.circle),
+              child: Center(
+                child: Text('$_unreadMessages',
+                  style: const TextStyle(color: Colors.white, fontSize: 9,
+                    fontWeight: FontWeight.w900)),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+
   // ── Résumé ──────────────────────────────────────────────────────────────────
   Widget _buildQuickStats(int sature, int maintenance, int total) {
     return Row(children: [
@@ -415,7 +509,7 @@ class _PointManagerTabState extends State<PointManagerTab>
           child: Icon(icon, color: color, size: 16),
         ),
         const SizedBox(height: 10),
-        Text(val, style: GoogleFonts.outfit(fontWeight: FontWeight.w900, fontSize: 20, color: AppTheme.deepSlate)),
+        Text(val, style: GoogleFonts.outfit(fontWeight: FontWeight.w900, fontSize: 20, color: Theme.of(context).brightness == Brightness.dark ? Colors.white : AppTheme.deepSlate)),
         Text(label, style: GoogleFonts.inter(fontSize: 10, color: AppTheme.textMuted, fontWeight: FontWeight.w600)),
       ]),
     ).animate().fadeIn().slideY(begin: 0.2);
@@ -483,7 +577,7 @@ class _PointManagerTabState extends State<PointManagerTab>
               child: Text(alert['title'] ?? '',
                   style: GoogleFonts.outfit(
                     fontWeight: FontWeight.bold, fontSize: 13,
-                    color: isRead ? AppTheme.textMuted : AppTheme.deepSlate,
+                    color: isRead ? AppTheme.textMuted : (Theme.of(context).brightness == Brightness.dark ? Colors.white : AppTheme.deepSlate),
                   )),
             ),
             if (!isRead)
@@ -514,7 +608,7 @@ class _PointManagerTabState extends State<PointManagerTab>
       child: Column(children: [
         Icon(Icons.check_circle_outline_rounded, size: 48, color: AppTheme.primaryGreen.withOpacity(0.5)),
         const SizedBox(height: 16),
-        Text(_t('Aucune alerte active','لا توجد تنبيهات نشطة'), style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 15, color: AppTheme.deepSlate)),
+        Text(_t('Aucune alerte active','لا توجد تنبيهات نشطة'), style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 15, color: Theme.of(context).brightness == Brightness.dark ? Colors.white : AppTheme.deepSlate)),
         const SizedBox(height: 4),
         Text(_t('Tous les centres fonctionnent normalement','جميع المراكز تعمل بشكل طبيعي'), style: GoogleFonts.inter(fontSize: 12, color: AppTheme.textMuted)),
       ]),
@@ -568,7 +662,7 @@ class _PointManagerTabState extends State<PointManagerTab>
           const SizedBox(width: 14),
           Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text(center['name'] ?? '',
-                style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 14, color: AppTheme.deepSlate)),
+                style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 14, color: Theme.of(context).brightness == Brightness.dark ? Colors.white : AppTheme.deepSlate)),
             Text(center['address'] ?? '',
                 style: GoogleFonts.inter(fontSize: 11, color: AppTheme.textMuted),
                 maxLines: 1, overflow: TextOverflow.ellipsis),
@@ -581,6 +675,25 @@ class _PointManagerTabState extends State<PointManagerTab>
             ),
             child: Text(statusLabel,
                 style: GoogleFonts.inter(color: statusColor, fontSize: 9, fontWeight: FontWeight.w900, letterSpacing: 0.5)),
+          ),
+          const SizedBox(width: 8),
+          IconButton(
+            icon: const Icon(Icons.flag_rounded, size: 18),
+            color: Colors.redAccent,
+            onPressed: () {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(_t(
+                    "Signalement envoyé pour ${center['name'] ?? 'ce centre'}",
+                    "تم إرسال بلاغ لـ ${center['name'] ?? 'هذا المركز'}"
+                  )),
+                  behavior: SnackBarBehavior.floating,
+                ),
+              );
+            },
+            tooltip: _t('Signaler une anomalie', 'الإبلاغ عن خلل'),
+            constraints: const BoxConstraints(),
+            padding: EdgeInsets.zero,
           ),
         ]),
         const SizedBox(height: 14),

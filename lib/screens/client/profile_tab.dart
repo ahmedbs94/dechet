@@ -296,13 +296,16 @@ class ProfileTabState extends State<ProfileTab> {
                 actionLoading = true;
                 dialogError = null;
               });
+              // Capturer les deux contexts avant l'await
+              final messenger = ScaffoldMessenger.of(context);
+              final dialogNav = Navigator.of(dialogContext);
               final result = await _authService.verifyEnableMfa(code);
               if (result['success'] == true) {
-                Navigator.pop(dialogContext);
+                dialogNav.pop();
                 if (mounted) {
                   setState(() => _mfaEnabled = true);
                   refreshScore();
-                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                  messenger.showSnackBar(SnackBar(
                     content: Text('Authentification forte activée avec succès.', style: GoogleFonts.inter(fontWeight: FontWeight.w500)),
                     backgroundColor: AppTheme.primaryGreen,
                     behavior: SnackBarBehavior.floating,
@@ -331,17 +334,20 @@ class ProfileTabState extends State<ProfileTab> {
                 dialogError = null;
               });
 
+              // Capturer les deux contexts avant l'await
+              final messenger = ScaffoldMessenger.of(context);
+              final dialogNav = Navigator.of(dialogContext);
               final result = await _authService.disableMfa(
                 password: password.isNotEmpty ? password : null,
                 code: code.isNotEmpty ? code : null,
               );
 
               if (result['success'] == true) {
-                Navigator.pop(dialogContext);
+                dialogNav.pop();
                 if (mounted) {
                   setState(() => _mfaEnabled = false);
                   refreshScore();
-                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                  messenger.showSnackBar(SnackBar(
                     content: Text('Authentification forte désactivée.', style: GoogleFonts.inter(fontWeight: FontWeight.w500)),
                     backgroundColor: Colors.amber.shade700,
                     behavior: SnackBarBehavior.floating,
@@ -783,7 +789,9 @@ class ProfileTabState extends State<ProfileTab> {
                           ),
                         );
                         if (confirm != true) return;
-                        if (!mounted) return;
+                        if (!context.mounted) return;
+                        // Capturer le navigator avant l'await (context.mounted vérifié juste avant)
+                        final nav = Navigator.of(context);
 
                         // ── Déconnexion complète ──────────────────────────────
                         // 1. Appel service : efface jwt_token + refresh_token de
@@ -796,8 +804,8 @@ class ProfileTabState extends State<ProfileTab> {
                         if (!mounted) return;
                         // 3. Naviguer vers la page d'accueil publique (landing)
                         //    et supprimer tout l'historique de navigation.
-                        Navigator.pushNamedAndRemoveUntil(
-                          context, '/', (route) => false,
+                        nav.pushNamedAndRemoveUntil(
+                          '/', (route) => false,
                         );
                       },
                       child: Container(

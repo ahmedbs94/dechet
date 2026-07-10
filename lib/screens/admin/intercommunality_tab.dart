@@ -1,61 +1,108 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-
-import '../../widgets/auth_prompt_dialog.dart';
-import '../../services/l10n_service.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-import '../../models/user_model.dart';
-import 'feed_tab.dart';
-import 'map_tab.dart';
-import 'rewards_tab.dart';
-import 'profile_tab.dart';
-import 'multimedia_tab.dart';
-import 'community_screen.dart';
-
-import '../admin/collector_tab.dart';
-import '../admin/intercommunality_tab.dart';
-import '../admin/point_manager_tab.dart';
-import '../admin/educator_tab.dart';
-import '../../theme/app_theme.dart';
-import '../../theme/platform_ui.dart';
-import '../../layouts/web_shell.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'dart:io';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:flutter_map_cancellable_tile_provider/flutter_map_cancellable_tile_provider.dart';
+import 'package:latlong2/latlong.dart';
+import '../../services/auth_service.dart';
+import '../../services/l10n_service.dart';
+import '../../theme/app_theme.dart';
+import 'package:flutter_animate/flutter_animate.dart';
+import '../../core/firebase/firebase_admin_stats_service.dart';
+import '../../services/messaging_service.dart';
+import '../messaging/messaging_screen.dart';
 
-class MainNavigationShell extends StatefulWidget {
-  final int initialTab;
-  const MainNavigationShell({Key? key, this.initialTab = 0}) : super(key: key);
+class IntercommunalityTab extends StatefulWidget {
+  const IntercommunalityTab({Key? key}) : super(key: key);
 
   @override
-  State<MainNavigationShell> createState() => _MainNavigationShellState();
+  State<IntercommunalityTab> createState() => _IntercommunalityTabState();
 }
 
-class _MainNavigationShellState extends State<MainNavigationShell> {
-  late int _currentIndex;
-  late final List<Widget> _pages;
-  late final bool _isLoggedIn;
+class _IntercommunalityTabState extends State<IntercommunalityTab>
+    with AutomaticKeepAliveClientMixin, SingleTickerProviderStateMixin {
 
+  late final TabController _tabCtrl;
 
-  // GlobalKeys pour accéder aux states des tabs et appeler refresh()
-  final GlobalKey<ProfileTabState> _profileKey = GlobalKey<ProfileTabState>();
+  // ── F1 : Consignes ───────────────────────────────────────────────────────
+  List<Map<String, dynamic>> _instructions   = [];
+  bool   _loadingInstructions = false;
+  String _f1FilterWasteType  = '';
+  String _f1FilterTerritory  = '';
+  bool?  _f1FilterActive;
+
+  // ── F2 : Points de collecte ───────────────────────────────────────────────
+  List<Map<String, dynamic>> _points          = [];
+  bool   _loadingPoints = false;
+  String _f2Search    = '';
+
+  // ── F3 : Acteurs ─────────────────────────────────────────────────────────
+  List<Map<String, dynamic>> _actors         = [];
+  List<Map<String, dynamic>> _customGroups   = [];
+  bool   _loadingActors  = false;
+  String _f3FilterRole   = '';
+  bool   _showGroups     = false;
+
+  // ── F4 : Réponses / notifications reçues ─────────────────────────────────
+  List<Map<String, dynamic>> _replies         = [];
+  bool   _loadingReplies  = false;
+  int    _unreadRepliesCount = 0;
+
+  // ── F5 : Pilotage (zones & affectations) ─────────────────────────────────
+  List<Map<String, dynamic>> _zones           = [];
+  List<Map<String, dynamic>> _assignments     = [];
+  List<Map<String, dynamic>> _collectors      = [];
+  bool   _loadingPilotage = false;
+  Map<String, dynamic>?     _dashboard;
+  int    _unreadMessages  = 0;
+
+  // ── Autocomplete / Presets Data ──────────────────────────────────────────
+  static const List<String> _wasteTypesList = [
+    'Plastique',
+    'Verre',
+    'Papier / Carton',
+    'Métal',
+    'Organique',
+    'Électronique',
+    'Dangereux',
+    'Autre'
+  ];
+
+  static const Map<String, List<String>> _territoryCitiesMap = {
+    'Tunis': ['Tunis Ville', 'La Marsa', 'Carthage', 'Sidi Bou Saïd'],
+    'Ariana': ['Ariana Ville', 'La Soukra', 'Mnihla', 'Ghazela'],
+    'Ben Arous': ['Ben Arous', 'Radès', 'Megrine', 'Hammam Lif'],
+    'Sousse': ['Sousse Ville', 'Kantaoui', 'Akouda', 'Hammam Sousse'],
+    'Sfax': ['Sfax Ville', 'Sakiet Ezzit', 'Sakiet Eddaier'],
+    'Nabeul': ['Nabeul Ville', 'Hammamet', 'Kélibia', 'Dar Chaâbane'],
+    'Bizerte': ['Bizerte Ville', 'Menzel Bourguiba', 'Mateur'],
+  };
+
+  @override
+  bool get wantKeepAlive => true;
 
   @override
   void initState() {
     super.initState();
+    _tabCtrl = TabController(length: 5, vsync: this);
+    _tabCtrl.addListener(() => setState(() {})); // Rebuild FAB on tab changes
     L10n.addListener(_onLocaleChange);
-    _isLoggedIn = AuthState.currentUser != null;
-    final role = AuthState.currentUser?.role ?? UserRole.user;
-    _pages = _initializePages(role);
-    _currentIndex = widget.initialTab.clamp(0, _pages.length - 1);
-
-    if (!_isLoggedIn) {
-      Future.delayed(const Duration(milliseconds: 700), () {
-        if (mounted) AuthPromptDialog.show(context: context);
-      });
-    }
+    _loadInstructions();
+    _loadPoints();
+    _loadActors();
+    _loadCustomGroups();
+    _loadReplies();
+    _loadPilotage();
+    _loadDashboard();
+    _loadUnreadMessages();
   }
 
   @override
   void dispose() {
+    _tabCtrl.dispose();
     L10n.removeListener(_onLocaleChange);
     super.dispose();
   }
@@ -64,143 +111,230 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
     if (mounted) setState(() {});
   }
 
-
-  /// Appelé quand on change d'onglet — simple setState pour conserver l'état des tabs
-  void _onTabSelected(int index) {
-    if (_currentIndex == index) return;
-    final role = AuthState.currentUser?.role ?? UserRole.user;
-    // Rafraîchir le score quand on arrive sur l'onglet Profil
-    final profileIndex = (role == UserRole.educator) ? 2 : (role == UserRole.user ? 5 : 4);
-    if (index == profileIndex) _profileKey.currentState?.refreshScore();
-    setState(() => _currentIndex = index);
+  Future<void> _loadUnreadMessages() async {
+    final count = await MessagingService.getUnreadCount();
+    if (mounted) setState(() => _unreadMessages = count);
   }
 
-  List<Widget> _initializePages(UserRole role) {
-    if (!_isLoggedIn) {
-      return [
-        const FeedTab(key: ValueKey('feed')),
-        const MultimediaTab(key: ValueKey('multimedia')),
-        const RewardsTab(key: ValueKey('rewards')),
-        const MapTab(key: ValueKey('map')),
-      ];
-    }
-
-    switch (role) {
-      // ── Rôle Éducateur : 3 onglets uniquement (Fil, Éducateur, Profil) ──
-      case UserRole.educator:
-        return [
-          const FeedTab(key: ValueKey('feed')),
-          const EducatorTab(key: ValueKey('educator')),
-          ProfileTab(key: _profileKey),
-        ];
-
-      // ── Rôle Collecteur : même structure, Formation → Espace Collecteur ──
-      case UserRole.collector:
-        return [
-          const FeedTab(key: ValueKey('feed')),
-
-> [!CAUTION]
-> **L'historique des collectes du collecteur n'est pas enregistré.**  
-> Quand un collecteur scanne une poubelle, le code retourne directement une réponse sans insérer d'enregistrement dans `bin_scans` (contrairement au flux citoyen qui fait `db.add(scan)`). Il n'existe aucune table `collector_logs` ou équivalent pour tracer :
-> - La date/heure de la collecte
-> - La poubelle vidée
-> - La quantité collectée (poids avant vidage)
-> - L'identifiant du collecteur
-
-> [!TIP]
-> **Correction recommandée** : Avant d'appeler `update_bin_status(poids=0.0)`, récupérer le poids actuel de la poubelle depuis Firebase et l'insérer dans un enregistrement de collecte.
-
----
-
-## 4. Notification à l'Intercommunalité après Collecte
-
-### Ce qui est implémenté
-
-L'application dispose d'une infrastructure de notifications FCM ([fcm_push_service.py](file:///c:/Users/lenovo/Desktop/EcoRewind/backend/services/fcm_push_service.py)) et d'un onglet Intercommunalité ([intercommunality_tab.dart](file:///c:/Users/lenovo/Desktop/EcoRewind/lib/screens/admin/intercommunality_tab.dart)).
-
-### ❌ Lacune critique
-
-> [!CAUTION]
-> **Aucune notification n'est envoyée à l'intercommunalité après une collecte.**
->
-> Votre spec exige qu'après chaque vidage de poubelle, une notification soit envoyée contenant :
-> - Nom et ID du collecteur
-> - ID de la poubelle
-> - Date et heure de l'opération
-> - Confirmation du vidage
->
-> Dans le code actuel du flux collecteur ([`qr_bins.py` L.156-184](file:///c:/Users/lenovo/Desktop/EcoRewind/backend/routers/qr_bins.py)), après `update_bin_status()`, **aucun appel à `send_push_to_user` ou `create_notification` n'est présent**.
->
-> L'`IntercommunalityTab` dans Flutter est également une **page statique avec des données fictives** (chiffres codés en dur : "342 points", "12 prestataires") sans connexion réelle au backend.
-
-> [!TIP]
-> **Correction recommandée dans `qr_bins.py`**, dans le bloc collecteur :
-> ```python
-> # Après update_bin_status(bin_code, poids=0.0, etat="vide")
-> 
-> # 1. Enregistrer la collecte dans une table collector_logs
-> # 2. Identifier les utilisateurs avec role="intercommunality"
-> # 3. Envoyer une notification FCM via send_push_to_user()
-> intercom_users = db.query(User).filter(User.role == "intercommunality").all()
-> for u in intercom_users:
->     send_push_to_user(db, u.id,
->         title="🗑️ Collecte effectuée",
->         body=f"{user.full_name} a vidé {bin_code} le {datetime.utcnow()}"
->     )
-> ```
-
----
-
-## 5. Historique — Citoyen & Collecteur
-
-### Historique Citoyen
-
-**Table `bin_scans`** — Champs disponibles vs. requis :
-
-| Champ requis par la spec | Champ dans `bin_scans` | Statut |
-|---|---|---|
-| Date et heure du dépôt | `scanned_at` | ✅ |
-| Poubelle utilisée | `smart_bin_id` + `bin_id` (bin_code) | ✅ |
-| Type de déchet | `waste_type` | ✅ |
-| Poids déposé | `weight_kg` | ✅ |
-| Points gagnés | `points_earned` | ✅ |
-
-**Endpoint** `GET /qr/scan-history` retourne toutes ces données. ✅  
-**Écran Flutter** `ScanHistoryScreen` — accessible depuis `bin_scanner_screen.dart`. ✅
-
-> [!WARNING]
-> L'écran `TrackRecordsScreen` ([track_records_screen.dart](file:///c:/Users/lenovo/Desktop/EcoRewind/lib/screens/client/track_records_screen.dart)) utilise encore le `WasteRecordService` avec des **données fictives mock**, pas les vraies données du backend. Il faudra le connecter à `ScanService().getScanHistory()`.
-
-### Historique Collecteur
-
-> [!CAUTION]
-> **Aucune table ni endpoint n'existe pour l'historique des collecteurs.** La spec exige :
-> - Date et heure de la collecte
-> - Poubelle vidée
-> - Quantité collectée (poids)
->
-> **Ces données ne sont ni sauvegardées ni consultables** dans l'état actuel.
-
----
-
-## 6. Architecture Firebase RTDB — Nœuds Présents vs. Requis
-
-### Nœuds existants
-
-```
-Firebase RTDB
-├── /scores/{user_id}/          ← Score du citoyen (total, last_points, last_scan)
-├── /utilisateurs/{user_id}/    ← Rôle + QR code
-├── /poubelles/{bin_code}/      ← Poids + état + timestamp
-├── /leaderboard/               ← Classement public
-├── /admin_dashboard/           ← (bloqué, write:false)
-└── /notifications/             ← (bloqué, read:false, write:false)
-```
-
-### Nœuds manquants
-    _loadCustomGroups();
+  // ── Auth helpers ──────────────────────────────────────────────────────────
+  Future<String?> _jwt() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString('jwt_token');
   }
 
+  Map<String, String> _headers(String jwt) => {
+    'Authorization': 'Bearer $jwt',
+    'Content-Type': 'application/json',
+    'Accept': 'application/json',
+  };
+
+  // ── API Loaders ───────────────────────────────────────────────────────────
+  Future<void> _loadInstructions() async {
+    if (!mounted) return;
+    setState(() => _loadingInstructions = true);
+    try {
+      final jwt = await _jwt();
+      if (jwt == null) return;
+      final res = await http.get(
+        Uri.parse('${AuthService.baseUrl}/intercommunality/instructions'),
+        headers: _headers(jwt),
+      );
+      if (res.statusCode == 200 && mounted) {
+        final data = json.decode(res.body) as List;
+        setState(() => _instructions = data.cast<Map<String, dynamic>>());
+      }
+    } catch (_) {}
+    if (mounted) setState(() => _loadingInstructions = false);
+  }
+
+  Future<void> _loadPoints() async {
+    if (!mounted) return;
+    setState(() => _loadingPoints = true);
+    try {
+      final jwt = await _jwt();
+      if (jwt == null) return;
+      final res = await http.get(
+        Uri.parse('${AuthService.baseUrl}/intercommunality/collection-points'),
+        headers: _headers(jwt),
+      );
+      if (res.statusCode == 200 && mounted) {
+        final data = json.decode(res.body) as List;
+        setState(() => _points = data.cast<Map<String, dynamic>>());
+      }
+    } catch (_) {}
+    if (mounted) setState(() => _loadingPoints = false);
+  }
+
+  Future<void> _loadActors() async {
+    if (!mounted) return;
+    setState(() => _loadingActors = true);
+    try {
+      final jwt = await _jwt();
+      if (jwt == null) return;
+      final res = await http.get(
+        Uri.parse('${AuthService.baseUrl}/intercommunality/actors'),
+        headers: _headers(jwt),
+      );
+      if (res.statusCode == 200 && mounted) {
+        final data = json.decode(res.body) as List;
+        setState(() => _actors = data.cast<Map<String, dynamic>>());
+      }
+    } catch (_) {}
+    if (mounted) setState(() => _loadingActors = false);
+  }
+
+  Future<void> _loadCustomGroups() async {
+    try {
+      final jwt = await _jwt();
+      if (jwt == null) return;
+      final res = await http.get(
+        Uri.parse('${AuthService.baseUrl}/intercommunality/custom-groups'),
+        headers: _headers(jwt),
+      );
+      if (res.statusCode == 200 && mounted) {
+        final data = json.decode(res.body) as List;
+        setState(() => _customGroups = data.cast<Map<String, dynamic>>());
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _loadReplies() async {
+    if (!mounted) return;
+    setState(() => _loadingReplies = true);
+    try {
+      final jwt = await _jwt();
+      if (jwt == null) return;
+      final res = await http.get(
+        Uri.parse('${AuthService.baseUrl}/notifications?unread_only=false'),
+        headers: _headers(jwt),
+      );
+      if (res.statusCode == 200 && mounted) {
+        final data = json.decode(res.body) as List;
+        final replies = data.cast<Map<String, dynamic>>();
+        setState(() {
+          _replies = replies;
+          _unreadRepliesCount = replies.where((r) => r['is_read'] == false).length;
+        });
+      }
+    } catch (_) {}
+    if (mounted) setState(() => _loadingReplies = false);
+  }
+
+  Future<void> _loadPilotage() async {
+    if (!mounted) return;
+    setState(() => _loadingPilotage = true);
+    try {
+      final jwt = await _jwt();
+      if (jwt == null) return;
+      final results = await Future.wait([
+        http.get(Uri.parse('${AuthService.baseUrl}/intercommunality/zones'), headers: _headers(jwt)),
+        http.get(Uri.parse('${AuthService.baseUrl}/intercommunality/assignments'), headers: _headers(jwt)),
+        http.get(Uri.parse('${AuthService.baseUrl}/intercommunality/actors?role=collector'), headers: _headers(jwt)),
+      ]);
+      if (!mounted) return;
+      if (results[0].statusCode == 200) {
+        setState(() => _zones = (json.decode(results[0].body) as List).cast<Map<String, dynamic>>());
+      }
+      if (results[1].statusCode == 200) {
+        setState(() => _assignments = (json.decode(results[1].body) as List).cast<Map<String, dynamic>>());
+      }
+      if (results[2].statusCode == 200) {
+        setState(() => _collectors = (json.decode(results[2].body) as List).cast<Map<String, dynamic>>());
+      }
+    } catch (_) {}
+    if (mounted) setState(() => _loadingPilotage = false);
+  }
+
+  Future<void> _loadDashboard() async {
+    try {
+      final jwt = await _jwt();
+      if (jwt == null) return;
+      final res = await http.get(
+        Uri.parse('${AuthService.baseUrl}/intercommunality/dashboard'),
+        headers: _headers(jwt),
+      );
+      if (res.statusCode == 200 && mounted) {
+        setState(() => _dashboard = json.decode(res.body) as Map<String, dynamic>);
+      }
+    } catch (_) {}
+  }
+
+  // ── Empty State Helper ───────────────────────────────────────────────────
+  Widget _emptyState({required IconData icon, required String title, required String sub, Color color = const Color(0xFF6C3EB8)}) {
+    return SingleChildScrollView(
+      physics: const AlwaysScrollableScrollPhysics(),
+      child: Center(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 60, horizontal: 20),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, size: 56, color: color.withOpacity(0.3)),
+              const SizedBox(height: 12),
+              Text(
+                title,
+                style: GoogleFonts.outfit(fontSize: 16, fontWeight: FontWeight.w700, color: AppTheme.deepSlate),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                sub,
+                style: GoogleFonts.inter(fontSize: 12, color: AppTheme.textMuted),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ── Dashboard KPI Cards Row ──────────────────────────────────────────────
+  Widget _buildDashboardCards() {
+    final dash = _dashboard;
+    final totalInstructions = dash?['total_instructions'] ?? _instructions.length;
+    final totalPoints       = dash?['total_points']       ?? _points.length;
+    final totalActors       = dash?['total_actors']       ?? _actors.length;
+    final unread            = _unreadRepliesCount;
+    return Container(
+      color: Colors.white,
+      padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+      child: Row(
+        children: [
+          _kpiCard(value: '$totalInstructions', label: 'Consignes',  icon: Icons.rule_rounded,          color: const Color(0xFF6C3EB8)),
+          const SizedBox(width: 8),
+          _kpiCard(value: '$totalPoints',       label: 'Points',     icon: Icons.location_city_rounded,  color: const Color(0xFF1A6B3C)),
+          const SizedBox(width: 8),
+          _kpiCard(value: '$totalActors',       label: 'Acteurs',    icon: Icons.groups_rounded,         color: const Color(0xFFE8961A)),
+          const SizedBox(width: 8),
+          _kpiCard(value: '$unread',            label: 'Non lus',    icon: Icons.forum_rounded,          color: unread > 0 ? Colors.red : AppTheme.textMuted),
+        ],
+      ),
+    );
+  }
+
+  Widget _kpiCard({required String value, required String label, required IconData icon, required Color color}) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: AppTheme.tightShadow,
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(icon, color: color, size: 20),
+            const SizedBox(height: 8),
+            Text(value, style: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.w900, color: AppTheme.deepSlate)),
+            Text(label, style: GoogleFonts.outfit(fontSize: 10, fontWeight: FontWeight.w700, color: AppTheme.textMuted), maxLines: 1, overflow: TextOverflow.ellipsis),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ── Operations & Dialog Methods ──────────────────────────────────────────
   Future<void> _notifyCustomGroup(int groupId, String groupName) async {
     final titleCtrl = TextEditingController();
     final msgCtrl   = TextEditingController();
@@ -232,12 +366,10 @@ Firebase RTDB
               );
               if (ctx.mounted) Navigator.pop(ctx);
               if (mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('✅ Notification envoyée au groupe'), backgroundColor: Colors.green),
-                );
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('✅ Message envoyé au groupe'), backgroundColor: Colors.green));
               }
             },
-            child: Text('Envoyer', style: GoogleFonts.outfit(color: Colors.white)),
+            child: const Text('Envoyer', style: TextStyle(color: Colors.white)),
           ),
         ],
       ),
@@ -247,10 +379,11 @@ Firebase RTDB
   Future<void> _notifyIndividualActor(Map<String, dynamic> actor) async {
     final titleCtrl = TextEditingController();
     final msgCtrl   = TextEditingController();
+    final name      = actor['full_name'] ?? 'Acteur';
     await showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Text('Message à ${actor['full_name']}', style: GoogleFonts.outfit(fontWeight: FontWeight.w800)),
+        title: Text('Message à : $name', style: GoogleFonts.outfit(fontWeight: FontWeight.w800)),
         content: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -275,12 +408,10 @@ Firebase RTDB
               );
               if (ctx.mounted) Navigator.pop(ctx);
               if (mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('✅ Message envoyé à ${actor['full_name']}'), backgroundColor: Colors.green),
-                );
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('✅ Message envoyé'), backgroundColor: Colors.green));
               }
             },
-            child: Text('Envoyer', style: GoogleFonts.outfit(color: Colors.white)),
+            child: const Text('Envoyer', style: TextStyle(color: Colors.white)),
           ),
         ],
       ),
@@ -298,127 +429,68 @@ Firebase RTDB
   }
 
   Future<void> _deleteInstruction(int id) async {
-                      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-                      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          AnimatedScale(
-                            scale: active ? 1.12 : 1.0,
-                            duration: const Duration(milliseconds: 200),
-                            child: active
-                              ? ShaderMask(
-                                  shaderCallback: (b) => const LinearGradient(colors: [AppTheme.primaryGreen, AppTheme.accentTeal]).createShader(b),
-                                  child: IconTheme(data: const IconThemeData(color: Colors.white, size: 20), child: dest.icon),
-                                )
-                              : IconTheme(data: const IconThemeData(color: Color(0xFF64748B), size: 18), child: dest.icon),
-                          ),
-                          const SizedBox(height: 3),
-                          AnimatedDefaultTextStyle(
-                            duration: const Duration(milliseconds: 200),
-                            style: active
-                              ? GoogleFonts.outfit(fontSize: count > 4 ? 9.0 : 10.0, fontWeight: FontWeight.w800, color: AppTheme.primaryGreen)
-                              : GoogleFonts.inter(fontSize: count > 4 ? 8.5 : 9.5, fontWeight: FontWeight.w500, color: const Color(0xFF64748B)),
-                            child: Text(dest.label, overflow: TextOverflow.ellipsis, maxLines: 1),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            );
-          }),
-        ),
-      ),
+    final jwt = await _jwt();
+    if (jwt == null) return;
+    await http.delete(
+      Uri.parse('${AuthService.baseUrl}/intercommunality/instructions/$id'),
+      headers: _headers(jwt),
     );
+    _loadInstructions();
   }
-}
 
-                    ),
-                  ),
-                ),
-              ),
-            );
-          }),
-        ),
-      ),
-    );
-  }
-}
-
+  Future<void> _markReplyRead(Map<String, dynamic> reply) async {
+    if (reply['is_read'] == true) return;
+    final jwt = await _jwt();
+    if (jwt == null) return;
+    final id = reply['id'];
+    await http.put(
+      Uri.parse('${AuthService.baseUrl}/notifications/$id/read'),
+      headers: _headers(jwt),
     );
     setState(() => reply['is_read'] = true);
+    _loadReplies();
   }
 
-  // ── F4 : UI des réponses reçues ──────────────────────────────────────────
-  Widget _buildF4Reponses() {
-    if (_loadingReplies && _replies.isEmpty) {
-      return const Center(child: CircularProgressIndicator());
-    }
-    return RefreshIndicator(
-      onRefresh: _loadReplies,
-      child: _replies.isEmpty
-          ? _emptyState(
-              icon: Icons.forum_outlined,
-              title: 'Aucune réponse reçue',
-              sub: 'Les acteurs pourront répondre à vos messages ici.',
-              color: const Color(0xFF6C3EB8),
-            )
-          : ListView.builder(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 100),
-              itemCount: _replies.length,
-              itemBuilder: (ctx, i) => _replyCard(_replies[i], i),
-            ),
-    );
-  }
-
-  Widget _replyCard(Map<String, dynamic> reply, int index) {
-    final isRead   = reply['is_read'] == true;
-    final fromUser = reply['from_user_name'] ?? 'Acteur';
-    final body     = reply['body'] ?? '';
-    final time     = reply['created_at'] != null
-        ? _formatRelativeTime(reply['created_at'])
-        : '';
-    const color = Color(0xFF6C3EB8);
-
-    return GestureDetector(
-      onTap: () => _markReplyRead(reply),
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 10),
-        decoration: BoxDecoration(
-          color: isRead ? Colors.white : color.withOpacity(0.04),
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(
-            color: isRead ? Colors.grey.shade100 : color.withOpacity(0.2),
-          ),
-          boxShadow: isRead
-              ? []
-              : [BoxShadow(color: color.withOpacity(0.08), blurRadius: 12, offset: const Offset(0, 4))],
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            // Avatar avec initiales
-            Container(
-              width: 44, height: 44,
-              decoration: BoxDecoration(
-                gradient: LinearGradient(colors: [color.withOpacity(0.2), color.withOpacity(0.1)]),
-                borderRadius: BorderRadius.circular(14),
-              ),
-              child: Center(
-                child: Text(
-                  fromUser.isNotEmpty ? fromUser[0].toUpperCase() : '?',
-      body: json.encode({
-        'zone_id': zoneId, 'collector_id': collectorId,
-        'mission_message': message, 'priority': priority,
-      }),
+  Future<void> _createAssignment({
+    int? zoneId,
+    List<int>? collectionPointIds,
+    int? collectionPointId, // rétro-compat singulier
+    int? collectorId,
+    int? groupId,
+    String? message,
+    required String priority,
+  }) async {
+    final jwt = await _jwt();
+    if (jwt == null) return;
+    final bodyData = {
+      if (zoneId != null) 'zone_id': zoneId,
+      // Mode multi-centres
+      if (collectionPointIds != null && collectionPointIds.isNotEmpty)
+        'collection_point_ids': collectionPointIds,
+      // Rétro-compat
+      if (collectionPointId != null && collectionPointIds == null)
+        'collection_point_id': collectionPointId,
+      if (collectorId != null) 'collector_id': collectorId,
+      if (groupId != null) 'group_id': groupId,
+      'mission_message': message,
+      'priority': priority,
+    };
+    final res = await http.post(
+      Uri.parse('${AuthService.baseUrl}/intercommunality/assignments'),
+      headers: _headers(jwt),
+      body: json.encode(bodyData),
     );
     if (res.statusCode == 201 && mounted) {
       final body = json.decode(utf8.decode(res.bodyBytes));
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('âœ… ${body['message']}'), backgroundColor: Colors.green));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('✅ ${body['message']}'), backgroundColor: Colors.green));
       _loadPilotage();
+    } else if (mounted) {
+      try {
+        final err = json.decode(utf8.decode(res.bodyBytes));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('❌ ${err['detail'] ?? 'Erreur lors de l\'affectation'}'), backgroundColor: Colors.red));
+      } catch (_) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('❌ Erreur de communication avec le serveur'), backgroundColor: Colors.red));
+      }
     }
   }
 
@@ -443,25 +515,48 @@ Firebase RTDB
     _loadPilotage();
   }
 
-  Future<void> _deleteInstruction(int id) async {
-    final jwt = await _jwt();
-    if (jwt == null) return;
-    await http.delete(
-      Uri.parse('${AuthService.baseUrl}/intercommunality/instructions/$id'),
-      headers: _headers(jwt),
-    );
-    _loadInstructions();
-  }
-
   Future<void> _notifyActors(List<String> roles, String title, String msg) async {
     final jwt = await _jwt();
     if (jwt == null) return;
-    await http.post(
-      Uri.parse('${AuthService.baseUrl}/intercommunality/actors/notify'),
-  // ══════════════════════════════════════════════════════════════════════════
-  // BUILD PRINCIPAL
-  // ══════════════════════════════════════════════════════════════════════════
+    final queryParams = '${roles.map((r) => 'roles=$r').join('&')}&title=${Uri.encodeQueryComponent(title)}&message=${Uri.encodeQueryComponent(msg)}';
+    final res = await http.post(
+      Uri.parse('${AuthService.baseUrl}/intercommunality/actors/notify?$queryParams'),
+      headers: _headers(jwt),
+    );
+    if (res.statusCode == 200 && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('✅ Notification envoyée aux rôles sélectionnés'), backgroundColor: Colors.green));
+    }
+  }
 
+  Future<void> _createZone(String name, String territory, String description, Color color, {List<int> pointIds = const []}) async {
+    final jwt = await _jwt();
+    if (jwt == null) return;
+    final colorHex = '#${color.value.toRadixString(16).substring(2, 8)}';
+    await http.post(
+      Uri.parse('${AuthService.baseUrl}/intercommunality/zones'),
+      headers: _headers(jwt),
+      body: json.encode({
+        'name': name,
+        'territory': territory,
+        'description': description.isEmpty ? null : description,
+        'color_hex': colorHex,
+        if (pointIds.isNotEmpty) 'collection_point_ids': pointIds,
+      }),
+    );
+    _loadPilotage();
+  }
+
+  Future<void> _deleteZone(int id, String name) async {
+    final jwt = await _jwt();
+    if (jwt == null) return;
+    await http.delete(
+      Uri.parse('${AuthService.baseUrl}/intercommunality/zones/$id'),
+      headers: _headers(jwt),
+    );
+    _loadPilotage();
+  }
+
+  // ── BUILD PRINCIPAL ──────────────────────────────────────────────────────
   @override
   Widget build(BuildContext context) {
     super.build(context);
@@ -483,185 +578,12 @@ Firebase RTDB
                 indicatorWeight: 3,
                 labelStyle: GoogleFonts.outfit(fontWeight: FontWeight.w800, fontSize: 12),
                 unselectedLabelStyle: GoogleFonts.outfit(fontWeight: FontWeight.w500, fontSize: 12),
-                tabs: [
-                  const Tab(icon: Icon(Icons.rule_rounded, size: 18),          text: 'Consignes'),
-                  const Tab(icon: Icon(Icons.location_city_rounded, size: 18), text: 'Points'),
-                  const Tab(icon: Icon(Icons.groups_rounded, size: 18),        text: 'Acteurs'),
-    final jwt = await _jwt();
-    if (jwt == null) return;
-    final id = reply['id'];
-    await http.put(
-      Uri.parse('${AuthService.baseUrl}/notifications/$id/read'),
-      headers: _headers(jwt),
-    );
-    setState(() => reply['is_read'] = true);
-  }
-
-  // â”€â”€ F4 : UI des réponses reçues â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-  Widget _buildF4Reponses() {
-    if (_loadingReplies && _replies.isEmpty) {
-      return const Center(child: CircularProgressIndicator());
-    }
-    return RefreshIndicator(
-      onRefresh: _loadReplies,
-      child: _replies.isEmpty
-          ? _emptyState(
-              icon: Icons.forum_outlined,
-              title: 'Aucune réponse reçue',
-              sub: 'Les acteurs pourront répondre Ã  vos messages ici.',
-              color: const Color(0xFF6C3EB8),
-            )
-          : ListView.builder(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 100),
-              itemCount: _replies.length,
-              itemBuilder: (ctx, i) => _replyCard(_replies[i], i),
-            ),
-    );
-  }
-
-  Widget _replyCard(Map<String, dynamic> reply, int index) {
-    final isRead   = reply['is_read'] == true;
-    final fromUser = reply['from_user_name'] ?? 'Acteur';
-    final body     = reply['body'] ?? '';
-    final time     = reply['created_at'] != null
-        ? _formatRelativeTime(reply['created_at'])
-        : '';
-    const color = Color(0xFF6C3EB8);
-
-    return GestureDetector(
-      onTap: () => _markReplyRead(reply),
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 10),
-        decoration: BoxDecoration(
-          color: isRead ? Colors.white : color.withOpacity(0.04),
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(
-            color: isRead ? Colors.grey.shade100 : color.withOpacity(0.2),
-          ),
-          boxShadow: isRead
-              ? []
-              : [BoxShadow(color: color.withOpacity(0.08), blurRadius: 12, offset: const Offset(0, 4))],
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            // Avatar avec initiales
-            Container(
-              width: 44, height: 44,
-              decoration: BoxDecoration(
-                gradient: LinearGradient(colors: [color.withOpacity(0.2), color.withOpacity(0.1)]),
-                borderRadius: BorderRadius.circular(14),
-              ),
-              child: Center(
-                child: Text(
-                  fromUser.isNotEmpty ? fromUser[0].toUpperCase() : '?',
-                  style: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.w900, color: color),
-                ),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Row(children: [
-                  Expanded(
-                    child: Text(fromUser, style: GoogleFonts.outfit(
-                      fontSize: 14, fontWeight: isRead ? FontWeight.w600 : FontWeight.w900,
-                      color: const Color(0xFF1E293B),
-                    )),
-                  ),
-                  Text(time, style: GoogleFonts.inter(fontSize: 11, color: AppTheme.textMuted)),
-                  if (!isRead) ...[
-                    const SizedBox(width: 6),
-                    Container(
-                      width: 8, height: 8,
-                      decoration: const BoxDecoration(color: Color(0xFF6C3EB8), shape: BoxShape.circle),
-                    ),
-                  ],
-                ]),
-                const SizedBox(height: 4),
-                Text(body,
-                  style: GoogleFonts.inter(fontSize: 13, color: const Color(0xFF64748B)),
-                  maxLines: 4,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ]),
-            ),
-          ]),
-        ),
-      ),
-    ).animate().fadeIn(delay: (30 * index).ms).slideY(begin: 0.04);
-  }
-
-  String _formatRelativeTime(String dateStr) {
-    try {
-      final dt = DateTime.parse(dateStr).toLocal();
-      final diff = DateTime.now().difference(dt);
-      if (diff.inMinutes < 1) return 'Ã€ l\'instant';
-      if (diff.inMinutes < 60) return 'Il y a ${diff.inMinutes} min';
-      if (diff.inHours < 24) return 'Il y a ${diff.inHours} h';
-      if (diff.inDays < 7) return 'Il y a ${diff.inDays} j';
-      return '${dt.day}/${dt.month}/${dt.year}';
-    } catch (_) { return ''; }
-  }
-
-  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-  // BUILD PRINCIPAL
-  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-
-  @override
-  Widget build(BuildContext context) {
-    super.build(context);
-    return Scaffold(
-      backgroundColor: const Color(0xFFF5F7FA),
-      resizeToAvoidBottomInset: false, // évite le bottom overflow quand le clavier s'ouvre
-      body: NestedScrollView(
-        headerSliverBuilder: (ctx, _) => [
-          SliverToBoxAdapter(child: _buildHeader()),
-          SliverToBoxAdapter(child: _buildDashboardCards()),
-          SliverPersistentHeader(
-            pinned: true,
-            delegate: _TabHeaderDelegate(
-              TabBar(
-                controller: _tabCtrl,
-                isScrollable: true,
-                tabAlignment: TabAlignment.start,
-                labelColor: const Color(0xFF6C3EB8),
-                unselectedLabelColor: AppTheme.textMuted,
-                indicator: BoxDecoration(
-                  color: const Color(0xFF6C3EB8).withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: const Color(0xFF6C3EB8).withOpacity(0.4)),
-                ),
-                indicatorSize: TabBarIndicatorSize.tab,
-                indicatorPadding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
-                dividerColor: Colors.transparent,
-                labelStyle: GoogleFonts.outfit(fontWeight: FontWeight.w800, fontSize: 12),
-                unselectedLabelStyle: GoogleFonts.outfit(fontWeight: FontWeight.w500, fontSize: 12),
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                tabs: [
-                  const Tab(icon: Icon(Icons.rule_rounded, size: 16), text: 'Consignes'),
-                  const Tab(icon: Icon(Icons.location_city_rounded, size: 16), text: 'Points'),
-                  const Tab(icon: Icon(Icons.groups_rounded, size: 16), text: 'Acteurs'),
-                  Tab(
-                    icon: Stack(
-                      clipBehavior: Clip.none,
-                      children: [
-                        const Icon(Icons.forum_rounded, size: 16),
-                        if (_unreadRepliesCount > 0)
-                          Positioned(
-                            right: -6, top: -4,
-                            child: Container(
-                              padding: const EdgeInsets.all(2),
-                              decoration: const BoxDecoration(color: Colors.red, shape: BoxShape.circle),
-                              child: Text('$_unreadRepliesCount',
-                                style: const TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.bold)),
-                            ),
-                          ),
-                      ],
-                    ),
-                    text: 'Réponses',
-                  ),
-                  const Tab(icon: Icon(Icons.route_rounded, size: 16), text: 'Pilotage'),
+                tabs: const [
+                  Tab(icon: Icon(Icons.rule_rounded, size: 18),          text: 'Consignes'),
+                  Tab(icon: Icon(Icons.location_city_rounded, size: 18), text: 'Points'),
+                  Tab(icon: Icon(Icons.groups_rounded, size: 18),        text: 'Acteurs'),
+                  Tab(icon: Icon(Icons.forum_rounded, size: 18),         text: 'Réponses'),
+                  Tab(icon: Icon(Icons.route_rounded, size: 18),         text: 'Pilotage'),
                 ],
               ),
             ),
@@ -682,864 +604,334 @@ Firebase RTDB
     );
   }
 
-  // â”€â”€ Header â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-
+  // ── HEADER ───────────────────────────────────────────────────────────────
   Widget _buildHeader() {
-    final f1 = (_dashboard?['f1_consignes'] as Map?) ?? {};
-    final f2 = (_dashboard?['f2_points_de_collecte'] as Map?) ?? {};
-    final f3 = (_dashboard?['f3_acteurs'] as Map?) ?? {};
-    // Firebase RTDB prime sur l'API REST si données disponibles
-    final totalScans  = _adminStats.totalScans > 0 ? _adminStats.totalScans : null;
-    final totalUsers  = _adminStats.totalUsers > 0 ? _adminStats.totalUsers : null;
-    return Container(
-      padding: EdgeInsets.fromLTRB(20, MediaQuery.of(context).padding.top + 12, 20, 16),
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          colors: [Color(0xFF1E0442), Color(0xFF4A1F8A), Color(0xFF7B3FC4)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          sub: '${f1['total'] ?? 0} total',
-        ),
-        const SizedBox(width: 10),
-        _kpiCard(
-          icon: Icons.location_city_rounded,
-          color: const Color(0xFF2980B9),
-          label: 'Points vérifiés',
-          value: '${f2['verified'] ?? 0}/${f2['total'] ?? 0}',
-          ),
-          // Badge last sync
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.12),
-              borderRadius: BorderRadius.circular(20),
+    return StreamBuilder<AdminStatsSnapshot>(
+      stream: FirebaseAdminStatsService().watchAdminStats(),
+      builder: (context, snapshot) {
+        final stats = snapshot.data ?? const AdminStatsSnapshot();
+        final f1 = (_dashboard?['f1_consignes'] as Map?) ?? {};
+        final f3 = (_dashboard?['f3_acteurs'] as Map?) ?? {};
+        final f2 = (_dashboard?['f2_points_de_collecte'] as Map?) ?? {};
+        
+        final totalScans = stats.totalScans > 0 ? stats.totalScans : (f1['total_scans'] ?? 0);
+        final totalUsers = stats.totalUsers > 0 ? stats.totalUsers : (f3['total_users'] ?? 0);
+
+        return Container(
+          padding: EdgeInsets.fromLTRB(20, MediaQuery.of(context).padding.top + 12, 20, 16),
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Color(0xFF1E0442), Color(0xFF4A1F8A), Color(0xFF7B3FC4)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
             ),
-            child: Text('En ligne', style: GoogleFonts.outfit(color: Colors.greenAccent, fontSize: 11, fontWeight: FontWeight.w600)),
           ),
-        ]),
-        const SizedBox(height: 14),
-        // ── Mini KPI inline ─────────────────────────────────────────
-        Row(children: [
-          _headerStat('${f1['active'] ?? 0}', 'Consignes', Icons.rule_rounded),
-  Widget _kpiCard({
-    required IconData icon,
-    required Color color,
-    required String label,
-    required String value,
-    required String sub,
-    bool alert = false,
-  }) {
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: AppTheme.tightShadow,
-        ),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Row(children: [
-                  decoration: const BoxDecoration(color: Colors.greenAccent, shape: BoxShape.circle),
-                ),
-              Text(_loadingDashboard ? 'Sync...' : 'En ligne',
-                style: GoogleFonts.outfit(
-                  color: _loadingDashboard ? Colors.amber : Colors.greenAccent,
-                  fontSize: 11, fontWeight: FontWeight.w600)),
-            ]),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          L10n.tr('Coordination Territoriale'),
+                          style: GoogleFonts.outfit(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w900),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          L10n.tr('Gérez les politiques de tri et les acteurs locaux.'),
+                          style: GoogleFonts.inter(color: Colors.white.withOpacity(0.7), fontSize: 12, fontWeight: FontWeight.w500),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(color: Colors.white.withOpacity(0.12), borderRadius: BorderRadius.circular(20)),
+                    child: Text('En ligne', style: GoogleFonts.outfit(color: Colors.greenAccent, fontSize: 11, fontWeight: FontWeight.w600)),
+
+                  ),
+
+                  const SizedBox(width: 8),
+
+                  Stack(
+
+                    clipBehavior: Clip.none,
+
+                    children: [
+
+                      GestureDetector(
+
+                        onTap: () => Navigator.push(context,
+
+                          MaterialPageRoute(builder: (_) => const MessagingScreen())),
+
+                        child: Container(
+
+                          padding: const EdgeInsets.all(7),
+
+                          decoration: BoxDecoration(
+
+                            color: Colors.white.withOpacity(0.15),
+
+                            borderRadius: BorderRadius.circular(10),
+
+                            border: Border.all(color: Colors.white30),
+
+                          ),
+
+                          child: const Icon(Icons.forum_outlined, color: Colors.white, size: 18),
+
+                        ),
+
+                      ),
+
+                      if (_unreadMessages > 0)
+
+                        Positioned(
+
+                          top: -4, right: -4,
+
+                          child: Container(
+
+                            width: 16, height: 16,
+
+                            decoration: const BoxDecoration(
+
+                              color: Color(0xFF00E676), shape: BoxShape.circle),
+
+                            child: Center(
+
+                              child: Text('$_unreadMessages',
+
+                                style: const TextStyle(color: Colors.black,
+
+                                  fontSize: 9, fontWeight: FontWeight.w900)),
+
+                            ),
+
+                          ),
+
+                        ),
+
+                    ],
+
+                  ),
+
+                ],
+
+              ),
+              const SizedBox(height: 14),
+              Row(
+                children: [
+                  _headerStat('$totalScans', 'Scans', Icons.qr_code_scanner_rounded),
+                  _headerDivider(),
+                  _headerStat('$totalUsers', 'Acteurs', Icons.people_alt_rounded),
+                  _headerDivider(),
+                  _headerStat('${f2['verified'] ?? 0}/${f2['total'] ?? 0}', 'Points', Icons.location_city_rounded),
+                  _headerDivider(),
+                  _headerStat(
+                    '${_assignments.where((a) => a['status'] == 'pending' || a['status'] == 'in_progress').length}',
+                    'Missions',
+                    Icons.route_rounded,
+                  ),
+                ],
+              ),
+            ],
           ),
-        ]),
-        const SizedBox(height: 14),
-        // ── Mini KPI inline ─────────────────────────────────────────
-        Row(children: [
-          _headerStat('${f1['active'] ?? 0}', 'Consignes', Icons.rule_rounded),
-          _headerDivider(),
-          _headerStat('${f2['verified'] ?? 0}/${f2['total'] ?? 0}', 'Points', Icons.location_city_rounded),
-          _headerDivider(),
-          _headerStat('${f3['total'] ?? 0}', 'Acteurs', Icons.groups_rounded),
-          _headerDivider(),
-          _headerStat('${_assignments.where((a) => a['status'] == 'pending' || a['status'] == 'in_progress').length}', 'Missions', Icons.route_rounded),
-        ]),
-      ]),
-    ).animate().fadeIn(duration: 300.ms);
+        ).animate().fadeIn(duration: 300.ms);
+      },
+    );
   }
 
   Widget _headerStat(String value, String label, IconData icon) {
     return Expanded(
-      child: Column(children: [
-        Icon(icon, color: Colors.white54, size: 14),
-        const SizedBox(height: 2),
-            if (alert) ...[
-              const Spacer(),
-              Container(width: 8, height: 8, decoration: const BoxDecoration(color: Colors.red, shape: BoxShape.circle)),
-            ],
-          ]),
-          const SizedBox(height: 8),
-          Text(value, style: GoogleFonts.outfit(fontSize: 17, fontWeight: FontWeight.w900, color: color)),
-          Text(label, style: GoogleFonts.outfit(fontSize: 9, fontWeight: FontWeight.w700, color: AppTheme.deepSlate), maxLines: 1, overflow: TextOverflow.ellipsis),
-          Text(sub, style: GoogleFonts.outfit(fontSize: 8, color: AppTheme.textMuted), maxLines: 1, overflow: TextOverflow.ellipsis),
-        ]),
+      child: Column(
+        children: [
+          Icon(icon, color: Colors.white.withOpacity(0.6), size: 16),
+          const SizedBox(height: 4),
+          Text(value, style: GoogleFonts.outfit(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w900)),
+          Text(label, style: GoogleFonts.inter(color: Colors.white.withOpacity(0.6), fontSize: 9, fontWeight: FontWeight.w500), maxLines: 1, overflow: TextOverflow.ellipsis),
+        ],
       ),
     );
   }
 
-  // ══════════════════════════════════════════════════════════════════════════
-  // F1 — CONSIGNES LOCALES DE TRI
-  // ══════════════════════════════════════════════════════════════════════════
+  Widget _headerDivider() {
+    return Container(height: 24, width: 1, color: Colors.white.withOpacity(0.15));
+  }
 
+  // ── F1 : UI Consignes ────────────────────────────────────────────────────
   Widget _buildF1Consignes() {
     if (_loadingInstructions && _instructions.isEmpty) {
       return const Center(child: CircularProgressIndicator());
     }
 
-    // Filtrage client-side
     final filtered = _instructions.where((instr) {
       final wasteOk = _f1FilterWasteType.isEmpty ||
-          (instr['waste_type'] ?? '').toString().toLowerCase()
+          (instr['waste_type'] ?? '').toString().toLowerCase().contains(_f1FilterWasteType.toLowerCase());
       final terrOk = _f1FilterTerritory.isEmpty ||
-          (instr['territory'] ?? '').toString().toLowerCase()
-              .contains(_f1FilterTerritory.toLowerCase());
+          (instr['territory'] ?? '').toString().toLowerCase().contains(_f1FilterTerritory.toLowerCase());
       final activeOk = _f1FilterActive == null || instr['is_active'] == _f1FilterActive;
       return wasteOk && terrOk && activeOk;
     }).toList();
 
     return RefreshIndicator(
       onRefresh: _loadInstructions,
-      child: Column(children: [
-        // ── Barre de filtres ────────────────────────────────────────────
-        Container(
-          color: Colors.grey.shade50,
-          padding: const EdgeInsets.fromLTRB(12, 10, 12, 6),
-          child: Column(children: [
-            Row(children: [
-              Expanded(child: TextField(
-                decoration: InputDecoration(
-                  hintText: 'Territoire…',
-                  prefixIcon: const Icon(Icons.location_on_outlined, size: 18),
-                  isDense: true, contentPadding: const EdgeInsets.symmetric(vertical: 8),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-                  filled: true, fillColor: Colors.white,
-                ),
-                onChanged: (v) => setState(() => _f1FilterTerritory = v),
-              )),
-              const SizedBox(width: 8),
-              Expanded(child: TextField(
-                decoration: InputDecoration(
-                  hintText: 'Type de déchet…',
-                  prefixIcon: const Icon(Icons.recycling_rounded, size: 18),
-                  isDense: true, contentPadding: const EdgeInsets.symmetric(vertical: 8),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-                  filled: true, fillColor: Colors.white,
-                ),
-                onChanged: (v) => setState(() => _f1FilterWasteType = v),
-              )),
-            ]),
-            const SizedBox(height: 6),
-            Row(children: [
-              Text('Statut : ', style: GoogleFonts.outfit(fontSize: 12, color: AppTheme.textMuted)),
-              ...[null, true, false].map((v) {
-                final label = v == null ? 'Tous' : (v ? 'Actives' : 'Inactives');
-                final selected = _f1FilterActive == v;
-                return Padding(
-                  padding: const EdgeInsets.only(right: 6),
-                  child: GestureDetector(
-                    onTap: () => setState(() => _f1FilterActive = v),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: selected ? const Color(0xFF6C3EB8) : Colors.grey.shade200,
-                        borderRadius: BorderRadius.circular(16),
+      child: Column(
+        children: [
+          Container(
+            color: Colors.grey.shade50,
+            padding: const EdgeInsets.fromLTRB(12, 10, 12, 6),
+            child: Column(
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: DropdownButtonFormField<String>(
+                        value: _f1FilterWasteType.isEmpty ? null : _f1FilterWasteType,
+                        isExpanded: true,
+                        decoration: InputDecoration(
+                          hintText: 'Déchet...',
+                          prefixIcon: const Icon(Icons.recycling_rounded, size: 20),
+                          isDense: true,
+                          contentPadding: const EdgeInsets.symmetric(vertical: 8),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                          filled: true,
+                          fillColor: Colors.white,
+                        ),
+                        selectedItemBuilder: (BuildContext context) {
+                          return [
+                            const Text('Tous', style: TextStyle(overflow: TextOverflow.ellipsis)),
+                            ..._wasteTypesList.map((w) => Text(w, style: const TextStyle(overflow: TextOverflow.ellipsis))),
+                          ];
+                        },
+                        items: [
+                          const DropdownMenuItem<String>(value: '', child: Text('Tous les déchets')),
+                          ..._wasteTypesList.map((w) => DropdownMenuItem<String>(value: w, child: Text(w))),
+                        ],
+                        onChanged: (v) => setState(() => _f1FilterWasteType = v ?? ''),
                       ),
-                      child: Text(label, style: GoogleFonts.outfit(
-                        fontSize: 11, fontWeight: FontWeight.w600,
-                        color: selected ? Colors.white : AppTheme.textMuted,
-                      )),
                     ),
-                  ),
-                );
-              }),
-    // Le Column reçoit une hauteur bornée depuis le TabBarView, l'Expanded
-    // consomme l'espace restant pour le RefreshIndicator+ListView.
-    return Column(children: [
-      // â”€â”€ Barre de filtres (fixe, hauteur déterminée) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-      Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 4, offset: const Offset(0, 2))],
-        ),
-        padding: const EdgeInsets.fromLTRB(12, 10, 12, 8),
-        child: Column(mainAxisSize: MainAxisSize.min, children: [
-          // Champs de recherche
-          Row(children: [
-            Expanded(child: _filterField(
-              hint: 'Territoire…',
-              icon: Icons.location_on_outlined,
-              onChanged: (v) => setState(() => _f1FilterTerritory = v),
-            )),
-            const SizedBox(width: 8),
-            Expanded(child: _filterField(
-              hint: 'Type de déchet…',
-              icon: Icons.recycling_rounded,
-              onChanged: (v) => setState(() => _f1FilterWasteType = v),
-            )),
-          ]),
-          const SizedBox(height: 8),
-          // Chips statut
-          Row(children: [
-            Text('Statut :', style: GoogleFonts.outfit(fontSize: 11, color: AppTheme.textMuted, fontWeight: FontWeight.w600)),
-            const SizedBox(width: 8),
-            ...[null, true, false].map((v) {
-              final label = v == null ? 'Tous' : (v ? 'Actives' : 'Inactives');
-              final selected = _f1FilterActive == v;
-              return Padding(
-                padding: const EdgeInsets.only(right: 6),
-                child: GestureDetector(
-                  onTap: () => setState(() => _f1FilterActive = v),
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 200),
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: selected ? const Color(0xFF6C3EB8) : Colors.grey.shade100,
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: selected ? const Color(0xFF6C3EB8) : Colors.grey.shade300),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: _filterTerritoryAutocomplete(
+                        currentValue: _f1FilterTerritory,
+                        onChanged: (v) => setState(() => _f1FilterTerritory = v),
+                      ),
                     ),
-                    child: Text(label, style: GoogleFonts.outfit(
-                      fontSize: 11, fontWeight: FontWeight.w700,
-                      color: selected ? Colors.white : AppTheme.textMuted,
-                    )),
-                  ),
+                  ],
                 ),
-              );
-            }),
-            const Spacer(),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-              decoration: BoxDecoration(color: const Color(0xFF6C3EB8).withOpacity(0.1), borderRadius: BorderRadius.circular(10)),
-              child: Text('${filtered.length}', style: GoogleFonts.outfit(fontSize: 11, fontWeight: FontWeight.w800, color: const Color(0xFF6C3EB8))),
+              ],
             ),
-          ]),
-        ]),
+          ),
+          Expanded(
+            child: filtered.isEmpty
+                ? _emptyState(icon: Icons.rule_folder_rounded, title: 'Aucune consigne', sub: 'Modifiez vos filtres ou créez-en une.')
+                : ListView.builder(
+                    padding: const EdgeInsets.fromLTRB(12, 6, 12, 100),
+                    itemCount: filtered.length,
+                    itemBuilder: (ctx, i) => _instructionCard(filtered[i]),
+                  ),
+          ),
+        ],
       ),
-
-      // â”€â”€ Liste (Expanded + RefreshIndicator = hauteur bornée) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-      Expanded(
-        child: filtered.isEmpty
-          ? _emptyState(
-              icon: _instructions.isEmpty ? Icons.rule_rounded : Icons.search_off_rounded,
-              title: _instructions.isEmpty ? 'Aucune consigne' : 'Aucun résultat',
-              sub: _instructions.isEmpty
-                  ? 'Créez votre première consigne de tri territoriale.'
-                  : 'Modifiez vos filtres de recherche.',
-              color: const Color(0xFF6C3EB8))
-          : RefreshIndicator(
-              onRefresh: _loadInstructions,
-              color: const Color(0xFF6C3EB8),
-              child: ListView.builder(
-                padding: const EdgeInsets.fromLTRB(14, 10, 14, 100),
-                itemCount: filtered.length,
-                itemBuilder: (ctx, i) => _instructionCard(filtered[i]),
-              ),
-            ),
-      ),
-    ]);
+    );
   }
 
-  /// Champ de filtre réutilisable (InputDecoration premium)
-  Widget _filterField({required String hint, required IconData icon, required ValueChanged<String> onChanged}) {
-    return TextField(
-      onChanged: onChanged,
-      style: GoogleFonts.outfit(fontSize: 13),
-      decoration: InputDecoration(
-        hintText: hint,
-        hintStyle: GoogleFonts.outfit(color: Colors.grey.shade400, fontSize: 13),
-        prefixIcon: Icon(icon, size: 16, color: Colors.grey.shade400),
-        isDense: true,
-        contentPadding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
-        filled: true,
-        fillColor: Colors.grey.shade50,
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade200)),
-        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade200)),
-        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF6C3EB8), width: 1.5)),
-      ),
+  Widget _filterTerritoryAutocomplete({required String currentValue, required ValueChanged<String> onChanged}) {
+    return Autocomplete<String>(
+      initialValue: TextEditingValue(text: currentValue),
+      optionsBuilder: (TextEditingValue textEditingValue) {
+        if (textEditingValue.text.isEmpty) {
+          return const Iterable<String>.empty();
+        }
+        return _territoryCitiesMap.keys.where((String option) {
+          return option.toLowerCase().contains(textEditingValue.text.toLowerCase());
+        });
+      },
+      onSelected: (String selection) {
+        onChanged(selection);
+      },
+      fieldViewBuilder: (context, textEditingController, focusNode, onFieldSubmitted) {
+        return TextField(
+          controller: textEditingController,
+          focusNode: focusNode,
+          decoration: InputDecoration(
+            hintText: 'Territoire...',
+            prefixIcon: const Icon(Icons.map_outlined, size: 20),
+            isDense: true,
+            contentPadding: const EdgeInsets.symmetric(vertical: 8),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+            filled: true,
+            fillColor: Colors.white,
+          ),
+        );
+      },
     );
   }
 
   Widget _instructionCard(Map<String, dynamic> instr) {
-    final isActive    = instr['is_active'] == true;
-    const accentColor = Color(0xFF6C3EB8);
-    final wasteType   = instr['waste_type'] as String? ?? '';
-    final wasteIcon   = _wasteIcon(wasteType);
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(color: Colors.blue.withOpacity(0.1), borderRadius: BorderRadius.circular(20)),
-                child: Text(instr['city'], style: GoogleFonts.outfit(fontSize: 10, color: Colors.blue.shade700)),
-              ),
-            const Spacer(),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-              decoration: BoxDecoration(
-                color: isActive ? Colors.green.withOpacity(0.1) : Colors.grey.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Text(
-                isActive ? 'Active' : 'Inactive',
-                style: GoogleFonts.outfit(fontSize: 10, color: isActive ? Colors.green.shade700 : Colors.grey),
-              ),
-            ),
-          ]),
-        ),
-        // Corps
-        Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(instr['title'] ?? '', style: GoogleFonts.outfit(fontSize: 15, fontWeight: FontWeight.w800, color: AppTheme.deepSlate)),
-            const SizedBox(height: 6),
-            Text(instr['instruction'] ?? '', style: GoogleFonts.outfit(fontSize: 13, color: AppTheme.textMuted, height: 1.5)),
-            const SizedBox(height: 10),
-            Row(children: [
-              const Icon(Icons.map_outlined, size: 13, color: AppTheme.textMuted),
-              const SizedBox(width: 4),
-              Text(instr['territory'] ?? '', style: GoogleFonts.outfit(fontSize: 12, color: AppTheme.textMuted)),
-              const Spacer(),
-              IconButton(
-                icon: const Icon(Icons.edit_outlined, size: 18),
-                color: color,
-                onPressed: () => _showEditInstructionDialog(instr),
-                constraints: const BoxConstraints(),
-                padding: EdgeInsets.zero,
-              ),
-              const SizedBox(width: 12),
-              IconButton(
-                icon: const Icon(Icons.delete_outline_rounded, size: 18),
-                color: Colors.red.shade400,
-                onPressed: () => _confirmDeleteInstruction(instr['id']),
-                constraints: const BoxConstraints(),
-                padding: EdgeInsets.zero,
-              ),
-            ]),
-          ]),
-        ),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Text(wasteType, style: GoogleFonts.outfit(fontSize: 10, fontWeight: FontWeight.w800, color: accentColor)),
-                  ),
-                  if ((instr['city'] as String? ?? '').isNotEmpty) ...[\
-                    const SizedBox(width: 6),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                      decoration: BoxDecoration(color: Colors.blue.withOpacity(0.08), borderRadius: BorderRadius.circular(20)),
-                      child: Text(instr['city'], style: GoogleFonts.outfit(fontSize: 10, color: Colors.blue.shade700)),
-                    ),
-    }
-    final filtered = _f2Search.isEmpty
-        ? _points
-        : _points.where((p) {
-            final name    = (p['name'] ?? '').toString().toLowerCase();
-            final address = (p['address'] ?? '').toString().toLowerCase();
-            final q = _f2Search.toLowerCase();
-            return name.contains(q) || address.contains(q);
-          }).toList();
-
-    return RefreshIndicator(
-      onRefresh: _loadPoints,
-      child: CustomScrollView(
-        slivers: [
-          SliverToBoxAdapter(child: _buildPointsOverview()),
-  Widget _buildPointsOverview() {
-    if (_pointsOverview == null) return const SizedBox();
-    final ov = _pointsOverview!;
-    final quality = ov['data_quality'] as Map? ?? {};
-    return Padding(
-      );
-    }
-    return null;
-  }
-
-  // ══════════════════════════════════════════════════════════════════════════
-  // DIALOGS
-  // ══════════════════════════════════════════════════════════════════════════
-
-  Future<void> _showAddInstructionDialog() async {
-                      const SizedBox(width: 6),
-                      Text('Notifier le groupe', style: GoogleFonts.outfit(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w700)),
-                    ]),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 8),
-              GestureDetector(
-                onTap: () => _confirmDeleteGroup(group['id'] as int, group['name'] as String),
-                child: Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(color: Colors.red.withOpacity(0.08), borderRadius: BorderRadius.circular(10)),
-                  child: const Icon(Icons.delete_outline_rounded, color: Colors.red, size: 18),
-                ),
-              ),
-            ]),
-          ]),
-        ),
-      ]),
-    ).animate().fadeIn().slideY(begin: 0.05);
-  }
-
-  Widget _buildActorsOverview() {
-    if (_actorsOverview == null) return const SizedBox();
-    if (t.contains('plast')) return 'â™»ï¸';
-    if (t.contains('verre') || t.contains('glass')) return 'ðŸ«™';
-    if (t.contains('papier') || t.contains('carton')) return 'ðŸ“¦';
-    if (t.contains('metal') || t.contains('m\u00e9tal')) return 'ðŸ”©';
-    if (t.contains('organi') || t.contains('alim')) return 'ðŸŒ±';
-    if (t.contains('électro') || t.contains('electro')) return 'ðŸ”Œ';
-    if (t.contains('dangereux') || t.contains('chimique')) return 'âš ï¸';
-    return 'ðŸ—‘ï¸';
-  }
-
-  /// Bouton icône compact pour les actions de card
-  Widget _iconBtn(IconData icon, Color color, VoidCallback onTap) {
-    return IconButton(
-      icon: Icon(icon, size: 18, color: color),
-      onPressed: onTap,
-      constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
-      padding: const EdgeInsets.all(6),
-      splashRadius: 18,
-    );
-  }
-
-    return RefreshIndicator(
-      onRefresh: () async { await _loadActors(); await _loadCustomGroups(); },
-      child: CustomScrollView(
-        slivers: [
-          SliverToBoxAdapter(child: _buildActorsOverview()),
-          // ── Toggle Acteurs / Groupes ────────────────────────
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
-              child: Row(children: [
-                Expanded(
-                  child: GestureDetector(
-                    onTap: () => setState(() => _showGroups = false),
-                    child: Container(
-            return name.contains(q) || address.contains(q);
-          }).toList();
-
-    return RefreshIndicator(
-      onRefresh: _loadPoints,
-      child: CustomScrollView(
-        slivers: [
-          SliverToBoxAdapter(child: _buildPointsOverview()),
-          // â”€â”€ Barre de recherche améliorée â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(14, 10, 14, 4),
-              child: Row(children: [
-                Expanded(child: _filterField(
-                  hint: 'Rechercher un point de collecte…',
-                  icon: Icons.search_rounded,
-                  onChanged: (v) => setState(() => _f2Search = v),
-                )),
-                const SizedBox(width: 8),
+    final active = instr['is_active'] == true;
+    final waste = instr['waste_type'] ?? 'Autre';
+    return Card(
+      margin: const EdgeInsets.only(bottom: 10),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF2980B9).withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: const Color(0xFF2980B9).withOpacity(0.3)),
-                  ),
-                  child: Text('${filtered.length}/${_points.length}',
-                    style: GoogleFonts.outfit(fontSize: 12, fontWeight: FontWeight.w800, color: const Color(0xFF2980B9))),
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(color: const Color(0xFF6C3EB8).withOpacity(0.08), borderRadius: BorderRadius.circular(8)),
+                  child: Text(waste, style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 10, color: const Color(0xFF6C3EB8))),
                 ),
-              ]),
-            ),
-  }
-
-  Widget _actorCard(Map<String, dynamic> actor) {
-    final role = actor['role'] as String? ?? '';
-    Color roleColor;
-    IconData roleIcon;
-    switch (role) {
-      case 'pointManager': roleColor = const Color(0xFF2980B9); roleIcon = Icons.manage_accounts_rounded; break;
-      case 'collector':    roleColor = const Color(0xFF27AE60); roleIcon = Icons.local_shipping_rounded;  break;
-      case 'educator':     roleColor = const Color(0xFFE67E22); roleIcon = Icons.school_rounded;           break;
-      default:             roleColor = AppTheme.textMuted;      roleIcon = Icons.person_rounded;
-    }
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), boxShadow: AppTheme.tightShadow),
-      child: Row(children: [
-        Container(
-          width: 44, height: 44,
-          decoration: BoxDecoration(color: roleColor.withOpacity(0.1), borderRadius: BorderRadius.circular(12)),
-          child: Icon(roleIcon, color: roleColor, size: 22),
-        ),
-        const SizedBox(width: 12),
-        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(actor['full_name'] ?? '—', style: GoogleFonts.outfit(fontSize: 14, fontWeight: FontWeight.w800, color: AppTheme.deepSlate)),
-          Text(actor['email'] ?? '', style: GoogleFonts.outfit(fontSize: 11, color: AppTheme.textMuted)),
-        ])),
-        // Badge rôle
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-          decoration: BoxDecoration(color: roleColor.withOpacity(0.1), borderRadius: BorderRadius.circular(20)),
-          child: Text(_roleLabel(role), style: GoogleFonts.outfit(fontSize: 10, color: roleColor, fontWeight: FontWeight.w700)),
-        ),
-        const SizedBox(width: 6),
-        // Bouton message individuel
-  Widget _buildF3Acteurs() {
-    if (_loadingActors && _actors.isEmpty) {
-      return const Center(child: CircularProgressIndicator());
-    }
-
-    // Filtrage par rôle
-    final filteredActors = _f3FilterRole.isEmpty
-        ? _actors
-        : _actors.where((a) => (a['role'] ?? '') == _f3FilterRole).toList();
-
-    return RefreshIndicator(
-      onRefresh: () async { await _loadActors(); await _loadCustomGroups(); },
-      child: CustomScrollView(
-        slivers: [
-          SliverToBoxAdapter(child: _buildActorsOverview()),
-          // ── Filtre par rôle ─────────────────────────────────────────
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
-              child: SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Row(children: [
-                  ...[('', 'Tous'), ('pointManager', '🏭 Gestionnaires'),
-                      ('collector', '🚛 Collecteurs'), ('educator', '📚 Éducateurs')]
-                    .map((e) => Padding(
-                      padding: const EdgeInsets.only(right: 6),
-                      child: GestureDetector(
-                        onTap: () => setState(() => _f3FilterRole = e.$1),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                          decoration: BoxDecoration(
-                            color: _f3FilterRole == e.$1 ? const Color(0xFF6C3EB8) : Colors.grey.shade100,
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: Text(e.$2, style: GoogleFonts.outfit(
-                            fontSize: 12, fontWeight: FontWeight.w600,
-                            color: _f3FilterRole == e.$1 ? Colors.white : AppTheme.textMuted,
-                          )),
-                        ),
-                      ),
-  Widget _pointCard(Map<String, dynamic> p) {
-    final status = p['status'] as String? ?? 'disponible';
-    final isVerified = p['is_verified'] == true;
-    final load = (p['load_level'] as num?)?.toDouble() ?? 0.0;
-
-    Color statusColor;
-    switch (status) {
-      case 'saturÃ©': case 'sature': statusColor = Colors.red; break;
-      case 'maintenance': statusColor = Colors.orange; break;
-      default: statusColor = Colors.green;
-    }
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: AppTheme.tightShadow,
-      ),
-      child: Row(children: [
-        Container(
-          width: 44, height: 44,
-          decoration: BoxDecoration(
-            color: statusColor.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Icon(Icons.location_on_rounded, color: statusColor, size: 22),
-        ),
-        const SizedBox(width: 12),
-        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(p['name'] ?? '', style: GoogleFonts.outfit(fontSize: 14, fontWeight: FontWeight.w800, color: AppTheme.deepSlate)),
-          Text(p['address'] ?? '', style: GoogleFonts.outfit(fontSize: 11, color: AppTheme.textMuted)),
-          const SizedBox(height: 4),
-          Row(children: [
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-              decoration: BoxDecoration(color: statusColor.withOpacity(0.1), borderRadius: BorderRadius.circular(10)),
-              child: Text(status, style: GoogleFonts.outfit(fontSize: 10, color: statusColor, fontWeight: FontWeight.w700)),
-            ),
-            const SizedBox(width: 6),
-            SizedBox(
-              width: 60,
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(4),
-                child: LinearProgressIndicator(
-                  value: load,
-                  minHeight: 6,
-                  color: load > 0.8 ? Colors.red : (load > 0.5 ? Colors.orange : Colors.green),
-                  backgroundColor: Colors.grey.shade100,
-                ),
-              ),
-            ),
-            const SizedBox(width: 4),
-            Text('${(load * 100).toInt()}%', style: GoogleFonts.outfit(fontSize: 10, color: AppTheme.textMuted)),
-          ]),
-        ])),
-        // VÃ©rification toggle
-        GestureDetector(
-          onTap: () => _verifyPoint(p['id'] as int, !isVerified),
-          child: Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: isVerified ? Colors.green.withOpacity(0.1) : Colors.grey.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Icon(
-              isVerified ? Icons.verified_rounded : Icons.verified_outlined,
-              color: isVerified ? Colors.green : Colors.grey,
-              size: 20,
-            ),
-          ),
-        ),
-      ]),
-    ).animate().fadeIn().slideY(begin: 0.05);
-  }
-
-  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-  // F3 â€” COORDINATION DES ACTEURS LOCAUX
-  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-
-  Widget _buildF3Acteurs() {
-    if (_loadingActors && _actors.isEmpty) {
-      return const Center(child: CircularProgressIndicator());
-          icon: Icons.group_add_rounded,
-          title: 'Aucun groupe créé',
-          sub: 'Appuyez sur + pour créer un groupe d\'acteurs sur-mesure.',
-          color: const Color(0xFF6C3EB8),
-        ),
-      );
-    }
-    return SliverList(
-      delegate: SliverChildBuilderDelegate(
-        (ctx, i) => _customGroupCard(_customGroups[i]),
-        childCount: _customGroups.length,
-      ),
-    );
-  }
-
-  Widget _customGroupCard(Map<String, dynamic> group) {
-    final memberCount = (group['member_ids'] as List?)?.length ?? 0;
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        boxShadow: AppTheme.tightShadow,
-        border: Border.all(color: const Color(0xFF6C3EB8).withOpacity(0.12)),
-      ),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        // En-tête
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          decoration: BoxDecoration(
-        label: Text('Nouvelle consigne', style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.w700)),
-        onPressed: _showAddInstructionDialog,
-      );
-    }
-    if (_tabCtrl.index == 2 && _showGroups) {
-      return FloatingActionButton.extended(
-        backgroundColor: const Color(0xFF6C3EB8),
-        icon: const Icon(Icons.group_add_rounded, color: Colors.white),
-        label: Text('Nouveau groupe', style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.w700)),
-        onPressed: _showCreateGroupDialog,
-      );
-    }
-    return null;
-  }
-    // Filtrage par rôle
-    final filteredActors = _f3FilterRole.isEmpty
-        ? _actors
-        : _actors.where((a) => (a['role'] ?? '') == _f3FilterRole).toList();
-
-    return RefreshIndicator(
-      onRefresh: () async { await _loadActors(); await _loadCustomGroups(); },
-      child: CustomScrollView(
-        slivers: [
-          SliverToBoxAdapter(child: _buildActorsOverview()),
-          // â”€â”€ Filtre par rôle â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
-              child: SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Row(children: [
-                   ...[('', 'Tous'), ('pointManager', '🏢 Gestionnaires'),
-                       ('collector', '🚛 Collecteurs'), ('educator', '📚 Éducateurs')]
-                    .map((e) => Padding(
-                      padding: const EdgeInsets.only(right: 6),
-                      child: GestureDetector(
-                        onTap: () => setState(() => _f3FilterRole = e.$1),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                          decoration: BoxDecoration(
-                            color: _f3FilterRole == e.$1 ? const Color(0xFF6C3EB8) : Colors.grey.shade100,
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: Text(e.$2, style: GoogleFonts.outfit(
-                            fontSize: 12, fontWeight: FontWeight.w600,
-                            color: _f3FilterRole == e.$1 ? Colors.white : AppTheme.textMuted,
-                          )),
-                        ),
-                      ),
-                    )),
-                ]),
-              ),
-            ),
-          ),
-          // â”€â”€ Toggle Acteurs / Groupes â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
-              child: Row(children: [
-                Expanded(
-                  child: GestureDetector(
-                    onTap: () => setState(() => _showGroups = false),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(vertical: 10),
-                      decoration: BoxDecoration(
-                        color: !_showGroups ? const Color(0xFF6C3EB8) : Colors.grey.shade100,
-                        borderRadius: const BorderRadius.only(topLeft: Radius.circular(12), bottomLeft: Radius.circular(12)),
-                      ),
-                      child: Center(child: Text('Acteurs (${filteredActors.length})', style: GoogleFonts.outfit(
-                        fontSize: 12, fontWeight: FontWeight.w700,
-                        color: !_showGroups ? Colors.white : AppTheme.textMuted,
-                      ))),
-                    ),
-                  ),
-                ),
-                Expanded(
-                  child: GestureDetector(
-                    onTap: () => setState(() => _showGroups = true),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(vertical: 10),
-                      decoration: BoxDecoration(
-                        color: _showGroups ? const Color(0xFF6C3EB8) : Colors.grey.shade100,
-                        borderRadius: const BorderRadius.only(topRight: Radius.circular(12), bottomRight: Radius.circular(12)),
-                      ),
-                      child: Center(child: Row(mainAxisSize: MainAxisSize.min, children: [
-                        Text('Mes groupes', style: GoogleFonts.outfit(
-                          fontSize: 12, fontWeight: FontWeight.w700,
-                          color: _showGroups ? Colors.white : AppTheme.textMuted,
-                        )),
-                        if (_customGroups.isNotEmpty) ...[
-                          const SizedBox(width: 4),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
-                            decoration: const BoxDecoration(color: Colors.white24, shape: BoxShape.circle),
-                            child: Text('${_customGroups.length}', style: GoogleFonts.outfit(fontSize: 9, color: _showGroups ? Colors.white : AppTheme.textMuted, fontWeight: FontWeight.w800)),
-                          ),
-                        ],
-                      ])),
-                    ),
-                  ),
-                    decoration: InputDecoration(
-                      labelText: 'Nom du groupe',
-              ]),
-            ),
-          ),
-          // â”€â”€ Liste acteurs OU groupes personnalisés â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-          if (!_showGroups)
-            SliverPadding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 10  Widget _actorCard(Map<String, dynamic> actor) {
-    final role     = actor['role'] as String? ?? '';
-    final name     = actor['full_name'] as String? ?? '—';
-    final email    = actor['email'] as String? ?? '';
-    final joinedAt = actor['created_at'] as String?;
-
-    Color roleColor;
-    IconData roleIcon;
-    String roleEmoji;
-    switch (role) {
-      case 'pointManager':
-        roleColor = const Color(0xFF2980B9);
-        roleIcon  = Icons.manage_accounts_rounded;
-        roleEmoji = '🏢';
-        break;
-      case 'collector':
-        roleColor = const Color(0xFF27AE60);
-        roleIcon  = Icons.local_shipping_rounded;
-        roleEmoji = '🚛';
-        break;
-      case 'educator':
-        roleColor = const Color(0xFFE67E22);
-                        itemCount: _actors.length,
-                        itemBuilder: (context, idx) {
-                          final actor = _actors[idx];
-                          final id = actor['id'] as int;
-                          final name = actor['full_name'] ?? 'Acteur';
-                          final role = actor['role'] ?? '';
-                          final isChecked = selectedActorIds.contains(id);
-                          return CheckboxListTile(
-                            value: isChecked,
-                            title: Text(name, style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w600)),
-                            subtitle: Text(role.toString().toUpperCase(), style: GoogleFonts.inter(fontSize: 10, color: Colors.grey)),
-                            activeColor: const Color(0xFF6C3EB8),
-                            onChanged: (val) {
-                              setDlgState(() {
-                                if (val == true) {
-                                  selectedActorIds.add(id);
-                                } else {
-                                  selectedActorIds.remove(id);
-                                }
-                              });
-                            },
-                          );
-                        },
-                      ),
-                    ),
-                ],
-              ),
-            ),
-          ),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Annuler')),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF6C3EB8),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              ),
-              onPressed: () async {
-                final name = nameCtrl.text.trim();
-                if (name.isEmpty) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Le nom du groupe est obligatoire'), backgroundColor: Colors.red),
-                  );
-                  return;
-                }
-                final messenger = ScaffoldMessenger.of(context);
-                final jwt = await _jwt();
-                if (jwt == null) return;
-                final res = await http.post(
-                  Uri.parse('${AuthService.baseUrl}/intercommunality/custom-groups'),
-                  headers: {
-                    ..._headers(jwt),
-                    'Content-Type': 'application/json',
+                Switch.adaptive(
+                  value: active,
+                  activeColor: const Color(0xFF6C3EB8),
+                  onChanged: (v) async {
+                    final jwt = await _jwt();
+                    if (jwt == null) return;
+                    await http.put(
+                      Uri.parse('${AuthService.baseUrl}/intercommunality/instructions/${instr['id']}'),
+                      headers: _headers(jwt),
+                      body: json.encode({'is_active': v}),
+                    );
+                    _loadInstructions();
                   },
-                  body: json.encode({
-                    'name': name,
-                    'description': descCtrl.text.trim(),
-                    'member_ids': selectedActorIds.toList(),
-                  }),
-                );
-                if (res.statusCode == 201) {
-                  _loadCustomGroups();
-                  if (ctx.mounted) Navigator.pop(ctx);
-                  messenger.showSnackBar(
-                    const SnackBar(content: Text('✅ Groupe créé avec succès'), backgroundColor: Colors.green),
-                  );
-                } else {
-                  messenger.showSnackBar(
-                    const SnackBar(content: Text('❌ Erreur lors de la création du groupe'), backgroundColor: Colors.red),
-                  );
-                }
-              },
-              child: Text('Créer', style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold)),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(instr['title'] ?? 'Consigne', style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 14)),
+            const SizedBox(height: 4),
+            Text(instr['instruction'] ?? '', style: GoogleFonts.inter(fontSize: 12, color: Colors.grey.shade700)),
+            const SizedBox(height: 8),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text('${instr['city'] ?? ''} · ${instr['territory'] ?? ''}', style: GoogleFonts.inter(fontSize: 10, color: Colors.grey)),
+                Row(
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.edit_outlined, size: 18, color: Colors.blue),
+                      onPressed: () => _showEditInstructionDialog(instr),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.delete_outline, size: 18, color: Colors.red),
+                      onPressed: () => _deleteInstruction(instr['id']),
+                    ),
+                  ],
+                ),
+              ],
             ),
           ],
         ),
@@ -1547,88 +939,267 @@ Firebase RTDB
     );
   }
 
+  // ── F2 : UI Points ───────────────────────────────────────────────────────
+  Widget _buildF2Points() {
+    if (_loadingPoints && _points.isEmpty) {
+      return const Center(child: CircularProgressIndicator());
+    }
 
-  Future<void> _showNotifyActorsDialog() async {
-    final selectedRoles = <String>{'pointManager', 'collector', 'educator'};
-    final titleCtrl = TextEditingController();
-    final msgCtrl = TextEditingController();
+    final filtered = _points.where((p) {
+      final query = _f2Search.toLowerCase();
+      final name = (p['name'] ?? '').toString().toLowerCase();
+      final addr = (p['address'] ?? '').toString().toLowerCase();
+      return name.contains(query) || addr.contains(query);
+    }).toList();
 
-    await showDialog(
-      context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setDlg) => AlertDialog(
-          title: Text('Notifier les acteurs', style: GoogleFonts.outfit(fontWeight: FontWeight.w900)),
-          content: SingleChildScrollView(
-            child: Column(mainAxisSize: MainAxisSize.min, children: [
-              // Rôles cibles
-              Wrap(spacing: 8, children: [
-                for (final role in ['pointManager', 'collector', 'educator'])
-                  FilterChip(
-                    label: Text(_roleLabel(role), style: GoogleFonts.outfit(fontSize: 12)),
-                    selected: selectedRoles.contains(role),
-                    onSelected: (v) => setDlg(() => v ? selectedRoles.add(role) : selectedRoles.remove(role)),
-                    selectedColor: const Color(0xFF6C3EB8).withOpacity(0.15),
-                    checkmarkColor: const Color(0xFF6C3EB8),
-                  ),
-              ]),
-              const SizedBox(height: 12),
-                  ),
-                ),
-              ]),
-            ]),
+    const primaryColor = Color(0xFF1A6B3C);
+
+    return RefreshIndicator(
+      onRefresh: _loadPoints,
+      color: primaryColor,
+      child: Column(
+        children: [
+          Container(
+            color: Colors.white,
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+            child: TextField(
+              decoration: InputDecoration(
+                hintText: 'Rechercher un point de collecte…',
+                prefixIcon: const Icon(Icons.search, size: 20),
+                isDense: true,
+                contentPadding: const EdgeInsets.symmetric(vertical: 10),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                filled: true,
+                fillColor: Colors.grey.shade50,
+              ),
+              onChanged: (v) => setState(() => _f2Search = v),
+            ),
           ),
-        ]),
+          Expanded(
+            child: filtered.isEmpty
+                ? _emptyState(icon: Icons.location_off_rounded, title: 'Aucun point trouvé', sub: 'Essayez un autre mot clé.', color: primaryColor)
+                : ListView.builder(
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
+                    itemCount: filtered.length,
+                    itemBuilder: (ctx, i) {
+                      final p = filtered[i];
+                      final isVerified = p['is_verified'] == true;
+                      return Card(
+                        margin: const EdgeInsets.only(bottom: 12),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                        elevation: 1,
+                        child: Padding(
+                          padding: const EdgeInsets.all(14),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(10),
+                                decoration: BoxDecoration(color: primaryColor.withOpacity(0.08), borderRadius: BorderRadius.circular(12)),
+                                child: const Icon(Icons.location_on, color: primaryColor, size: 22),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(p['name'] ?? 'Point de collecte', style: GoogleFonts.outfit(fontWeight: FontWeight.w800, fontSize: 14)),
+                                    const SizedBox(height: 4),
+                                    Row(
+                                      children: [
+                                        const Icon(Icons.pin_drop_outlined, size: 12, color: Colors.grey),
+                                        const SizedBox(width: 4),
+                                        Expanded(
+                                          child: Text(
+                                            p['address'] ?? 'Sans adresse',
+                                            style: GoogleFonts.inter(fontSize: 11, color: Colors.grey.shade600),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 6),
+                                    if (p['waste_type'] != null)
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                        decoration: BoxDecoration(color: Colors.grey.shade100, borderRadius: BorderRadius.circular(6)),
+                                        child: Text(
+                                          p['waste_type'],
+                                          style: GoogleFonts.inter(fontSize: 10, color: Colors.grey.shade700, fontWeight: FontWeight.bold),
+                                        ),
+                                      ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.end,
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                    decoration: BoxDecoration(
+                                      color: isVerified ? Colors.green.shade50 : Colors.amber.shade50,
+                                      borderRadius: BorderRadius.circular(12),
+                                      border: Border.all(color: isVerified ? Colors.green.shade200 : Colors.amber.shade200),
+                                    ),
+                                    child: Text(
+                                      isVerified ? 'Vérifié' : 'Non vérifié',
+                                      style: GoogleFonts.inter(fontSize: 9, fontWeight: FontWeight.bold, color: isVerified ? Colors.green.shade700 : Colors.amber.shade800),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 12),
+                                  OutlinedButton(
+                                    style: OutlinedButton.styleFrom(
+                                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                      minimumSize: Size.zero,
+                                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                      side: BorderSide(color: isVerified ? Colors.amber.shade600 : Colors.green.shade600),
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                    ),
+                                    onPressed: () => _verifyPoint(p['id'], !isVerified),
+                                    child: Text(
+                                      isVerified ? 'Révoquer' : 'Vérifier',
+                                      style: GoogleFonts.outfit(fontSize: 10, fontWeight: FontWeight.bold, color: isVerified ? Colors.amber.shade800 : Colors.green.shade700),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+          ),
+        ],
       ),
-    ).animate().fadeIn(duration: 250.ms).slideX(begin: 0.04);
+    );
   }
 
-lor: Color(0xFF6C3EB8), size: 18),
-            const SizedBox(width: 8),
-            Expanded(child: Text(group['name'] ?? '', style: GoogleFonts.outfit(fontSize: 14, fontWeight: FontWeight.w800, color: const Color(0xFF6C3EB8)))),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-              decoration: BoxDecoration(color: const Color(0xFF6C3EB8).withOpacity(0.12), borderRadius: BorderRadius.circular(20)),
-              child: Text('$memberCount membre${memberCount > 1 ? 's' : ''}', style: GoogleFonts.outfit(fontSize: 10, color: const Color(0xFF6C3EB8), fontWeight: FontWeight.w700)),
-            ),
-          ]),
-        ),
-        // Corps
-        Padding(
-          padding: const EdgeInsets.all(14),
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            if (group['description'] != null && (group['description'] as String).isNotEmpty)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 10),
-                child: Text(group['description'], style: GoogleFonts.outfit(fontSize: 12, color: AppTheme.textMuted)),
-              ),
-            Row(children: [
-              Expanded(
-                child: GestureDetector(
-                  onTap: () => _notifyCustomGroup(group['id'] as int, group['name'] as String),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(vertical: 10),
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(colors: [Color(0xFF6C3EB8), Color(0xFF9B59B6)]),
-                      borderRadius: BorderRadius.circular(10),
+  // ── F3 : UI Acteurs ──────────────────────────────────────────────────────
+  Widget _buildF3Acteurs() {
+    if (_loadingActors && _actors.isEmpty) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    final filteredActors = _f3FilterRole.isEmpty
+        ? _actors
+        : _actors.where((a) => (a['role'] ?? '') == _f3FilterRole).toList();
+
+    return RefreshIndicator(
+      onRefresh: () async {
+        await _loadActors();
+        await _loadCustomGroups();
+      },
+      child: CustomScrollView(
+        slivers: [
+          SliverToBoxAdapter(
+            child: Container(
+              color: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: DropdownButtonFormField<String>(
+                      value: _f3FilterRole.isEmpty ? null : _f3FilterRole,
+                      decoration: InputDecoration(
+                        hintText: 'Rôle...',
+                        prefixIcon: const Icon(Icons.filter_list_rounded, size: 20),
+                        isDense: true,
+                        contentPadding: const EdgeInsets.symmetric(vertical: 8),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      items: const [
+                        DropdownMenuItem<String>(value: '', child: Text('Tous les rôles')),
+                        DropdownMenuItem<String>(value: 'pointManager', child: Text('Gestionnaires')),
+                        DropdownMenuItem<String>(value: 'collector', child: Text('Collecteurs')),
+                        DropdownMenuItem<String>(value: 'educator', child: Text('Éducateurs')),
+                      ],
+                      onChanged: (v) => setState(() => _f3FilterRole = v ?? ''),
                     ),
-                    child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                      const Icon(Icons.send_rounded, color: Colors.white, size: 14),
-                      const SizedBox(width: 6),
-                      Text('Notifier le groupe', style: GoogleFonts.outfit(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w700)),
-                    ]),
                   ),
-                ),
-        const SizedBox(width: 6),
-        // Bouton message individuel
-        GestureDetector(
-          onTap: () => _notifyIndividualActor(actor),
-          child: Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(color: const Color(0xFF6C3EB8).withOpacity(0.08), borderRadius: BorderRadius.circular(10)),
-            child: const Icon(Icons.send_rounded, color: Color(0xFF6C3EB8), size: 16),
+                  const SizedBox(width: 8),
+                  TextButton.icon(
+                    onPressed: () => setState(() => _showGroups = !_showGroups),
+                    icon: Icon(_showGroups ? Icons.person_outline_rounded : Icons.group_work_outlined),
+                    label: Text(_showGroups ? 'Acteurs' : 'Groupes', style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
+                  ),
+                  const SizedBox(width: 8),
+                  IconButton(
+                    onPressed: _showNotifyActorsDialog,
+                    icon: const Icon(Icons.notifications_active_outlined, color: Color(0xFF6C3EB8)),
+                    tooltip: 'Notifier les acteurs',
+                  ),
+                ],
+              ),
+            ),
           ),
-        ),
-      ]),
+          if (_showGroups)
+            _customGroups.isEmpty
+                ? SliverFillRemaining(child: _emptyState(icon: Icons.groups_rounded, title: 'Aucun groupe', sub: 'Créez-en un avec le bouton FAB.'))
+                : SliverPadding(
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
+                    sliver: SliverList(
+                      delegate: SliverChildBuilderDelegate(
+                        (ctx, i) => _customGroupCard(_customGroups[i]),
+                        childCount: _customGroups.length,
+                      ),
+                    ),
+                  )
+          else
+            filteredActors.isEmpty
+                ? SliverFillRemaining(child: _emptyState(icon: Icons.person_off_rounded, title: 'Aucun acteur', sub: 'Aucun acteur ne correspond.'))
+                : SliverPadding(
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
+                    sliver: SliverList(
+                      delegate: SliverChildBuilderDelegate(
+                        (ctx, i) => _actorCard(filteredActors[i]),
+                        childCount: filteredActors.length,
+                      ),
+                    ),
+                  ),
+        ],
+      ),
+    );
+  }
+
+  Widget _customGroupCard(Map<String, dynamic> group) {
+    final memberCount = (group['member_ids'] as List?)?.length ?? 0;
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: ExpansionTile(
+        title: Text(group['name'] ?? 'Groupe', style: GoogleFonts.outfit(fontWeight: FontWeight.w800, color: const Color(0xFF6C3EB8))),
+        subtitle: Text('$memberCount membres', style: GoogleFonts.inter(fontSize: 11, color: Colors.grey)),
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (group['description'] != null && group['description'].toString().isNotEmpty) ...[
+                  Text(group['description'], style: GoogleFonts.inter(fontSize: 12, color: Colors.grey.shade700)),
+                  const SizedBox(height: 12),
+                ],
+                ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF6C3EB8),
+                    minimumSize: const Size.fromHeight(40),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  ),
+                  onPressed: () => _notifyCustomGroup(group['id'], group['name']),
+                  icon: const Icon(Icons.send_rounded, color: Colors.white, size: 14),
+                  label: Text('Notifier le groupe', style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _actorCard(Map<String, dynamic> actor) {
     final role = actor['role'] as String? ?? '';
     Color roleColor;
@@ -1639,170 +1210,107 @@ lor: Color(0xFF6C3EB8), size: 18),
       case 'educator':     roleColor = const Color(0xFFE67E22); roleIcon = Icons.school_rounded;           break;
       default:             roleColor = AppTheme.textMuted;      roleIcon = Icons.person_rounded;
     }
-
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), boxShadow: AppTheme.tightShadow),
-      child: Row(children: [
-        Container(
-          width: 44, height: 44,
-          decoration: BoxDecoration(color: roleColor.withOpacity(0.1), borderRadius: BorderRadius.circular(12)),
-          child: Icon(roleIcon, color: roleColor, size: 22),
-        ),
-        const SizedBox(width: 12),
-        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(actor['full_name'] ?? 'â€”', style: GoogleFonts.outfit(fontSize: 14, fontWeight: FontWeight.w800, color: AppTheme.deepSlate)),
-          Text(actor['email'] ?? '', style: GoogleFonts.outfit(fontSize: 11, color: AppTheme.textMuted)),
-        ])),
-        // Badge rôle
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-          decoration: BoxDecoration(color: roleColor.withOpacity(0.1), borderRadius: BorderRadius.circular(20)),
-          child: Text(_roleLabel(role), style: GoogleFonts.outfit(fontSize: 10, color: roleColor, fontWeight: FontWeight.w700)),
-        ),
-        const SizedBox(width: 6),
-        // Bouton message individuel
-        GestureDetector(
-          onTap: () => _notifyIndividualActor(actor),
-          child: Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(color: const Color(0xFF6C3EB8).withOpacity(0.08), borderRadius: BorderRadius.circular(10)),
-            child: const Icon(Icons.send_rounded, color: Color(0xFF6C3EB8), size: 16),
+      child: Row(
+        children: [
+          Container(
+            width: 40, height: 40,
+            decoration: BoxDecoration(color: roleColor.withOpacity(0.1), borderRadius: BorderRadius.circular(12)),
+            child: Icon(roleIcon, color: roleColor, size: 20),
           ),
-        ),
-      ]),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(actor['full_name'] ?? 'Acteur', style: GoogleFonts.outfit(fontSize: 14, fontWeight: FontWeight.w800, color: AppTheme.deepSlate)),
+                Text(actor['email'] ?? '', style: GoogleFonts.outfit(fontSize: 11, color: AppTheme.textMuted), maxLines: 1, overflow: TextOverflow.ellipsis),
+              ],
+            ),
+          ),
+          IconButton(
+            icon: const Icon(Icons.send_rounded, color: Color(0xFF6C3EB8), size: 18),
+            onPressed: () => _notifyIndividualActor(actor),
+          ),
+        ],
+      ),
     ).animate().fadeIn().slideY(begin: 0.05);
   }
 
-  String _roleLabel(String role) {
-    switch (role) {
-      case 'pointManager': return 'Gestionnaire';
-      case 'collector':    return 'Collecteur';
-      case 'educator':     return 'Éducateur';
-      default:             return role;
+  // ── F4 : UI Réponses ─────────────────────────────────────────────────────
+  Widget _buildF4Reponses() {
+    if (_loadingReplies && _replies.isEmpty) {
+      return const Center(child: CircularProgressIndicator());
     }
+    return RefreshIndicator(
+      onRefresh: _loadReplies,
+      child: _replies.isEmpty
+          ? _emptyState(icon: Icons.forum_outlined, title: 'Aucune réponse', sub: "Les réponses s'afficheront ici.")
+          : ListView.builder(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 100),
+              itemCount: _replies.length,
+              itemBuilder: (ctx, i) => _replyCard(_replies[i], i),
+            ),
+    );
   }
 
-  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-  // FAB dynamique selon l'onglet
+  Widget _replyCard(Map<String, dynamic> reply, int index) {
+    final isRead   = reply['is_read'] == true;
+    final fromUser = reply['from_user_name'] ?? 'Acteur';
+    final body     = reply['body'] ?? '';
+    final time     = reply['created_at'] != null ? _formatRelativeTime(reply['created_at']) : '';
+    const color = Color(0xFF6C3EB8);
 
-
-
-
-      return FloatingActionButton.extended(
-        backgroundColor: const Color(0xFF6C3EB8),
-        icon: const Icon(Icons.add_rounded, color: Colors.white),
-        label: Text('Nouvelle consigne', style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.w700)),
-        onPressed: _showAddInstructionDialog,
-      );
-    }
-    if (_tabCtrl.index == 2 && _showGroups) {
-      return FloatingActionButton.extended(
-        backgroundColor: const Color(0xFF6C3EB8),
-        icon: const Icon(Icons.group_add_rounded, color: Colors.white),
-        label: Text('Nouveau groupe', style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.w700)),
-        onPressed: _showCreateGroupDialog,
-      );
-    }
-    if (_tabCtrl.index == 4) {
-      return FloatingActionButton.extended(
-        backgroundColor: const Color(0xFF1A6B3C),
-        icon: const Icon(Icons.add_location_alt_rounded, color: Colors.white),
-        label: Text('Nouvelle zone', style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.w700)),
-        onPressed: _showCreateZoneDialog,
-      );
-    }
-    return null;
-  }
-
-  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-  // F5 â€” PILOTAGE COLLECTEURS (Widget)
-  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-
-  Widget _buildF5Pilotage() {
-    if (_loadingPilotage) {
-                    color: roleColor.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: roleColor.withOpacity(0.25)),
-                  ),
-                  child: Row(mainAxisSize: MainAxisSize.min, children: [
-                    Icon(roleIcon, size: 10, color: roleColor),
-                    const SizedBox(width: 4),
-                    Text(_roleLabel(role),
-                      style: GoogleFonts.outfit(fontSize: 10, color: roleColor, fontWeight: FontWeight.w700)),
-                  ]),
+    return GestureDetector(
+      onTap: () => _markReplyRead(reply),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 10),
+        decoration: BoxDecoration(
+          color: isRead ? Colors.white : color.withOpacity(0.04),
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: isRead ? Colors.grey.shade100 : color.withOpacity(0.2)),
+          boxShadow: isRead ? [] : [BoxShadow(color: color.withOpacity(0.08), blurRadius: 12, offset: const Offset(0, 4))],
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 40, height: 40,
+                decoration: BoxDecoration(gradient: LinearGradient(colors: [color.withOpacity(0.2), color.withOpacity(0.1)]), borderRadius: BorderRadius.circular(12)),
+                child: Center(
+                  child: Text(fromUser.isNotEmpty ? fromUser[0].toUpperCase() : '?', style: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: color, fontSize: 16)),
                 ),
-                const SizedBox(height: 8),
-                GestureDetector(
-                  onTap: () => _notifyIndividualActor(actor),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(colors: [Color(0xFF6C3EB8), Color(0xFF9B59B6)]),
-                      borderRadius: BorderRadius.circular(10),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(fromUser, style: GoogleFonts.outfit(fontWeight: FontWeight.w800, fontSize: 14)),
+                        Text(time, style: GoogleFonts.inter(fontSize: 11, color: AppTheme.textMuted)),
+                      ],
                     ),
-                    child: Row(mainAxisSize: MainAxisSize.min, children: [
-                      const Icon(Icons.send_rounded, color: Colors.white, size: 12),
-                      const SizedBox(width: 4),
-                      Text('Notifier', style: GoogleFonts.outfit(fontSize: 10,
-                        fontWeight: FontWeight.w700, color: Colors.white)),
-                    ]),
-                  ),
+                    const SizedBox(height: 6),
+                    Text(body, style: GoogleFonts.inter(fontSize: 12, height: 1.4, color: AppTheme.deepSlate)),
+                  ],
                 ),
-              ]),
-            ]),
+              ),
+            ],
           ),
-        ]),
+        ),
       ),
-    ).animate().fadeIn(duration: 250.ms).slideX(begin: 0.04);
+    );
   }
 
-  String _roleLabel(String role) {
-    switch (role) {
-      case 'pointManager': return 'Gestionnaire';
-      case 'collector':    return 'Collecteur';
-      case 'educator':     return 'Éducateur';
-      default:             return role;
-    }
-  }
-
-  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-  // FAB dynamique selon l'onglet
-  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-
-  Widget? _buildFAB() {
-    if (_tabCtrl.index == 0) {
-      return FloatingActionButton.extended(
-        backgroundColor: const Color(0xFF6C3EB8),
-        icon: const Icon(Icons.add_rounded, color: Colors.white),
-        label: Text('Nouvelle consigne', style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.w700)),
-        onPressed: _showAddInstructionDialog,
-      );
-    }
-    if (_tabCtrl.index == 2 && _showGroups) {
-      return FloatingActionButton.extended(
-        backgroundColor: const Color(0xFF6C3EB8),
-        icon: const Icon(Icons.group_add_rounded, color: Colors.white),
-        label: Text('Nouveau groupe', style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.w700)),
-        onPressed: _showCreateGroupDialog,
-      );
-    }
-    if (_tabCtrl.index == 4) {
-      return FloatingActionButton.extended(
-        backgroundColor: const Color(0xFF1A6B3C),
-        icon: const Icon(Icons.add_location_alt_rounded, color: Colors.white),
-        label: Text('Nouvelle zone', style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.w700)),
-        onPressed: _showCreateZoneDialog,
-      );
-    }
-    return null;
-  }
-
-  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-  // F5 â€” PILOTAGE COLLECTEURS (Widget)
-  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-
+  // ── F5 : UI Pilotage ─────────────────────────────────────────────────────
   Widget _buildF5Pilotage() {
     if (_loadingPilotage) {
       return const Center(child: CircularProgressIndicator(color: Color(0xFF1A6B3C)));
@@ -1812,616 +1320,230 @@ lor: Color(0xFF6C3EB8), size: 18),
       color: const Color(0xFF1A6B3C),
       child: CustomScrollView(
         slivers: [
-          // â”€â”€ KPI bar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 8, offset: const Offset(0, 3))],
-      ),
-      child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        leading: CircleAvatar(
-          backgroundColor: zoneColor.withOpacity(0.15),
-          child: Icon(Icons.map_outlined, color: zoneColor),
-        ),
-        title: Text(zone['name'] ?? '', style: GoogleFonts.outfit(fontWeight: FontWeight.w800)),
-        subtitle: Text('${zone['territory'] ?? ''} · $activeCount affectation(s) active(s)',
-          style: GoogleFonts.outfit(fontSize: 12, color: AppTheme.textMuted)),
-        trailing: Row(mainAxisSize: MainAxisSize.min, children: [
-          IconButton(
-            icon: const Icon(Icons.person_add_rounded, color: Color(0xFF1A6B3C)),
-            tooltip: 'Affecter un collecteur',
-            onPressed: () => _showAssignCollectorDialog(zone),
-          ),
-          IconButton(
-            icon: const Icon(Icons.delete_outline_rounded, color: Colors.red),
-            tooltip: 'Supprimer la zone',
-            onPressed: () async {
-              final ok = await showDialog<bool>(
-                context: context,
-                builder: (ctx) => AlertDialog(
-                  title: Text('Supprimer "${zone['name']}" ?', style: GoogleFonts.outfit(fontWeight: FontWeight.w800)),
-                  content: const Text('Cette action est irréversible.'),
-                  actions: [
-                    TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Annuler')),
-                    ElevatedButton(
-                      style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-                      onPressed: () => Navigator.pop(ctx, true),
-                      child: const Text('Supprimer', style: TextStyle(color: Colors.white)),
-                    ),
-                  ],
-                ),
-              );
-              if (ok == true) _deleteZone(zone['id'], zone['name']);
-            },
-          ),
-        ]),
-      ),
-    );
-  }
-
-  Widget _buildAssignmentCard(Map<String, dynamic> a) {
-    final status   = a['status'] as String? ?? 'pending';
-    final priority = a['priority'] as String? ?? 'normal';
-    final isUrgent = priority == 'urgent';
-    final Color statusColor = _assignmentStatusColor(status);
-    final Color zoneColor   = _parseColor(a['zone_color'] ?? '#4CAF50');
-
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border(left: BorderSide(color: isUrgent ? Colors.orange : zoneColor, width: 4)),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 8, offset: const Offset(0, 3))],
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(14),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Row(children: [
-            Expanded(
-              child: Text('${a['zone_name'] ?? 'Zone ?'} — ${a['zone_territory'] ?? ''}',
-                style: GoogleFonts.outfit(fontWeight: FontWeight.w800, fontSize: 14)),
-            ),
-            if (isUrgent)
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                decoration: BoxDecoration(color: Colors.orange.shade100, borderRadius: BorderRadius.circular(8)),
-    ]);
-  }
-
-  Widget _buildZoneCard(Map<String, dynamic> zone) {
-    final Color zoneColor = _parseColor(zone['color_hex'] ?? '#4CAF50');
-    final int activeCount = (zone['active_assignments'] ?? 0) as int;
-    final territory = zone['territory'] as String? ?? '';
-    final activeCount = (zone['active_assignments'] ?? 0) as int;
-    // Bins en alerte depuis Firebase (global — pas de champ localisation dans PoubelleSnapshot)
-    final totalBins      = _poubelles.length;
-    final totalBinsAlert = _poubelles.where((p) => p.isPlein || p.poids > 80).length;
-
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        boxShadow: [BoxShadow(color: zoneColor.withOpacity(0.15), blurRadius: 12, offset: const Offset(0, 5))],
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(18),
-        child: IntrinsicHeight(child: Row(children: [
-          // Bande colorÃ©e gauche
-                },
-                childCount: _filteredAssignments.length,
-              ),
-            ),
-
-          // â”€â”€ Zones existantes â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 20, 16, 8),
-              child: Text('ðŸ—º Zones territoriales',
-                style: GoogleFonts.outfit(fontWeight: FontWeight.w800, fontSize: 14)),
-            ),
-          ),
-          if (_zones.isEmpty)
-            SliverToBoxAdapter(
-              child: Center(
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Text('Aucune zone créée. Utilisez le bouton + pour en créer une.',
-                    style: GoogleFonts.outfit(color: AppTheme.textMuted, fontSize: 13)),
-                ),
-                Row(children: [
-                  _zoneStat('$activeCount', 'missions', Icons.pending_actions_rounded, zoneColor),
-                  const SizedBox(width: 10),
-                  if (zoneBins > 0)
-                    _zoneStat('$totalBins', 'bins', Icons.delete_rounded, Colors.blueGrey),
-                  ],
-                  if (totalBinsAlert > 0) ...[
-                    const SizedBox(width: 6),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                      decoration: BoxDecoration(color: Colors.orange.shade50, borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.orange.shade200)),
-                      child: Text('ðŸ”´ $zoneBinsAlert urgents', style: GoogleFonts.outfit(fontSize: 9, fontWeight: FontWeight.w700, color: Colors.orange.shade800)),
-                    ),
-                  ],
-                ]),
-              ])),
-              // Actions
-                _iconBtn(Icons.person_add_rounded, const Color(0xFF1A6B3C), () => _showAssignCollectorDialog(zone)),
-                _iconBtn(Icons.delete_outline_rounded, Colors.red.shade300, () async {
-                  final ok = await showDialog<bool>(context: context,
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border(left: BorderSide(color: isUrgent ? Colors.orange : zoneColor, width: 4)),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 8, offset: const Offset(0, 3))],
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(14),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Row(children: [
-            Expanded(
-              child: Text('${a['zone_name'] ?? 'Zone ?'} — ${a['zone_territory'] ?? ''}',
-                style: GoogleFonts.outfit(fontWeight: FontWeight.w800, fontSize: 14)),
-            ),
-            if (isUrgent)
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                decoration: BoxDecoration(color: Colors.orange.shade100, borderRadius: BorderRadius.circular(8)),
-        ),
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [BoxShadow(color: Colors.green.withOpacity(0.3), blurRadius: 20, offset: const Offset(0, 8))],
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: [
-          _kpiPilotage('$totalZones',   'Zones',       Icons.map_rounded),
-          _kpiPilotageDivider(),
-          _kpiPilotage('$activeAssign', 'En cours',    Icons.pending_rounded),
-          _kpiPilotageDivider(),
-          _kpiPilotage('$doneAssign',   'Terminées',   Icons.check_circle_outline_rounded),
-          _kpiPilotageDivider(),
-          _kpiPilotage('$collectors',   'Collecteurs', Icons.local_shipping_rounded),
-          _kpiPilotageDivider(),
-          _kpiPilotageAlert('$alerts', 'ðŸ”´ Alertes', alerts > 0),
-        ],
-      ),
-    ).animate().fadeIn(duration: 300.ms);
-  }
-
-  Widget _kpiPilotageDivider() =>
-    Container(width: 1, height: 28, color: Colors.white.withOpacity(0.2));
-
-  Widget _kpiPilotage(String value, String label, IconData icon) {
-    return Column(children: [
-            if (status == 'in_progress') ...[
-              _actionBtn('Terminée ✓', Colors.green, () => _updateAssignmentStatus(a['id'], 'done')),
-              const SizedBox(width: 6),
-            ],
-            if (status != 'done' && status != 'cancelled')
-              _actionBtn('Annuler', Colors.red.shade300, () => _deleteAssignment(a['id'])),
-          ]),
-        ]),
-      ),
-    );
-  }
-
-  Widget _actionBtn(String label, Color color, VoidCallback onTap) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-        decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: color.withOpacity(0.4))),
-        child: Text(label, style: GoogleFonts.outfit(fontSize: 11, fontWeight: FontWeight.w700, color: color)),
-      ),
-    );
-  }
-
-  Color _assignmentStatusColor(String status) {
-        : Text(value, style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 20)),
-      Text(label, style: GoogleFonts.outfit(color: color, fontSize: 10)),
-    ]);
-  }
-
-  Widget _buildZoneCard(Map<String, dynamic> zone) {
-    final Color zoneColor  = _parseColor(zone['color_hex'] ?? '#4CAF50');
-    final territory        = zone['territory'] as String? ?? '';
-    final int activeCount  = (zone['active_assignments'] ?? 0) as int;
-    // Bins en alerte depuis Firebase (global — PoubelleSnapshot n'a pas de champ localisation)
-    final totalBins        = _poubelles.length;
-    final totalBinsAlert   = _poubelles.where((p) => p.isPlein || p.poids > 80).length;
-
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        boxShadow: [BoxShadow(color: zoneColor.withOpacity(0.15), blurRadius: 12, offset: const Offset(0, 5))],
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(18),
-        child: IntrinsicHeight(child: Row(children: [
-          // Bande colorée gauche
-          Container(width: 5, decoration: BoxDecoration(color: zoneColor)),
-          // Contenu
-          Expanded(child: Padding(
-            padding: const EdgeInsets.fromLTRB(14, 12, 8, 12),
-            child: Row(children: [
-              // Icône zone
-              Container(
-                width: 44, height: 44,
-                decoration: BoxDecoration(color: zoneColor.withOpacity(0.12), shape: BoxShape.circle),
-                child: Icon(Icons.map_rounded, color: zoneColor, size: 22),
-              ),
-              const SizedBox(width: 12),
-              // Infos
-              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text(zone['name'] ?? '', style: GoogleFonts.outfit(fontWeight: FontWeight.w800, fontSize: 14)),
-                const SizedBox(height: 3),
-                Row(children: [
-                  Icon(Icons.location_on_outlined, size: 11, color: Colors.grey.shade400),
-                  const SizedBox(width: 2),
-                  Expanded(child: Text(territory, style: GoogleFonts.outfit(fontSize: 11, color: Colors.grey.shade500), overflow: TextOverflow.ellipsis)),
-                ]),
-                const SizedBox(height: 6),
-                Row(children: [
-                  _zoneStat('$activeCount', 'missions', Icons.pending_actions_rounded, zoneColor),
-                  if (totalBins > 0) ...[
-                    const SizedBox(width: 10),
-                    _zoneStat('$totalBins', 'bins', Icons.delete_rounded, Colors.blueGrey),
-                  ],
-                  if (totalBinsAlert > 0) ...[
-                    const SizedBox(width: 6),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                      decoration: BoxDecoration(color: Colors.orange.shade50, borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.orange.shade200)),
-                      child: Text('🔴 $totalBinsAlert urgents', style: GoogleFonts.outfit(fontSize: 9, fontWeight: FontWeight.w700, color: Colors.orange.shade800)),
-                    ),
-                  ],
-                ]),
-              ])),
-              // Actions
-              Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                _iconBtn(Icons.person_add_rounded, const Color(0xFF1A6B3C), () => _showAssignCollectorDialog(zone)),
-                _iconBtn(Icons.delete_outline_rounded, Colors.red.shade300, () async {
-                  final ok = await showDialog<bool>(context: context,
-                    builder: (ctx) => AlertDialog(
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                      title: Text('Supprimer "${zone['name']}" ?', style: GoogleFonts.outfit(fontWeight: FontWeight.w800)),
-                      content: Text('Cette action est irréversible.', style: GoogleFonts.outfit()),
-                      actions: [
-                        TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Annuler')),
-                        ElevatedButton(
-                          style: ElevatedButton.styleFrom(backgroundColor: Colors.red, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
-                          onPressed: () => Navigator.pop(ctx, true),
-                          child: const Text('Supprimer', style: TextStyle(color: Colors.white)),
-                        ),
-                      ],
+          SliverPadding(
+            padding: const EdgeInsets.all(16),
+            sliver: SliverList(
+              delegate: SliverChildBuilderDelegate(
+                (ctx, i) {
+                  final zone = _zones[i];
+                  final activeCount = _assignments.where((a) => a['zone_id'] == zone['id'] && a['status'] != 'done').length;
+                  return Card(
+                    margin: const EdgeInsets.only(bottom: 12),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    child: ListTile(
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      leading: CircleAvatar(
+                        backgroundColor: const Color(0xFF1A6B3C).withOpacity(0.15),
+                        child: const Icon(Icons.map_outlined, color: Color(0xFF1A6B3C)),
+                      ),
+                      title: Text(zone['name'] ?? '', style: GoogleFonts.outfit(fontWeight: FontWeight.w800)),
+                      subtitle: Text('${zone['territory'] ?? ''} · $activeCount mission(s) active(s)', style: GoogleFonts.outfit(fontSize: 12, color: AppTheme.textMuted)),
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.person_add_rounded, color: Color(0xFF1A6B3C)),
+                            onPressed: () => _showAssignCollectorDialog(zone),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.delete_outline_rounded, color: Colors.red),
+                            onPressed: () => _deleteZone(zone['id'], zone['name']),
+                          ),
+                        ],
+                      ),
                     ),
                   );
-                  if (ok == true) _deleteZone(zone['id'], zone['name']);
-                }),
-              ]),
-            ]),
-          )),
-        ])),
-      ),
-    ).animate().fadeIn(duration: 200.ms).slideX(begin: -0.03);
-  }
-
-  Widget _zoneStat(String value, String label, IconData icon, Color color) {
-    return Row(mainAxisSize: MainAxisSize.min, children: [
-      Icon(icon, size: 12, color: color),
-      const SizedBox(width: 3),
-      Text('$value $label', style: GoogleFonts.outfit(fontSize: 10, fontWeight: FontWeight.w700, color: color)),
-    ]);
-  }
-
-  Widget _buildAssignmentCard(Map<String, dynamic> a) {
-    final status   = a['status'] as String? ?? 'pending';
-    final priority = a['priority'] as String? ?? 'normal';
-    final isUrgent = priority == 'urgent';
-    final Color statusColor = _assignmentStatusColor(status);
-    final Color zoneColor   = _parseColor(a['zone_color'] ?? '#4CAF50');
-    final steps  = ['pending', 'in_progress', 'done'];
-    final stepIdx = steps.indexOf(status).clamp(0, 2);
-
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        boxShadow: [BoxShadow(
-          color: (isUrgent ? Colors.orange : statusColor).withOpacity(0.12),
-          blurRadius: 14, offset: const Offset(0, 5),
-        )],
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(18),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          // â”€â”€ Barre de progression colorée â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-          LinearProgressIndicator(
-            value: (stepIdx + 1) / 3.0,
-            minHeight: 3,
-            backgroundColor: Colors.grey.shade100,
-            valueColor: AlwaysStoppedAnimation<Color>(isUrgent ? Colors.orange : statusColor),
+                },
+                childCount: _zones.length,
+              ),
+            ),
           ),
-          Padding(
-            padding: const EdgeInsets.all(14),
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              // â”€â”€ Ligne 1 : zone + badges â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-              Row(children: [
-                Container(
-                  padding: const EdgeInsets.all(7),
-                  decoration: BoxDecoration(color: zoneColor.withOpacity(0.12), borderRadius: BorderRadius.circular(10)),
-                  child: Icon(Icons.map_rounded, color: zoneColor, size: 16),
-                ),
-                const SizedBox(width: 10),
-                Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text(a['zone_name'] ?? 'Zone ?',
-                    style: GoogleFonts.outfit(fontWeight: FontWeight.w800, fontSize: 14), overflow: TextOverflow.ellipsis),
-                  if ((a['zone_territory'] as String? ?? '').isNotEmpty)
-                    Text(a['zone_territory'], style: GoogleFonts.outfit(fontSize: 11, color: Colors.grey.shade500)),
-                ])),
-                if (isUrgent)
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(colors: [Color(0xFFFF6B35), Color(0xFFFF8C00)]),
-                      borderRadius: BorderRadius.circular(8),
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              child: Text('Missions et affectations actives', style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 14)),
+            ),
+          ),
+          _assignments.isEmpty
+              ? const SliverFillRemaining(child: Center(child: Text('Aucune mission en cours', style: TextStyle(color: Colors.grey))))
+              : SliverPadding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  sliver: SliverList(
+                    delegate: SliverChildBuilderDelegate(
+                      (ctx, idx) {
+                        final a = _assignments[idx];
+                        final status = a['status'] ?? 'pending';
+                        final priority = a['priority'] ?? 'normal';
+                        final msg = a['mission_message'] ?? '';
+                        return Card(
+                          margin: const EdgeInsets.only(bottom: 12),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                          child: Padding(
+                            padding: const EdgeInsets.all(14),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Text(
+                                      a['zone_name'] != null
+                                          ? 'Zone: ${a['zone_name']}'
+                                          : 'Centre: ${a['collection_point_name'] ?? ''}',
+                                      style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 13),
+                                    ),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                      decoration: BoxDecoration(
+                                        color: priority == 'urgent' ? Colors.red.shade50 : Colors.blue.shade50,
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: Text(priority.toString().toUpperCase(), style: TextStyle(color: priority == 'urgent' ? Colors.red : Colors.blue, fontWeight: FontWeight.bold, fontSize: 9)),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 6),
+                                Text(
+                                  a['collector_name'] != null
+                                      ? 'Affecté à : ${a['collector_name']}'
+                                      : 'Groupe : ${a['group_name'] ?? ''}',
+                                  style: const TextStyle(fontSize: 12, color: Colors.grey),
+                                ),
+                                if (msg.isNotEmpty) ...[
+                                  const SizedBox(height: 6),
+                                  Text('Message : $msg', style: const TextStyle(fontSize: 12, fontStyle: FontStyle.italic)),
+                                ],
+                                const SizedBox(height: 10),
+                                Row(
+                                  children: [
+                                    if (status == 'pending')
+                                      _actionBtn('En cours', Colors.blue, () => _updateAssignmentStatus(a['id'], 'in_progress')),
+                                    if (status == 'in_progress')
+                                      _actionBtn('Terminer', Colors.green, () => _updateAssignmentStatus(a['id'], 'done')),
+                                    const SizedBox(width: 8),
+                                    _actionBtn('Annuler', Colors.red, () => _deleteAssignment(a['id'])),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
+                      childCount: _assignments.length,
                     ),
-                    child: Text('URGENT', style: GoogleFonts.outfit(fontSize: 9, fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: 0.5)),
                   ),
-                const SizedBox(width: 6),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                  decoration: BoxDecoration(
-                    color: statusColor.withOpacity(0.12),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: statusColor.withOpacity(0.3)),
-                  ),
-                  child: Text(_statusLabel(status), style: GoogleFonts.outfit(fontSize: 10, fontWeight: FontWeight.w700, color: statusColor)),
                 ),
-              ]),
-              const SizedBox(height: 10),
-              // â”€â”€ Ligne 2 : collecteur â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-              Row(children: [
-                Container(
-                  width: 28, height: 28,
-                  decoration: BoxDecoration(color: Colors.grey.shade100, shape: BoxShape.circle),
-                  child: const Icon(Icons.local_shipping_rounded, size: 14, color: Colors.grey),
-                ),
-                const SizedBox(width: 8),
-                Text(a['collector_name'] ?? 'Collecteur ?',
-                  style: GoogleFonts.outfit(fontSize: 13, fontWeight: FontWeight.w600, color: const Color(0xFF1A1A2E))),
-              ]),
-              if ((a['mission_message'] ?? '').isNotEmpty) ...[
-                const SizedBox(height: 8),
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(color: Colors.grey.shade50, borderRadius: BorderRadius.circular(10)),
-                  child: Text(a['mission_message'], style: GoogleFonts.outfit(fontSize: 12, color: Colors.grey.shade700),
-                    maxLines: 2, overflow: TextOverflow.ellipsis),
-                ),
-              ],
-              const SizedBox(height: 12),
-              // â”€â”€ Actions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-              Row(children: [
-                if (status == 'pending') ...[
-                  _actionBtn('â–¶ En cours', Colors.blue, () => _updateAssignmentStatus(a['id'], 'in_progress')),
-                  const SizedBox(width: 6),
-                ],
-                if (status == 'in_progress') ...[
-                  _actionBtn('âœ“ Terminée', Colors.green, () => _updateAssignmentStatus(a['id'], 'done')),
-                  const SizedBox(width: 6),
-                ],
-                if (status != 'done' && status != 'cancelled')
-                  _actionBtn('âœ• Annuler', Colors.red.shade400, () => _deleteAssignment(a['id'])),
-              ]),
-            ]),
-          ),
-        ]),
+        ],
       ),
-    ).animate().fadeIn(duration: 220.ms).slideY(begin: 0.04);
+    );
   }
 
   Widget _actionBtn(String label, Color color, VoidCallback onTap) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-        decoration: BoxDecoration(
-          color: color.withOpacity(0.1),
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: color.withOpacity(0.35)),
-        ),
-        child: Text(label, style: GoogleFonts.outfit(fontSize: 12, fontWeight: FontWeight.w700, color: color)),
+    return ElevatedButton(
+      style: ElevatedButton.styleFrom(
+        backgroundColor: color,
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       ),
+      onPressed: onTap,
+      child: Text(label, style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
     );
   }
 
-  Color _assignmentStatusColor(String status) {
-    switch (status) {
-      case 'pending':     return Colors.orange;
-      case 'in_progress': return Colors.blue;
-      case 'done':        return Colors.green;
-      case 'cancelled':   return Colors.red;
-      default:            return Colors.grey;
+  // ── FAB & Dialogs ────────────────────────────────────────────────────────
+  Widget? _buildFAB() {
+    Widget? fab;
+    if (_tabCtrl.index == 0) {
+      fab = FloatingActionButton.extended(
+        heroTag: 'fab_intercommunality_consigne',
+        backgroundColor: const Color(0xFF6C3EB8),
+        icon: const Icon(Icons.add_rounded, color: Colors.white),
+        label: Text('Nouvelle consigne', style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.w700)),
+        onPressed: _showAddInstructionDialog,
+      );
     }
-  }
-
-  String _statusLabel(String status) {
-    switch (status) {
-      case 'pending':     return 'En attente';
-      case 'in_progress': return 'En cours';
-      case 'done':        return 'Terminée';
-      case 'cancelled':   return 'Annulée';
-      default:            return status;
+    if (_tabCtrl.index == 2 && _showGroups) {
+      fab = FloatingActionButton.extended(
+        heroTag: 'fab_intercommunality_groupe',
+        backgroundColor: const Color(0xFF6C3EB8),
+        icon: const Icon(Icons.group_add_rounded, color: Colors.white),
+        label: Text('Nouveau groupe', style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.w700)),
+        onPressed: _showCreateGroupDialog,
+      );
     }
-  }
-
-  Color _parseColor(String hex) {
-    try {
-      final h = hex.replaceAll('#', '');
-      return Color(int.parse('FF$h', radix: 16));
-    } catch (_) {
-      return Colors.green;
-    }
-  }
-
-  // â”€â”€ Dialogs F5 â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-
-  Future<void> _showCreateZoneDialog() async {
-    final nameCtrl   = TextEditingController();
-    final terrCtrl   = TextEditingController();
-    final descCtrl   = TextEditingController();
-    String color     = '#4CAF50';
-    final colors     = ['#4CAF50', '#2196F3', '#FF9800', '#9C27B0', '#F44336', '#00BCD4'];
-
-    await showModalBottomSheet(
-      context: context, isScrollControlled: true, backgroundColor: Colors.transparent,
-      builder: (ctx) => StatefulBuilder(builder: (ctx, setSt) => Container(
-        decoration: const BoxDecoration(
-          color: Colors.white, borderRadius: BorderRadius.vertical(top: Radius.circular(28))),
-        padding: EdgeInsets.fromLTRB(24, 20, 24, MediaQuery.of(ctx).viewInsets.bottom + 24),
-        child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(2)))),
-          const SizedBox(height: 16),
-          Text('Nouvelle zone territoriale', style: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.w900)),
-          const SizedBox(height: 16),
-          TextField(controller: nameCtrl, decoration: InputDecoration(labelText: 'Nom de la zone *', border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)))),
-          const SizedBox(height: 10),
-          TextField(controller: terrCtrl, decoration: InputDecoration(labelText: 'Territoire *', border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)))),
-          const SizedBox(height: 10),
-          TextField(controller: descCtrl, maxLines: 2, decoration: InputDecoration(labelText: 'Description', border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)))),
-          const SizedBox(height: 10),
-          Text('Couleur', style: GoogleFonts.outfit(fontWeight: FontWeight.w700)),
-          const SizedBox(height: 6),
-          Row(children: colors.map((c) => GestureDetector(
-            onTap: () => setSt(() => color = c),
-            child: Container(
-              margin: const EdgeInsets.only(right: 8),
-              width: 32, height: 32,
-              decoration: BoxDecoration(
-                color: _parseColor(c), shape: BoxShape.circle,
-                border: Border.all(width: color == c ? 3 : 0, color: Colors.black87),
+    if (_tabCtrl.index == 4) {
+      fab = FloatingActionButton.extended(
+        heroTag: 'fab_intercommunality_affecter',
+        backgroundColor: const Color(0xFF1A6B3C),
+        icon: const Icon(Icons.add_rounded, color: Colors.white),
+        label: Text('Affecter & Piloter', style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.w700)),
+        onPressed: () {
+          showModalBottomSheet(
+            context: context,
+            backgroundColor: Colors.transparent,
+            builder: (ctx) => Container(
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(2)))),
+                  const SizedBox(height: 16),
+                  Text('Actions de Pilotage', style: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.w900)),
+                  const SizedBox(height: 16),
+                  ListTile(
+                    leading: CircleAvatar(
+                      backgroundColor: const Color(0xFF1A6B3C).withOpacity(0.1),
+                      child: const Icon(Icons.assignment_ind_rounded, color: Color(0xFF1A6B3C)),
+                    ),
+                    title: Text('Affecter une mission', style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
+                    subtitle: Text('Affecter un collecteur ou groupe à un centre ou une zone', style: GoogleFonts.outfit(fontSize: 12, color: Colors.grey)),
+                    onTap: () {
+                      Navigator.pop(ctx);
+                      _showAssignMissionDialog();
+                    },
+                  ),
+                  const Divider(),
+                  ListTile(
+                    leading: CircleAvatar(
+                      backgroundColor: Colors.blue.withOpacity(0.1),
+                      child: const Icon(Icons.add_location_alt_rounded, color: Colors.blue),
+                    ),
+                    title: Text('Créer une nouvelle zone', style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
+                    subtitle: Text('Ajouter une zone territoriale de tri', style: GoogleFonts.outfit(fontSize: 12, color: Colors.grey)),
+                    onTap: () {
+                      Navigator.pop(ctx);
+                      _showCreateZoneDialog();
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                ],
               ),
             ),
-          )).toList()),
-          const SizedBox(height: 20),
-          SizedBox(width: double.infinity,
-            child: ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF1A6B3C),
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14))),
-              onPressed: () {
-                if (nameCtrl.text.trim().isEmpty || terrCtrl.text.trim().isEmpty) return;
-                Navigator.pop(ctx);
-                _createZone(nameCtrl.text.trim(), terrCtrl.text.trim(), descCtrl.text.trim(), color);
-              },
-              child: Text('Créer la zone', style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 16)),
-            ),
-          ),
-        ]),
-      )),
-    );
-  }
-
-  Future<void> _showAssignCollectorDialog(Map<String, dynamic> zone) async {
-    if (_collectors.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Aucun collecteur disponible')));
-      return;
+          );
+        },
+      );
     }
-    int? selectedCollectorId = _collectors.first['id'] as int?;
-    String priority = 'normal';
-    final msgCtrl = TextEditingController();
-
-    await showModalBottomSheet(
-      context: context, isScrollControlled: true, backgroundColor: Colors.transparent,
-      builder: (ctx) => StatefulBuilder(builder: (ctx, setSt) => Container(
-        decoration: const BoxDecoration(
-          color: Colors.white, borderRadius: BorderRadius.vertical(top: Radius.circular(28))),
-        padding: EdgeInsets.fromLTRB(24, 20, 24, MediaQuery.of(ctx).viewInsets.bottom + 24),
-        child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(2)))),
-          const SizedBox(height: 16),
-          Text('Affecter à : ${zone['name']}', style: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.w900)),
-          Text(zone['territory'] ?? '', style: GoogleFonts.outfit(color: AppTheme.textMuted, fontSize: 13)),
-          const SizedBox(height: 16),
-          Text('Collecteur', style: GoogleFonts.outfit(fontWeight: FontWeight.w700)),
-          const SizedBox(height: 6),
-          DropdownButtonFormField<int>(
-            value: selectedCollectorId,
-            decoration: InputDecoration(border: OutlineInputBorder(borderRadius: BorderRadius.circular(12))),
-            items: _collectors.map((c) => DropdownMenuItem<int>(
-              value: c['id'] as int,
-              child: Text(c['full_name'] ?? c['email'] ?? 'ID ${c['id']}'),
-            )).toList(),
-            onChanged: (v) => setSt(() => selectedCollectorId = v),
-          ),
-          const SizedBox(height: 10),
-          Text('Priorité', style: GoogleFonts.outfit(fontWeight: FontWeight.w700)),
-          const SizedBox(height: 6),
-          Row(children: [
-            _priorityChip('normal',  'Normal',  Colors.blue,   priority, (v) => setSt(() => priority = v)),
-            const SizedBox(width: 8),
-            _priorityChip('urgent',  'Urgent',  Colors.orange, priority, (v) => setSt(() => priority = v)),
-          ]),
-          const SizedBox(height: 10),
-          TextField(controller: msgCtrl, maxLines: 3,
-            decoration: InputDecoration(labelText: 'Message de mission (optionnel)', border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)))),
-          const SizedBox(height: 20),
-          SizedBox(width: double.infinity,
-            child: ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF1A6B3C),
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14))),
-              onPressed: () {
-                if (selectedCollectorId == null) return;
-                Navigator.pop(ctx);
-                _createAssignment(
-                  zoneId: zone['id'], collectorId: selectedCollectorId!,
-                  message: msgCtrl.text.trim(), priority: priority,
-                );
-              },
-              child: Text('Affecter le collecteur', style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 16)),
-            ),
-          ),
-        ]),
-      )),
-    );
+    
+    if (fab != null) {
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 76),
+        child: fab,
+      );
+    }
+    return null;
   }
 
-  Widget _priorityChip(String value, String label, Color color, String current, void Function(String) onTap) {
-    final selected = current == value;
-    return GestureDetector(
-      onTap: () => onTap(value),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        decoration: BoxDecoration(
-          color: selected ? color : Colors.grey.shade100,
-          borderRadius: BorderRadius.circular(10),
-class _TabHeaderDelegate extends SliverPersistentHeaderDelegate {
-  final TabBar tabBar;
-  const _TabHeaderDelegate(this.tabBar);
 
-  @override
-  double get minExtent => tabBar.preferredSize.height;
-  @override
-  double get maxExtent => tabBar.preferredSize.height;
-
-  @override
-  Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
-    return Container(
-      color: Colors.white,
-      child: tabBar,
-    );
-  }
-
-  @override
-  bool shouldRebuild(_TabHeaderDelegate oldDelegate) => false;
-}
+  Future<void> _showAddInstructionDialog() async {
+    final territoryCtrl = TextEditingController();
+    final cityCtrl = TextEditingController();
+    final wasteTypeCtrl = TextEditingController();
+    final titleCtrl = TextEditingController();
+    final instructionCtrl = TextEditingController();
 
     await showModalBottomSheet(
       context: context,
@@ -2449,20 +1571,19 @@ class _TabHeaderDelegate extends SliverPersistentHeaderDelegate {
               'is_active':   true,
             }),
           );
-          // ignore: use_build_context_synchronously
-          if (ctx.mounted) Navigator.pop(ctx);
           _loadInstructions();
+          if (ctx.mounted) Navigator.pop(ctx);
         },
       ),
     );
   }
 
   Future<void> _showEditInstructionDialog(Map<String, dynamic> instr) async {
-    final territoryCtrl   = TextEditingController(text: instr['territory'] ?? '');
-    final cityCtrl        = TextEditingController(text: instr['city'] ?? '');
-    final wasteTypeCtrl   = TextEditingController(text: instr['waste_type'] ?? '');
-    final titleCtrl       = TextEditingController(text: instr['title'] ?? '');
-    final instructionCtrl = TextEditingController(text: instr['instruction'] ?? '');
+    final territoryCtrl = TextEditingController(text: instr['territory']);
+    final cityCtrl = TextEditingController(text: instr['city'] ?? '');
+    final wasteTypeCtrl = TextEditingController(text: instr['waste_type']);
+    final titleCtrl = TextEditingController(text: instr['title']);
+    final instructionCtrl = TextEditingController(text: instr['instruction']);
 
     await showModalBottomSheet(
       context: context,
@@ -2489,215 +1610,9 @@ class _TabHeaderDelegate extends SliverPersistentHeaderDelegate {
               'instruction': instructionCtrl.text.trim(),
             }),
           );
-          // ignore: use_build_context_synchronously
-          if (ctx.mounted) Navigator.pop(ctx);
           _loadInstructions();
+          if (ctx.mounted) Navigator.pop(ctx);
         },
-      ),
-    );
-  }
-
-      padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(2)))),
-          const SizedBox(height: 16),
-          Text(title, style: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.w900, color: AppTheme.deepSlate)),
-          const SizedBox(height: 20),
-          _field('Territoire *', territoryCtrl, hint: 'ex: Grand Tunis'),
-          _field('Ville (optionnel)', cityCtrl, hint: 'ex: Ariana'),
-          _field('Type de déchet *', wasteTypeCtrl, hint: 'ex: Plastique'),
-          _field('Titre *', titleCtrl, hint: 'ex: Comment trier le plastique'),
-          _field('Consigne *', instructionCtrl, hint: 'Texte de la consigne locale...', maxLines: 4),
-          const SizedBox(height: 24),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF6C3EB8),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                padding: const EdgeInsets.symmetric(vertical: 16),
-              ),
-              onPressed: onSave,
-              child: Text('Enregistrer', style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 16)),
-            ),
-          ),
-        ]),
-      ),
-    );
-  }
-
-  Widget _field(String label, TextEditingController ctrl, {String hint = '', int maxLines = 1}) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 14),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text(label, style: GoogleFonts.outfit(fontSize: 12, fontWeight: FontWeight.w700, color: AppTheme.deepSlate)),
-        const SizedBox(height: 6),
-        TextField(
-          controller: ctrl,
-          maxLines: maxLines,
-          decoration: InputDecoration(
-            hintText: hint,
-            hintStyle: GoogleFonts.outfit(fontSize: 13, color: AppTheme.textMuted),
-            filled: true,
-            fillColor: const Color(0xFFF5F7FA),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-          ),
-        ),
-      ]),
-    );
-  }
-
-  Future<void> _confirmDeleteInstruction(int id) async {
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-          ),
-        ),
-      ]),
-    );
-  }
-
-  Future<void> _confirmDeleteInstruction(int id) async {
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text('Supprimer la consigne ?', style: GoogleFonts.outfit(fontWeight: FontWeight.w800)),
-        content: Text('Cette action est irréversible.', style: GoogleFonts.outfit()),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Annuler')),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Supprimer'),
-          ),
-              }
-              final jwt = await _jwt();
-              if (jwt == null) return;
-              await http.post(
-                Uri.parse('${AuthService.baseUrl}/intercommunality/instructions'),
-                headers: _headers(jwt),
-                body: json.encode({
-                  'territory':   territoryCtrl.text.trim(),
-                  'city':        cityCtrl.text.trim().isEmpty ? null : cityCtrl.text.trim(),
-                  'waste_type':  wasteTypeCtrl.text.trim(),
-                  'title':       titleCtrl.text.trim(),
-                  'instruction': instructionCtrl.text.trim(),
-                  'is_active':   true,
-                }),
-              );
-              if (ctx.mounted) Navigator.pop(ctx);
-              _loadInstructions();
-            },
-          );
-        }
-      ),
-    );
-  }
-
-  Future<void> _showEditInstructionDialog(Map<String, dynamic> instr) async {
-    final territoryCtrl   = TextEditingController(text: instr['territory'] ?? '');
-    final cityCtrl        = TextEditingController(text: instr['city'] ?? '');
-    final wasteTypeCtrl   = TextEditingController(text: instr['waste_type'] ?? '');
-    final titleCtrl       = TextEditingController(text: instr['title'] ?? '');
-    final instructionCtrl = TextEditingController(text: instr['instruction'] ?? '');
-
-    String? selectedTerritory = instr['territory'];
-    if (selectedTerritory != null && !_territoryCitiesMap.containsKey(selectedTerritory)) {
-      selectedTerritory = null;
-    }
-    
-    List<String> citiesForSelectedTerritory = selectedTerritory != null 
-        ? (_territoryCitiesMap[selectedTerritory] ?? []) 
-        : [];
-        
-    String? selectedCity = instr['city'];
-    if (selectedCity != null && !citiesForSelectedTerritory.contains(selectedCity)) {
-      selectedCity = null;
-    }
-
-    String? selectedWasteType = instr['waste_type'];
-    if (selectedWasteType != null) {
-      final matched = _wasteTypesList.firstWhere(
-        (t) => t.toLowerCase() == selectedWasteType!.toLowerCase(),
-        orElse: () => '',
-      );
-      selectedWasteType = matched.isNotEmpty ? matched : null;
-    }
-
-    await showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (ctx) => StatefulBuilder(
-        builder: (context, setSheetState) {
-          return _instructionForm(
-            title: 'Modifier la consigne',
-            territoryCtrl: territoryCtrl,
-            cityCtrl: cityCtrl,
-            wasteTypeCtrl: wasteTypeCtrl,
-            titleCtrl: titleCtrl,
-            instructionCtrl: instructionCtrl,
-            selectedTerritory: selectedTerritory,
-            selectedCity: selectedCity,
-            selectedWasteType: selectedWasteType,
-            citiesList: citiesForSelectedTerritory,
-            onTerritoryChanged: (val) {
-              setSheetState(() {
-                selectedTerritory = val;
-                territoryCtrl.text = val ?? '';
-                citiesForSelectedTerritory = val != null ? (_territoryCitiesMap[val] ?? []) : [];
-                selectedCity = null;
-                cityCtrl.text = '';
-              });
-            },
-            onCityChanged: (val) {
-              setSheetState(() {
-                selectedCity = val;
-                cityCtrl.text = val ?? '';
-              });
-            },
-            onWasteTypeChanged: (val) {
-              setSheetState(() {
-                selectedWasteType = val;
-                wasteTypeCtrl.text = val ?? '';
-              });
-            },
-            setSheetState: setSheetState,
-            onSave: () async {
-              if (territoryCtrl.text.trim().isEmpty ||
-                  wasteTypeCtrl.text.trim().isEmpty ||
-                  titleCtrl.text.trim().isEmpty ||
-                  instructionCtrl.text.trim().isEmpty) {
-                ScaffoldMessenger.of(ctx).showSnackBar(
-                  const SnackBar(content: Text('Veuillez remplir tous les champs obligatoires (*)')),
-                );
-                return;
-              }
-              final jwt = await _jwt();
-              if (jwt == null) return;
-              await http.put(
-                Uri.parse('${AuthService.baseUrl}/intercommunality/instructions/${instr['id']}'),
-                headers: _headers(jwt),
-                body: json.encode({
-                  'territory':   territoryCtrl.text.trim(),
-                  'city':        cityCtrl.text.trim().isEmpty ? null : cityCtrl.text.trim(),
-                  'waste_type':  wasteTypeCtrl.text.trim(),
-                  'title':       titleCtrl.text.trim(),
-                  'instruction': instructionCtrl.text.trim(),
-                }),
-              );
-              if (ctx.mounted) Navigator.pop(ctx);
-              _loadInstructions();
-            },
-          );
-        }
       ),
     );
   }
@@ -2709,310 +1624,185 @@ class _TabHeaderDelegate extends SliverPersistentHeaderDelegate {
     required TextEditingController wasteTypeCtrl,
     required TextEditingController titleCtrl,
     required TextEditingController instructionCtrl,
-    required String? selectedTerritory,
-    required String? selectedCity,
-    required String? selectedWasteType,
-    required List<String> citiesList,
-    required ValueChanged<String?> onTerritoryChanged,
-    required ValueChanged<String?> onCityChanged,
-    required ValueChanged<String?> onWasteTypeChanged,
-    required StateSetter setSheetState,
     required VoidCallback onSave,
   }) {
-    return Container(
-      padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
-          Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(2)))),
-          const SizedBox(height: 16),
-          Text(title, style: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.w900, color: AppTheme.deepSlate)),
-          const SizedBox(height: 20),
-          
-          // Territoire Dropdown
-          Padding(
-            padding: const EdgeInsets.only(bottom: 14),
+    return StatefulBuilder(
+      builder: (ctx, setFormState) {
+        final currentTerritory = territoryCtrl.text.trim();
+        final cities = _territoryCitiesMap[currentTerritory] ?? [];
+        
+        return Container(
+          decoration: const BoxDecoration(color: Colors.white, borderRadius: BorderRadius.vertical(top: Radius.circular(28))),
+          padding: EdgeInsets.fromLTRB(24, 20, 24, MediaQuery.of(ctx).viewInsets.bottom + 24),
+          child: SingleChildScrollView(
             child: Column(
+              mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Territoire (Gouvernorat) *', style: GoogleFonts.outfit(fontSize: 12, fontWeight: FontWeight.w700, color: AppTheme.deepSlate)),
-                const SizedBox(height: 6),
-                DropdownButtonFormField<String>(
-                  value: selectedTerritory,
-                  hint: Text('Choisir un territoire...', style: GoogleFonts.outfit(fontSize: 13, color: AppTheme.textMuted)),
-                  items: _territoryCitiesMap.keys.map((terr) {
-                    return DropdownMenuItem<String>(
-                      value: terr,
-                      child: Text(terr, style: GoogleFonts.outfit(fontSize: 13, color: AppTheme.deepSlate)),
-                    );
-                  }).toList(),
-                  onChanged: onTerritoryChanged,
-                  decoration: InputDecoration(
-                    filled: true,
-                    fillColor: const Color(0xFFF5F7FA),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          // Ville Dropdown
-          Padding(
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-                        filled: true,
-                        fillColor: const Color(0xFFF5F7FA),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                        suffixIcon: const Icon(Icons.keyboard_arrow_down_rounded, size: 16, color: Colors.grey),
+                Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(2)))),
+                const SizedBox(height: 16),
+                Text(title, style: GoogleFonts.outfit(fontSize: 20, fontWeight: FontWeight.w900, color: AppTheme.deepSlate)),
+                const SizedBox(height: 16),
+                
+                // Territory Autocomplete
+                Autocomplete<String>(
+                  initialValue: TextEditingValue(text: territoryCtrl.text),
+                  optionsBuilder: (TextEditingValue textEditingValue) {
+                    return _territoryCitiesMap.keys.where((t) => t.toLowerCase().contains(textEditingValue.text.toLowerCase()));
+                  },
+                  onSelected: (String val) {
+                    setFormState(() {
+                      territoryCtrl.text = val;
+                      cityCtrl.clear();
+                    });
+                  },
+                  fieldViewBuilder: (ctx2, textEditingController, focusNode, onFieldSubmitted) {
+                    return TextField(
+                      controller: textEditingController,
+                      focusNode: focusNode,
+                      decoration: InputDecoration(
+                        labelText: 'Territoire (Gouvernorat) *',
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      onChanged: (val) {
+                        setFormState(() {
+                          territoryCtrl.text = val;
+                        });
+                      },
                     );
                   },
-                  optionsViewBuilder: (context, onSelected, options) {
-                    return Align(
-                      alignment: Alignment.topLeft,
-                      child: Material(
-                        elevation: 4.0,
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(12),
-                        child: SizedBox(
-                          width: 280, // Match typical modal field width
-                          maxHeight: 180,
-                          child: ListView.builder(
-                            padding: EdgeInsets.zero,
-                            shrinkWrap: true,
-                            itemCount: options.length,
-                            itemBuilder: (BuildContext context, int index) {
-                              final String option = options.elementAt(index);
-                              return ListTile(
-                                dense: true,
-                                title: Text(option, style: GoogleFonts.outfit(fontSize: 13, color: const Color(0xFF1E293B))),
-                                title: Text(option, style: GoogleFonts.outfit(fontSize: 13, color: const Color(0xFF1E293B))),
-                                onTap: () {
-                                  onSelected(option);
-                                },
-                              );
-                            },
-                          ),
-                        ),
-                      ),
-                    );
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-                  }).toList(),
-                  onChanged: selectedTerritory == null ? null : onCityChanged,
+                ),
+                const SizedBox(height: 12),
+                
+                // City Dropdown
+                DropdownButtonFormField<String>(
+                  value: cityCtrl.text.isEmpty ? null : cityCtrl.text,
                   decoration: InputDecoration(
-                    filled: true,
-                    fillColor: selectedTerritory == null ? const Color(0xFFE2E8F0) : const Color(0xFFF5F7FA),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                    labelText: 'Ville *',
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  items: cities.map((c) => DropdownMenuItem<String>(value: c, child: Text(c))).toList(),
+                  onChanged: (val) {
+                    setFormState(() {
+                      cityCtrl.text = val ?? '';
+                    });
+                  },
+                ),
+                const SizedBox(height: 12),
+                
+                // Waste Type Dropdown
+                DropdownButtonFormField<String>(
+                  value: wasteTypeCtrl.text.isEmpty ? null : wasteTypeCtrl.text,
+                  decoration: InputDecoration(
+                    labelText: 'Type de déchet *',
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  items: _wasteTypesList.map((w) => DropdownMenuItem<String>(value: w, child: Text(w))).toList(),
+                  onChanged: (val) {
+                    setFormState(() {
+                      wasteTypeCtrl.text = val ?? '';
+                    });
+                  },
+                ),
+                const SizedBox(height: 12),
+                
+                // Title Field
+                TextField(
+                  controller: titleCtrl,
+                  decoration: InputDecoration(
+                    labelText: 'Titre de la consigne *',
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                
+                // Instruction Field
+                TextField(
+                  controller: instructionCtrl,
+                  maxLines: 4,
+                  decoration: InputDecoration(
+                    labelText: 'Texte de la consigne *',
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                
+                // Save Button
+                SizedBox(
+                  width: double.infinity,
+                  height: 48,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF6C3EB8),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    onPressed: onSave,
+                    child: Text('Enregistrer', style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
                   ),
                 ),
               ],
             ),
           ),
+        );
+      },
+    );
+  }
 
-          // Type de déchet Dropdown
-          Padding(
-            padding: const EdgeInsets.only(bottom: 1),
+  Future<void> _showCreateGroupDialog() async {
+    final nameCtrl = TextEditingController();
+    final descCtrl = TextEditingController();
+    final selectedActorIds = <int>{};
+
+    await showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDlgState) => AlertDialog(
+          title: Text("Nouveau groupe d'acteurs", style: GoogleFonts.outfit(fontWeight: FontWeight.w900)),
+          content: SingleChildScrollView(
             child: Column(
+              mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                ScaffoldMessenger.of(ctx).showSnackBar(
-                  const SnackBar(content: Text('❌ Erreur lors de la création du groupe'), backgroundColor: Colors.red),
-                ),
-                Text('Type de déchet *', style: GoogleFonts.outfit(fontSize: 12, fontWeight: FontWeight.w700, color: AppTheme.deepSlate)),
-                const SizedBox(height: 6),
-                DropdownButtonFormField<String>(
-                  value: selectedWasteType,
-                  hint: Text('Choisir un type...', style: GoogleFonts.outfit(fontSize: 13, color: AppTheme.textMuted)),
-                  items: _wasteTypesList.map((type) {
-                    final emoji = _wasteIcon(type);
-                    return DropdownMenuItem<String>(
-                      value: type,
-                      child: Text('$emoji $type', style: GoogleFonts.outfit(fontSize: 13, color: AppTheme.deepSlate)),
-                    );
-                  }).toList(),
-                  onChanged: onWasteTypeChanged,
-                  decoration: InputDecoration(
-                    filled: true,
-                    fillColor: const Color(0xFFF5F7FA),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          _field('Titre *', titleCtrl, hint: 'ex: Comment trier le plastique'),
-          _field('Consigne *', instructionCtrl, hint: 'Texte de la consigne locale...', maxLines: 4),
-
-          // Puces de règles de tri rapides (Presets)
-          Padding(
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-                            activeColor: const Color(0xFF6C3EB8),
-                            onChanged: (val) {
-                              setDlgState(() {
-                                if (val == true) {
-                                  selectedActorIds.add(id);
-                                } else {
-                                  selectedActorIds.remove(id);
-                                }
-                              });
-                            },
-                          );
-                        },
-                      ),
+                TextField(controller: nameCtrl, decoration: const InputDecoration(labelText: 'Nom du groupe *')),
+                const SizedBox(height: 8),
+                TextField(controller: descCtrl, decoration: const InputDecoration(labelText: 'Description')),
+                const SizedBox(height: 16),
+                Text('Membres du groupe', style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 14)),
+                const SizedBox(height: 8),
+                if (_actors.isEmpty)
+                  Text('Aucun acteur disponible', style: GoogleFonts.inter(color: Colors.grey))
+                else
+                  Container(
+                    height: 200,
+                    width: double.maxFinite,
+                    decoration: BoxDecoration(border: Border.all(color: Colors.grey.shade300), borderRadius: BorderRadius.circular(12)),
+                    child: ListView.builder(
+                      itemCount: _actors.length,
+                      itemBuilder: (context, idx) {
+                        final actor = _actors[idx];
+                        final id = actor['id'] as int;
+                        final name = actor['full_name'] ?? 'Acteur';
+                        final role = actor['role'] ?? '';
+                        final isChecked = selectedActorIds.contains(id);
+                        return CheckboxListTile(
+                          value: isChecked,
+                          title: Text(name, style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w600)),
+                          subtitle: Text(_roleLabel(role).toUpperCase(), style: GoogleFonts.inter(fontSize: 10, color: Colors.grey)),
+                          activeColor: const Color(0xFF6C3EB8),
+                          onChanged: (val) {
+                            setDlgState(() {
+                              if (val == true) {
+                                selectedActorIds.add(id);
+                              } else {
+                                selectedActorIds.remove(id);
+                              }
+                            });
+                          },
+                        );
+                      },
                     ),
-                ],
-              ),
+                  ),
+              ],
             ),
           ),
           actions: [
@@ -3025,9 +1815,7 @@ class _TabHeaderDelegate extends SliverPersistentHeaderDelegate {
               onPressed: () async {
                 final name = nameCtrl.text.trim();
                 if (name.isEmpty) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Le nom du groupe est obligatoire'), backgroundColor: Colors.red),
-                  );
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Le nom du groupe est obligatoire'), backgroundColor: Colors.red));
                   return;
                 }
                 final messenger = ScaffoldMessenger.of(context);
@@ -3035,10 +1823,7 @@ class _TabHeaderDelegate extends SliverPersistentHeaderDelegate {
                 if (jwt == null) return;
                 final res = await http.post(
                   Uri.parse('${AuthService.baseUrl}/intercommunality/custom-groups'),
-                  headers: {
-                    ..._headers(jwt),
-                    'Content-Type': 'application/json',
-                  },
+                  headers: _headers(jwt),
                   body: json.encode({
                     'name': name,
                     'description': descCtrl.text.trim(),
@@ -3048,18 +1833,110 @@ class _TabHeaderDelegate extends SliverPersistentHeaderDelegate {
                 if (res.statusCode == 201) {
                   _loadCustomGroups();
                   if (ctx.mounted) Navigator.pop(ctx);
-                  messenger.showSnackBar(
-                    const SnackBar(content: Text('✅ Groupe créé avec succès'), backgroundColor: Colors.green),
-                  );
+                  messenger.showSnackBar(const SnackBar(content: Text('✅ Groupe créé avec succès'), backgroundColor: Colors.green));
                 } else {
-                  messenger.showSnackBar(
-                    const SnackBar(content: Text('âŒ Erreur lors de la création du groupe'), backgroundColor: Colors.red),
-                  );
+                  messenger.showSnackBar(const SnackBar(content: Text('❌ Erreur lors de la création du groupe'), backgroundColor: Colors.red));
                 }
               },
               child: Text('Créer', style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold)),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _showCreateZoneDialog() async {
+    final result = await Navigator.push<Map<String, dynamic>>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => _CreateZoneMapPage(points: _points),
+      ),
+    );
+    if (result != null && mounted) {
+      _createZone(
+        result['name'] as String,
+        result['territory'] as String,
+        result['description'] as String,
+        result['color'] as Color,
+        pointIds: result['pointIds'] as List<int>,
+      );
+    }
+  }
+
+  Future<void> _showAssignCollectorDialog(Map<String, dynamic> zone) async {
+    if (_collectors.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Aucun collecteur disponible')));
+      return;
+    }
+    int? selectedCollectorId = _collectors.first['id'] as int?;
+    String priority = 'normal';
+    final msgCtrl = TextEditingController();
+
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setSt) => Container(
+          decoration: const BoxDecoration(color: Colors.white, borderRadius: BorderRadius.vertical(top: Radius.circular(28))),
+          padding: EdgeInsets.fromLTRB(24, 20, 24, MediaQuery.of(ctx).viewInsets.bottom + 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(2)))),
+              const SizedBox(height: 16),
+              Text('Affecter à : ${zone['name']}', style: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.w900)),
+              Text(zone['territory'] ?? '', style: GoogleFonts.outfit(color: AppTheme.textMuted, fontSize: 13)),
+              const SizedBox(height: 16),
+              Text('Collecteur', style: GoogleFonts.outfit(fontWeight: FontWeight.w700)),
+              const SizedBox(height: 6),
+              DropdownButtonFormField<int>(
+                value: selectedCollectorId,
+                decoration: InputDecoration(border: OutlineInputBorder(borderRadius: BorderRadius.circular(12))),
+                items: _collectors.map((c) => DropdownMenuItem<int>(
+                  value: c['id'] as int,
+                  child: Text(c['full_name'] ?? c['email'] ?? 'ID ${c['id']}'),
+                )).toList(),
+                onChanged: (v) => setSt(() => selectedCollectorId = v),
+              ),
+              const SizedBox(height: 10),
+              Text('Priorité', style: GoogleFonts.outfit(fontWeight: FontWeight.w700)),
+              const SizedBox(height: 6),
+              Row(
+                children: [
+                  _priorityChip('normal',  'Normal',  Colors.blue,   priority, (v) => setSt(() => priority = v)),
+                  const SizedBox(width: 8),
+                  _priorityChip('urgent',  'Urgent',  Colors.orange, priority, (v) => setSt(() => priority = v)),
+                ],
+              ),
+              const SizedBox(height: 10),
+              TextField(controller: msgCtrl, maxLines: 3, decoration: InputDecoration(labelText: 'Message de mission (optionnel)', border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)))),
+              const SizedBox(height: 20),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF1A6B3C),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  ),
+                  onPressed: () {
+                    if (selectedCollectorId == null) return;
+                    Navigator.pop(ctx);
+                    _createAssignment(
+                      zoneId: zone['id'],
+                      collectorId: selectedCollectorId!,
+                      message: msgCtrl.text.trim(),
+                      priority: priority,
+                    );
+                  },
+                  child: Text('Affecter le collecteur', style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 16)),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -3073,84 +1950,48 @@ class _TabHeaderDelegate extends SliverPersistentHeaderDelegate {
     await showDialog(
       context: context,
       builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setDlg) => AlertDialog(
+        builder: (ctx, setDlgState) => AlertDialog(
           title: Text('Notifier les acteurs', style: GoogleFonts.outfit(fontWeight: FontWeight.w900)),
           content: SingleChildScrollView(
-            child: Column(mainAxisSize: MainAxisSize.min, children: [
-              // Rôles cibles
-              Wrap(spacing: 8, children: [
-                for (final role in ['pointManager', 'collector', 'educator'])
-                  FilterChip(
-                    label: Text(_roleLabel(role), style: GoogleFonts.outfit(fontSize: 12)),
-                    selected: selectedRoles.contains(role),
-                    onSelected: (v) => setDlg(() => v ? selectedRoles.add(role) : selectedRoles.remove(role)),
-                    selectedColor: const Color(0xFF6C3EB8).withOpacity(0.15),
-                    checkmarkColor: const Color(0xFF6C3EB8),
-                  ),
-            width: double.maxFinite,
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  TextField(
-                    controller: nameCtrl,
-                    decoration: InputDecoration(
-                      labelText: 'Nom du groupe',
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: descCtrl,
-                    maxLines: 2,
-                    decoration: InputDecoration(
-                      labelText: 'Description',
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    'Membres du groupe',
-                    style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 14),
-                  ),
-                  const SizedBox(height: 8),
-                  if (_actors.isEmpty)
-                    Text('Aucun acteur disponible', style: GoogleFonts.inter(color: Colors.grey))
-                  else
-                    Container(
-                      height: 200,
-                      decoration: BoxDecoration(
-                        border: Border.all(color: Colors.grey.shade300),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: ListView.builder(
-                        itemCount: _actors.length,
-                        itemBuilder: (context, idx) {
-                          final actor = _actors[idx];
-                          final id = actor['id'] as int;
-                          final name = actor['full_name'] ?? 'Acteur';
-                          final role = actor['role'] ?? '';
-                          final isChecked = selectedActorIds.contains(id);
-                          return CheckboxListTile(
-                            value: isChecked,
-                            title: Text(name, style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w600)),
-                            subtitle: Text(role.toString().toUpperCase(), style: GoogleFonts.inter(fontSize: 10, color: Colors.grey)),
-                            activeColor: const Color(0xFF6C3EB8),
-                            onChanged: (val) {
-                              setDlgState(() {
-                                if (val == true) {
-                                  selectedActorIds.add(id);
-                                } else {
-                                  selectedActorIds.remove(id);
-                                }
-                              });
-                            },
-                          );
-                        },
-                      ),
-                    ),
-                ],
-              ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Rôles cibles', style: GoogleFonts.outfit(fontWeight: FontWeight.w700, fontSize: 13)),
+                const SizedBox(height: 6),
+                Wrap(
+                  spacing: 8,
+                  children: ['pointManager', 'collector', 'educator'].map((role) {
+                    final isSelected = selectedRoles.contains(role);
+                    return FilterChip(
+                      label: Text(_roleLabel(role), style: GoogleFonts.outfit(fontSize: 12, fontWeight: isSelected ? FontWeight.bold : FontWeight.normal)),
+                      selected: isSelected,
+                      onSelected: (v) {
+                        setDlgState(() {
+                          if (v) {
+                            selectedRoles.add(role);
+                          } else {
+                            selectedRoles.remove(role);
+                          }
+                        });
+                      },
+                      selectedColor: const Color(0xFF6C3EB8).withOpacity(0.15),
+                      checkmarkColor: const Color(0xFF6C3EB8),
+                    );
+                  }).toList(),
+                ),
+                const SizedBox(height: 14),
+                TextField(
+                  controller: titleCtrl,
+                  decoration: InputDecoration(labelText: 'Titre', border: OutlineInputBorder(borderRadius: BorderRadius.circular(12))),
+                ),
+                const SizedBox(height: 10),
+                TextField(
+                  controller: msgCtrl,
+                  maxLines: 4,
+                  decoration: InputDecoration(labelText: 'Message', border: OutlineInputBorder(borderRadius: BorderRadius.circular(12))),
+                ),
+              ],
             ),
           ),
           actions: [
@@ -3160,42 +2001,16 @@ class _TabHeaderDelegate extends SliverPersistentHeaderDelegate {
                 backgroundColor: const Color(0xFF6C3EB8),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               ),
-              onPressed: () async {
-                final name = nameCtrl.text.trim();
-                if (name.isEmpty) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Le nom du groupe est obligatoire'), backgroundColor: Colors.red),
-                  );
+              onPressed: () {
+                if (titleCtrl.text.trim().isEmpty || msgCtrl.text.trim().isEmpty) return;
+                if (selectedRoles.isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Veuillez sélectionner au moins un rôle'), backgroundColor: Colors.red));
                   return;
                 }
-                final messenger = ScaffoldMessenger.of(context);
-                final jwt = await _jwt();
-                if (jwt == null) return;
-                final res = await http.post(
-                  Uri.parse('${AuthService.baseUrl}/intercommunality/custom-groups'),
-                  headers: {
-                    ..._headers(jwt),
-                    'Content-Type': 'application/json',
-                  },
-                  body: json.encode({
-                    'name': name,
-                    'description': descCtrl.text.trim(),
-                    'member_ids': selectedActorIds.toList(),
-                  }),
-                );
-                if (res.statusCode == 201) {
-                  _loadCustomGroups();
-                  if (ctx.mounted) Navigator.pop(ctx);
-                  messenger.showSnackBar(
-                    const SnackBar(content: Text('âœ… Groupe crÃ©Ã© avec succÃ¨s'), backgroundColor: Colors.green),
-                  );
-                } else {
-                  messenger.showSnackBar(
-                    const SnackBar(content: Text('Ã¢ÂÅ’ Erreur lors de la crÃ©ation du groupe'), backgroundColor: Colors.red),
-                  );
-                }
+                Navigator.pop(ctx);
+                _notifyActors(selectedRoles.toList(), titleCtrl.text.trim(), msgCtrl.text.trim());
               },
-              child: Text('CrÃ©er', style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold)),
+              child: Text('Envoyer', style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold)),
             ),
           ],
         ),
@@ -3203,7 +2018,747 @@ class _TabHeaderDelegate extends SliverPersistentHeaderDelegate {
     );
   }
 
-  Future<void> _showNotifyActorsDialog() async {
-    final selectedRoles = <String>{'pointManager', 'collector', 'educator'};
-    final titleCtrl = TextEditingController();
-    final msgCtrl = TextEditingController();
+  Future<void> _showAssignMissionDialog() async {
+    if (_collectors.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Aucun collecteur disponible')));
+      return;
+    }
+
+    String targetType = 'points'; // 'zone' or 'points'
+    final Set<int> selectedPointIds = {};
+    int? selectedZoneId     = _zones.isNotEmpty ? _zones.first['id'] as int? : null;
+    int? selectedCollectorId = _collectors.isNotEmpty ? _collectors.first['id'] as int? : null;
+    String priority          = 'normal';
+    String pointSearch       = '';
+    final msgCtrl            = TextEditingController();
+
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setSt) {
+          final filteredPoints = pointSearch.isEmpty
+              ? _points
+              : _points.where((p) {
+                  final name = (p['name'] ?? '').toLowerCase();
+                  final addr = (p['address'] ?? '').toLowerCase();
+                  return name.contains(pointSearch.toLowerCase()) ||
+                         addr.contains(pointSearch.toLowerCase());
+                }).toList();
+
+          return Container(
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+            ),
+            padding: EdgeInsets.fromLTRB(24, 20, 24, MediaQuery.of(ctx).viewInsets.bottom + 24),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(2)))),
+                  const SizedBox(height: 16),
+                  Text('Affecter une mission', style: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.w900)),
+                  const SizedBox(height: 16),
+
+                  // ── Type de cible ──────────────────────────────────
+                  Text('Cible de la mission', style: GoogleFonts.outfit(fontWeight: FontWeight.w700)),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: () => setSt(() => targetType = 'points'),
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 200),
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            decoration: BoxDecoration(
+                              color: targetType == 'points' ? const Color(0xFF1A6B3C) : Colors.grey.shade100,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: targetType == 'points' ? const Color(0xFF1A6B3C) : Colors.grey.shade300),
+                            ),
+                            child: Column(
+                              children: [
+                                Icon(Icons.location_city_rounded, size: 22, color: targetType == 'points' ? Colors.white : Colors.grey),
+                                const SizedBox(height: 4),
+                                Text('Centres de tri', style: GoogleFonts.outfit(fontSize: 12, fontWeight: FontWeight.w700, color: targetType == 'points' ? Colors.white : Colors.grey)),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: () => setSt(() => targetType = 'zone'),
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 200),
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            decoration: BoxDecoration(
+                              color: targetType == 'zone' ? const Color(0xFF1A6B3C) : Colors.grey.shade100,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: targetType == 'zone' ? const Color(0xFF1A6B3C) : Colors.grey.shade300),
+                            ),
+                            child: Column(
+                              children: [
+                                Icon(Icons.map_rounded, size: 22, color: targetType == 'zone' ? Colors.white : Colors.grey),
+                                const SizedBox(height: 4),
+                                Text('Zone existante', style: GoogleFonts.outfit(fontSize: 12, fontWeight: FontWeight.w700, color: targetType == 'zone' ? Colors.white : Colors.grey)),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+
+                  // ── Mode Zone ─────────────────────────────────────
+                  if (targetType == 'zone') ...[
+                    Text('Sélectionner la zone', style: GoogleFonts.outfit(fontWeight: FontWeight.w700)),
+                    const SizedBox(height: 6),
+                    if (_zones.isEmpty)
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(color: Colors.orange.shade50, borderRadius: BorderRadius.circular(10)),
+                        child: Row(children: [
+                          Icon(Icons.info_outline, color: Colors.orange.shade700, size: 16),
+                          const SizedBox(width: 8),
+                          Expanded(child: Text('Aucune zone disponible. Créez-en une d\'abord.', style: GoogleFonts.outfit(fontSize: 12, color: Colors.orange.shade800))),
+                        ]),
+                      )
+                    else
+                      DropdownButtonFormField<int>(
+                        value: selectedZoneId,
+                        decoration: InputDecoration(
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                        ),
+                        items: _zones.map((z) => DropdownMenuItem<int>(
+                          value: z['id'] as int,
+                          child: Text('${z['name']} · ${z['territory'] ?? ''}', style: GoogleFonts.outfit(fontSize: 13)),
+                        )).toList(),
+                        onChanged: (v) => setSt(() => selectedZoneId = v),
+                      ),
+                  ],
+
+                  // ── Mode Centres (multi-checkbox) ──────────────────
+                  if (targetType == 'points') ...[
+                    Row(
+                      children: [
+                        Text('Centres de tri', style: GoogleFonts.outfit(fontWeight: FontWeight.w700)),
+                        const Spacer(),
+                        if (selectedPointIds.isNotEmpty)
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF1A6B3C),
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: Text('${selectedPointIds.length} sélectionné(s)', style: GoogleFonts.outfit(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w700)),
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    // Barre de recherche
+                    TextField(
+                      decoration: InputDecoration(
+                        hintText: 'Rechercher un centre…',
+                        hintStyle: GoogleFonts.outfit(fontSize: 13, color: Colors.grey),
+                        prefixIcon: const Icon(Icons.search_rounded, size: 18, color: Colors.grey),
+                        isDense: true,
+                        contentPadding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+                        filled: true,
+                        fillColor: Colors.grey.shade100,
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                      ),
+                      onChanged: (v) => setSt(() => pointSearch = v),
+                    ),
+                    const SizedBox(height: 8),
+                    // Liste checkbox
+                    if (_points.isEmpty)
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(color: Colors.red.shade50, borderRadius: BorderRadius.circular(10)),
+                        child: Text('Aucun centre de tri disponible.', style: GoogleFonts.outfit(color: Colors.red.shade700, fontSize: 12)),
+                      )
+                    else
+                      Container(
+                        constraints: const BoxConstraints(maxHeight: 260),
+                        decoration: BoxDecoration(
+                          border: Border.all(color: Colors.grey.shade200),
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(14),
+                          child: ListView.separated(
+                            shrinkWrap: true,
+                            itemCount: filteredPoints.length,
+                            separatorBuilder: (_, __) => Divider(height: 1, color: Colors.grey.shade100),
+                            itemBuilder: (_, i) {
+                              final p = filteredPoints[i];
+                              final id = p['id'] as int;
+                              final isChecked = selectedPointIds.contains(id);
+                              return InkWell(
+                                onTap: () => setSt(() {
+                                  if (isChecked) { selectedPointIds.remove(id); }
+                                  else { selectedPointIds.add(id); }
+                                }),
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                                  child: Row(
+                                    children: [
+                                      AnimatedContainer(
+                                        duration: const Duration(milliseconds: 180),
+                                        width: 22, height: 22,
+                                        decoration: BoxDecoration(
+                                          color: isChecked ? const Color(0xFF1A6B3C) : Colors.transparent,
+                                          borderRadius: BorderRadius.circular(6),
+                                          border: Border.all(
+                                            color: isChecked ? const Color(0xFF1A6B3C) : Colors.grey.shade400,
+                                            width: 1.5,
+                                          ),
+                                        ),
+                                        child: isChecked
+                                            ? const Icon(Icons.check_rounded, color: Colors.white, size: 14)
+                                            : null,
+                                      ),
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Text(p['name'] ?? '', style: GoogleFonts.outfit(fontSize: 13, fontWeight: FontWeight.w600, color: const Color(0xFF1E293B))),
+                                            if (p['address'] != null)
+                                              Text(p['address'], style: GoogleFonts.outfit(fontSize: 11, color: Colors.grey.shade500), maxLines: 1, overflow: TextOverflow.ellipsis),
+                                          ],
+                                        ),
+                                      ),
+                                      if (p['status'] != null)
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                                          decoration: BoxDecoration(
+                                            color: p['status'] == 'disponible' ? Colors.green.shade50 : Colors.orange.shade50,
+                                            borderRadius: BorderRadius.circular(6),
+                                          ),
+                                          child: Text(
+                                            p['status'] == 'disponible' ? '✓' : '⚠',
+                                            style: TextStyle(fontSize: 11, color: p['status'] == 'disponible' ? Colors.green.shade700 : Colors.orange.shade700),
+                                          ),
+                                        ),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                      ),
+                  ],
+                  const SizedBox(height: 16),
+
+                  // ── Collecteur ────────────────────────────────────
+                  Text('Collecteur', style: GoogleFonts.outfit(fontWeight: FontWeight.w700)),
+                  const SizedBox(height: 6),
+                  DropdownButtonFormField<int>(
+                    value: selectedCollectorId,
+                    decoration: InputDecoration(
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                      prefixIcon: const Icon(Icons.local_shipping_rounded, size: 18, color: Color(0xFF1A6B3C)),
+                    ),
+                    items: _collectors.map((c) => DropdownMenuItem<int>(
+                      value: c['id'] as int,
+                      child: Text(c['full_name'] ?? c['email'] ?? 'ID ${c['id']}', style: GoogleFonts.outfit(fontSize: 13)),
+                    )).toList(),
+                    onChanged: (v) => setSt(() => selectedCollectorId = v),
+                  ),
+                  const SizedBox(height: 14),
+
+                  // ── Priorité ──────────────────────────────────────
+                  Text('Priorité', style: GoogleFonts.outfit(fontWeight: FontWeight.w700)),
+                  const SizedBox(height: 6),
+                  Row(
+                    children: [
+                      _priorityChip('normal', 'Normal', Colors.blue, priority, (v) => setSt(() => priority = v)),
+                      const SizedBox(width: 8),
+                      _priorityChip('urgent', '🚨 Urgent', Colors.red.shade600, priority, (v) => setSt(() => priority = v)),
+                    ],
+                  ),
+                  const SizedBox(height: 14),
+
+                  // ── Message ───────────────────────────────────────
+                  TextField(
+                    controller: msgCtrl,
+                    maxLines: 3,
+                    decoration: InputDecoration(
+                      labelText: 'Message de mission (optionnel)',
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+
+                  // ── Bouton Affecter ───────────────────────────────
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF1A6B3C),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                      ),
+                      icon: const Icon(Icons.check_circle_rounded, color: Colors.white, size: 20),
+                      label: Text('Affecter la mission', style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 15)),
+                      onPressed: () {
+                        // Validation
+                        if (targetType == 'points' && selectedPointIds.isEmpty) {
+                          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Sélectionnez au moins un centre de tri'), backgroundColor: Colors.red));
+                          return;
+                        }
+                        if (targetType == 'zone' && selectedZoneId == null) {
+                          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Sélectionnez une zone'), backgroundColor: Colors.red));
+                          return;
+                        }
+                        if (selectedCollectorId == null) {
+                          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Sélectionnez un collecteur'), backgroundColor: Colors.red));
+                          return;
+                        }
+                        Navigator.pop(ctx);
+                        _createAssignment(
+                          zoneId:             targetType == 'zone'   ? selectedZoneId : null,
+                          collectionPointIds: targetType == 'points' ? selectedPointIds.toList() : null,
+                          collectorId:        selectedCollectorId,
+                          message:            msgCtrl.text.trim(),
+                          priority:           priority,
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+
+  Widget _priorityChip(String value, String label, Color color, String current, void Function(String) onTap) {
+    final selected = current == value;
+    return GestureDetector(
+      onTap: () => onTap(value),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          color: selected ? color : Colors.grey.shade100,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: selected ? color : Colors.grey.shade300),
+        ),
+        child: Text(
+          label,
+          style: GoogleFonts.outfit(fontSize: 13, fontWeight: FontWeight.w700, color: selected ? Colors.white : AppTheme.textMuted),
+        ),
+      ),
+    );
+  }
+
+  // ── Utils & Helper Methods ───────────────────────────────────────────────
+  String _formatRelativeTime(String dateStr) {
+    try {
+      final dt = DateTime.parse(dateStr).toLocal();
+      final now = DateTime.now();
+      final diff = now.difference(dt);
+      if (diff.inSeconds < 60) return "À l'instant";
+      if (diff.inMinutes < 60) return 'Il y a ${diff.inMinutes} min';
+      if (diff.inHours < 24) return 'Il y a ${diff.inHours} h';
+      if (diff.inDays < 7) return 'Il y a ${diff.inDays} j';
+      return '${dt.day}/${dt.month}/${dt.year}';
+    } catch (_) {
+      return '';
+    }
+  }
+
+  String _roleLabel(String role) {
+    switch (role) {
+      case 'pointManager': return 'Gestionnaire';
+      case 'collector':    return 'Collecteur';
+      case 'educator':     return 'Éducateur';
+      default:             return role;
+    }
+  }
+
+}
+
+class _TabHeaderDelegate extends SliverPersistentHeaderDelegate {
+  final TabBar tabBar;
+  const _TabHeaderDelegate(this.tabBar);
+
+  @override
+  double get minExtent => tabBar.preferredSize.height;
+  @override
+  double get maxExtent => tabBar.preferredSize.height;
+
+  @override
+  Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
+    return Container(color: Colors.white, child: tabBar);
+  }
+
+  @override
+  bool shouldRebuild(_TabHeaderDelegate oldDelegate) => false;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Page plein-écran : création d'une zone avec carte OSM intégrée
+// ─────────────────────────────────────────────────────────────────────────────
+class _CreateZoneMapPage extends StatefulWidget {
+  final List<Map<String, dynamic>> points;
+  const _CreateZoneMapPage({required this.points});
+
+  @override
+  State<_CreateZoneMapPage> createState() => _CreateZoneMapPageState();
+}
+
+class _CreateZoneMapPageState extends State<_CreateZoneMapPage> {
+  final _nameCtrl  = TextEditingController();
+  final _terrCtrl  = TextEditingController();
+  final _descCtrl  = TextEditingController();
+  final _mapCtrl   = MapController();
+  Color _zoneColor = Colors.green;
+  final Set<int> _selectedIds = {};
+  bool _mapOnline         = false;
+  bool _checkingConnectivity = true;
+
+  static const _colors = [Colors.green, Colors.blue, Colors.orange, Colors.purple, Colors.red];
+
+  @override
+  void initState() {
+    super.initState();
+    _checkConnectivity();
+  }
+
+  @override
+  void dispose() {
+    _nameCtrl.dispose();
+    _terrCtrl.dispose();
+    _descCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _checkConnectivity() async {
+    try {
+      final s = await Socket.connect('tile.openstreetmap.org', 80,
+          timeout: const Duration(seconds: 3));
+      s.destroy();
+      if (mounted) setState(() { _mapOnline = true; _checkingConnectivity = false; });
+    } catch (_) {
+      if (mounted) setState(() => _checkingConnectivity = false);
+    }
+  }
+
+  void _submit() {
+    final name = _nameCtrl.text.trim();
+    final terr = _terrCtrl.text.trim();
+    if (name.isEmpty || terr.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(
+          name.isEmpty ? '⚠️ Nom de la zone obligatoire' : '⚠️ Territoire obligatoire',
+          style: GoogleFonts.inter(fontWeight: FontWeight.w600),
+        ),
+        backgroundColor: Colors.red.shade700,
+        behavior: SnackBarBehavior.floating,
+        duration: const Duration(seconds: 2),
+      ));
+      return;
+    }
+    Navigator.pop(context, {
+      'name':        name,
+      'territory':   terr,
+      'description': _descCtrl.text.trim(),
+      'color':       _zoneColor,
+      'pointIds':    _selectedIds.toList(),
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFFF5F7FA),
+      appBar: AppBar(
+        title: Text('Nouvelle zone de collecte',
+            style: GoogleFonts.outfit(fontWeight: FontWeight.w900, color: Colors.white, fontSize: 17)),
+        backgroundColor: const Color(0xFF1A6B3C),
+        foregroundColor: Colors.white,
+        elevation: 0,
+        actions: [
+          Padding(
+            padding: const EdgeInsets.only(right: 12, top: 8, bottom: 8),
+            child: ElevatedButton(
+              onPressed: _submit,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.white,
+                foregroundColor: const Color(0xFF1A6B3C),
+                elevation: 0,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+              ),
+              child: Text('Créer', style: GoogleFonts.outfit(fontWeight: FontWeight.w800, fontSize: 14)),
+            ),
+          ),
+        ],
+      ),
+      body: Column(
+        children: [
+          // ── Bande de formulaire compacte ───────────────────────────────
+          Container(
+            color: Colors.white,
+            padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Nom + Territoire en ligne
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: _nameCtrl,
+                        decoration: InputDecoration(
+                          labelText: 'Nom *',
+                          labelStyle: GoogleFonts.inter(fontSize: 12),
+                          prefixIcon: const Icon(Icons.map_outlined, size: 16),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                          isDense: true,
+                        ),
+                        style: GoogleFonts.inter(fontSize: 13),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: TextField(
+                        controller: _terrCtrl,
+                        decoration: InputDecoration(
+                          labelText: 'Territoire *',
+                          labelStyle: GoogleFonts.inter(fontSize: 12),
+                          prefixIcon: const Icon(Icons.public_rounded, size: 16),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                          isDense: true,
+                        ),
+                        style: GoogleFonts.inter(fontSize: 13),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                // Couleur + badge sélectionnés
+                Row(
+                  children: [
+                    Text('Couleur :', style: GoogleFonts.outfit(fontWeight: FontWeight.w700, fontSize: 12)),
+                    const SizedBox(width: 8),
+                    ..._colors.map((c) {
+                      final sel = _zoneColor == c;
+                      return GestureDetector(
+                        onTap: () => setState(() => _zoneColor = c),
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 150),
+                          margin: const EdgeInsets.only(right: 6),
+                          width: 24, height: 24,
+                          decoration: BoxDecoration(
+                            color: c,
+                            shape: BoxShape.circle,
+                            border: sel ? Border.all(color: Colors.black87, width: 2) : null,
+                            boxShadow: sel ? [BoxShadow(color: c.withOpacity(0.5), blurRadius: 6)] : null,
+                          ),
+                          child: sel ? const Icon(Icons.check, color: Colors.white, size: 13) : null,
+                        ),
+                      );
+                    }),
+                    const Spacer(),
+                    if (_selectedIds.isNotEmpty)
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF1A6B3C),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.location_on_rounded, color: Colors.white, size: 12),
+                            const SizedBox(width: 4),
+                            Text('${_selectedIds.length} centre(s)',
+                                style: GoogleFonts.inter(fontSize: 11, color: Colors.white, fontWeight: FontWeight.w600)),
+                          ],
+                        ),
+                      ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          // ── Carte ou liste hors-ligne ───────────────────────────────
+          Expanded(
+            child: _checkingConnectivity
+                ? const Center(child: CircularProgressIndicator(color: Color(0xFF1A6B3C)))
+                : _mapOnline
+                    ? _buildMap()
+                    : _buildOfflineList(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMap() {
+    return Stack(
+      children: [
+        FlutterMap(
+          mapController: _mapCtrl,
+          options: const MapOptions(
+            initialCenter: LatLng(36.8065, 10.1815),
+            initialZoom: 8.0,
+            minZoom: 5,
+            maxZoom: 18,
+          ),
+          children: [
+            TileLayer(
+              urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+              userAgentPackageName: 'com.ecorewind.app',
+              tileProvider: CancellableNetworkTileProvider(),
+              errorTileCallback: (tile, error, stackTrace) {},
+            ),
+            MarkerLayer(
+              markers: widget.points
+                  .where((p) => p['lat'] != null && p['lng'] != null)
+                  .map((p) {
+                final id  = p['id'] as int? ?? 0;
+                final lat = (p['lat'] as num).toDouble();
+                final lng = (p['lng'] as num).toDouble();
+                final sel = _selectedIds.contains(id);
+                return Marker(
+                  point: LatLng(lat, lng),
+                  width: 46,
+                  height: 46,
+                  child: GestureDetector(
+                    onTap: () => setState(() {
+                      if (sel) { _selectedIds.remove(id); } else { _selectedIds.add(id); }
+                    }),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      decoration: BoxDecoration(
+                        color: sel ? const Color(0xFF1A6B3C) : Colors.white,
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: sel ? const Color(0xFF1A6B3C) : Colors.grey.shade400,
+                          width: 2.5,
+                        ),
+                        boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 8, offset: Offset(0, 3))],
+                      ),
+                      child: Icon(
+                        sel ? Icons.check_rounded : Icons.delete_outline_rounded,
+                        color: sel ? Colors.white : Colors.grey.shade500,
+                        size: 22,
+                      ),
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
+          ],
+        ),
+        // Tooltip d'instruction
+        Positioned(
+          top: 12, left: 0, right: 0,
+          child: Center(
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 7),
+              decoration: BoxDecoration(
+                color: Colors.black.withOpacity(0.68),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.touch_app_rounded, color: Colors.white70, size: 14),
+                  const SizedBox(width: 6),
+                  Text('Tapez un marqueur pour l\'inclure dans la zone',
+                      style: GoogleFonts.inter(color: Colors.white, fontSize: 12)),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildOfflineList() {
+    if (widget.points.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.location_off_rounded, size: 48, color: Colors.grey.shade400),
+            const SizedBox(height: 12),
+            Text('Aucun centre de tri disponible',
+                style: GoogleFonts.inter(color: Colors.grey, fontSize: 14)),
+          ],
+        ),
+      );
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          width: double.infinity,
+          color: Colors.amber.shade50,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          child: Row(
+            children: [
+              Icon(Icons.wifi_off_rounded, size: 14, color: Colors.amber.shade800),
+              const SizedBox(width: 6),
+              Text('Mode hors-ligne — sélection par liste',
+                  style: GoogleFonts.inter(fontSize: 12, color: Colors.amber.shade800)),
+            ],
+          ),
+        ),
+        Expanded(
+          child: ListView.separated(
+            padding: const EdgeInsets.symmetric(vertical: 4),
+            itemCount: widget.points.length,
+            separatorBuilder: (_, __) => Divider(height: 1, color: Colors.grey.shade200),
+            itemBuilder: (_, i) {
+              final pt  = widget.points[i];
+              final id  = pt['id'] as int? ?? 0;
+              final sel = _selectedIds.contains(id);
+              return CheckboxListTile(
+                value: sel,
+                activeColor: const Color(0xFF1A6B3C),
+                title: Text(pt['name'] ?? 'Centre #$id',
+                    style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600)),
+                subtitle: pt['address'] != null
+                    ? Text(pt['address'].toString(),
+                        style: GoogleFonts.inter(fontSize: 11, color: Colors.grey.shade600),
+                        maxLines: 1, overflow: TextOverflow.ellipsis)
+                    : null,
+                secondary: Container(
+                  width: 8, height: 8,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: pt['is_verified'] == true ? Colors.green : Colors.orange,
+                  ),
+                ),
+                onChanged: (v) => setState(() {
+                  if (v == true) { _selectedIds.add(id); } else { _selectedIds.remove(id); }
+                }),
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+}

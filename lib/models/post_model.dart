@@ -97,9 +97,9 @@ final List<Post> mockPosts = [
   Post(
     id: '1',
     userName: 'Amine T.',
-    userAvatarUrl: 'https://images.unsplash.com/photo-1599566150163-29194dcaad36?w=100&h=100&fit=crop',
+    userAvatarUrl: '',
     timeAgo: 'Il y a 2h',
-    imageUrl: 'https://images.unsplash.com/photo-1532996122724-e3c354a0b15b?w=800&q=80',
+    imageUrl: '',
     description:
         'Je viens de recycler 5kg de plastique ! Pensez à rincer vos bouteilles avant de les jeter. #EcoVie #Recyclage',
     likes: 24,
@@ -110,9 +110,9 @@ final List<Post> mockPosts = [
   Post(
     id: '2',
     userName: 'Sarah B.',
-    userAvatarUrl: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&h=100&fit=crop',
+    userAvatarUrl: '',
     timeAgo: 'Il y a 4h',
-    imageUrl: 'https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?w=800&q=80',
+    imageUrl: '',
     description:
         'J\'ai commencé mon premier bac à compost aujourd\'hui ! 🌱 C\'est incroyable tout ce qu\'on peut réduire comme déchets.',
     likes: 45,
@@ -123,7 +123,7 @@ final List<Post> mockPosts = [
   Post(
     id: '3',
     userName: 'Collectif Vert',
-    userAvatarUrl: 'https://images.unsplash.com/photo-1554151228-14d9def656e4?w=100&h=100&fit=crop',
+    userAvatarUrl: '',
     timeAgo: 'Hier',
     imageUrl:
         'https://media.istockphoto.com/id/1156692026/fr/vectoriel/b%C3%A9n%C3%A9voles-ramassant-les-ordures-en-plastique-%C3%A0-lext%C3%A9rieur-concept-de-volontariat.jpg?s=612x612&w=0&k=20&c=yRbJL49HMH_KYLDcRq7ehn5DWNMRiP87sms-WYpGBDU=',
@@ -137,9 +137,9 @@ final List<Post> mockPosts = [
   Post(
     id: '4',
     userName: 'Utilisateur Test',
-    userAvatarUrl: 'https://images.unsplash.com/photo-1599566150163-29194dcaad36?w=100&h=100&fit=crop',
+    userAvatarUrl: '',
     timeAgo: 'Il y a 1h',
-    imageUrl: 'https://images.unsplash.com/photo-1557683316-973673baf926?w=800&q=80',
+    imageUrl: '',
     description: 'Description suspecte bloquée par l\'IA.',
     status: PostStatus.rejectedByAI,
   ),

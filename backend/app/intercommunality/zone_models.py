@@ -39,27 +39,39 @@ class CollectorZone(Base):
 
 class CollectorZoneAssignment(Base):
     """
-    Affectation d'un collecteur à une zone.
+    Affectation d'un collecteur ou groupe à une zone ou centre de tri.
     Cycle de vie : pending → in_progress → done | cancelled
     """
     __tablename__ = "collector_zone_assignments"
 
     id              = Column(Integer, primary_key=True, index=True)
     zone_id         = Column(Integer, ForeignKey("collector_zones.id", ondelete="CASCADE"),
-                             nullable=False, index=True)
-    collector_id    = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+                             nullable=True, index=True)
+    collection_point_id = Column(Integer, ForeignKey("collection_points.id", ondelete="CASCADE"),
+                                 nullable=True, index=True)
+    collector_id    = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)
+    group_id        = Column(Integer, ForeignKey("custom_actor_groups.id", ondelete="CASCADE"),
+                             nullable=True, index=True)
     assigned_by     = Column(Integer, ForeignKey("users.id"), nullable=False)
 
-    mission_message = Column(Text, nullable=True)
-    priority        = Column(String, default="normal")  # normal | urgent
-    status          = Column(String, default="pending", index=True)
+    mission_message      = Column(Text, nullable=True)
+    priority             = Column(String, default="normal")  # normal | urgent
+    status               = Column(String, default="pending", index=True)
     # pending → in_progress → done | cancelled
+
+    # Affectation directe à plusieurs centres (sans zone)
+    # Stockage JSON : "[1, 3, 7]" — liste d'IDs de collection_points
+    collection_point_ids = Column(Text, nullable=True)
+    # Label lisible automatiquement généré : "CR Bardo + CR Manouba"
+    target_label         = Column(String(200), nullable=True)
 
     due_date        = Column(DateTime, nullable=True)
     assigned_at     = Column(DateTime, default=datetime.utcnow, index=True)
     completed_at    = Column(DateTime, nullable=True)
     collector_notes = Column(Text, nullable=True)  # notes laissées par le collecteur
 
-    zone      = relationship("CollectorZone", back_populates="assignments")
-    collector = relationship("User", foreign_keys=[collector_id])
-    assigner  = relationship("User", foreign_keys=[assigned_by])
+    zone             = relationship("CollectorZone", back_populates="assignments")
+    collection_point = relationship("CollectionPoint")
+    collector        = relationship("User", foreign_keys=[collector_id])
+    group            = relationship("CustomActorGroup")
+    assigner         = relationship("User", foreign_keys=[assigned_by])

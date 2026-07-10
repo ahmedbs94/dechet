@@ -11,6 +11,7 @@ import '../../widgets/auth_prompt_dialog.dart';
 import '../../models/user_model.dart';
 import '../../services/l10n_service.dart';
 import 'quiz_play_screen.dart';
+import '../../widgets/app_states.dart';
 
 // Écran principal gérant l'affichage des contenus éducatifs (Vidéos, Articles, Quiz)
 class MultimediaTab extends StatefulWidget {
@@ -134,35 +135,41 @@ class _MultimediaTabState extends State<MultimediaTab> {
           // En-tête Premium
           SliverAppBar(
             automaticallyImplyLeading: false,
-            expandedHeight: 180,
-            floating: false,
             pinned: true,
-            backgroundColor: AppTheme.primaryGreen,
+            floating: false,
+            expandedHeight: 110 + MediaQuery.of(context).padding.top,
+            backgroundColor: Theme.of(context).colorScheme.surface,
+            surfaceTintColor: Colors.transparent,
+            elevation: 0,
             flexibleSpace: FlexibleSpaceBar(
-              titlePadding: const EdgeInsets.only(left: 24, bottom: 16),
-              title: Text(L10n.tr('tab_multimedia_title'), style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 24, color: Colors.white)),
-              background: Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [Colors.teal.shade700, Colors.teal.shade400],
-                  ),
-                ),
-                child: Stack(
-                  children: [
-                    Positioned(
-                      right: -30,
-                      top: -30,
-                      child: Icon(Icons.school_rounded, size: 160, color: Colors.white.withOpacity(0.1)),
+              titlePadding: const EdgeInsets.fromLTRB(20, 0, 20, 14),
+              title: Row(
+                children: [
+                  Container(
+                    width: 28, height: 28,
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(colors: [AppTheme.primaryGreen, AppTheme.accentTeal]),
+                      borderRadius: BorderRadius.circular(8),
                     ),
-                    Positioned(
-                      left: 24,
-                      bottom: 60,
-                      child: Text('Apprendre. Agir. Transformer.', style: GoogleFonts.inter(color: Colors.white.withOpacity(0.9), fontSize: 13, fontWeight: FontWeight.w500)),
-                    )
-                  ],
-                ),
+                    child: const Icon(Icons.school_rounded, color: Colors.white, size: 16),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    L10n.tr('tab_multimedia_title'),
+                    style: GoogleFonts.outfit(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w900,
+                      color: Theme.of(context).textTheme.titleLarge?.color ?? const Color(0xFF0F172A),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            bottom: PreferredSize(
+              preferredSize: const Size.fromHeight(1),
+              child: Container(
+                height: 1,
+                color: Theme.of(context).dividerColor,
               ),
             ),
           ),
@@ -178,7 +185,7 @@ class _MultimediaTabState extends State<MultimediaTab> {
           // Loading globaux
           if (!_quizzesLoaded || !_videosLoaded)
             const SliverFillRemaining(
-              child: Center(child: CircularProgressIndicator(color: AppTheme.primaryGreen)),
+              child: AppLoadingView(message: "Chargement du contenu pédagogique..."),
             )
           else ...[
             // ── Séances Google Meet ──────────────────────────────────────
@@ -770,13 +777,13 @@ class _CategoryDetailPageState extends State<_CategoryDetailPage> {
             child: Text(_description, style: GoogleFonts.inter(fontSize: 13, color: AppTheme.textMuted, height: 1.5)),
           )),
         if (_loading)
-          const SliverFillRemaining(child: Center(child: CircularProgressIndicator(color: AppTheme.primaryGreen)))
+          const SliverFillRemaining(child: AppLoadingView(message: "Chargement des vidéos..."))
         else if (_videos.isEmpty)
-          SliverFillRemaining(child: Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
-            Icon(Icons.video_library_outlined, size: 48, color: Colors.grey.shade300),
-            const SizedBox(height: 12),
-            Text('Aucune vidéo dans ce dossier', style: GoogleFonts.inter(color: AppTheme.textMuted)),
-          ])))
+          SliverFillRemaining(child: AppEmptyView(
+            title: L10n.tr('Aucune vidéo'),
+            description: L10n.tr('Aucune vidéo disponible dans ce dossier pour le moment.'),
+            icon: Icons.video_library_outlined,
+          ))
         else
           SliverList(delegate: SliverChildBuilderDelegate(
             (ctx, i) {

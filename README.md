@@ -72,22 +72,28 @@ EcoRewind/
 
 ### Décisions de modération
 
-| Résultat | Score | Action |
-|----------|-------|--------|
-| ✅ **Publié** | < 0.30 | Visible immédiatement dans le feed |
-| ⏳ **En attente admin** | 0.30 – 0.65 | Envoyé dans la file de validation admin |
-| ❌ **Rejeté automatiquement** | ≥ 0.65 | Refusé — notification à l'utilisateur |
+| Résultat | Score IA | Action |
+|----------|----------|--------|
+| ✅ **Publié automatiquement** | < 0.30 | Visible immédiatement dans le feed |
+| ⌛ **Envoyé à l'admin** | ≥ 0.30 | File de validation — l'admin approuve ou rejette |
 
-### Politique de modération
+> **Politique prudente** : L'IA ne rejette **jamais** automatiquement une publication.
+> Même un contenu NSFW ou toxique est envoyé en file d'attente admin.
+> Cette approche évite les faux positifs qui supprimeraient du contenu citoyen légitime.
+> Le rejet définitif est toujours une décision humaine.
 
-- **Contenu hors-sujet** (sport, mode, cuisine, politique…) → `pending_review` (validation admin)
-- **Contenu toxique** (insultes, discours haineux) → `rejected` (automatique)
-- **Contenu NSFW** (nudité, violence explicite) → `rejected` (automatique)
-- **Contenu éco-pertinent** → `published` (automatique)
+### Politique de modération par catégorie
+
+| Type de contenu | Décision IA | Décision finale |
+|-----------------|-------------|------------------|
+| 🌿 **Éco-pertinent** (nettoyage, recyclage, jardinage…) | `published` auto | Visible immédiatement |
+| ⚽ **Hors-sujet** (sport, mode, cuisine, politique…) | `pending_review` | Admin arbitre |
+| 🔔 **Toxique** (insultes, discours haineux) | `pending_review` | Admin arbitre |
+| 🚫 **NSFW** (nudité, violence explicite) | `pending_review` | Admin arbitre |
 
 ### Alertes utilisateur catégorisées (10 catégories)
 
-Chaque rejet ou mise en attente affiche un message précis selon la catégorie détectée :
+Chaque mise en attente affiche un message précis selon la catégorie détectée :
 `Mode & Beauté`, `Sport`, `Politique`, `Finance`, `Santé`, `Éducation`,
 `Divertissement`, `Cuisine`, `Voyage`, `Technologie`
 

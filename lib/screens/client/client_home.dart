@@ -16,6 +16,7 @@ import '../admin/collector_tab.dart';
 import '../admin/intercommunality_tab.dart';
 import '../admin/point_manager_tab.dart';
 import '../admin/educator_tab.dart';
+import '../messaging/messaging_screen.dart';
 import '../../theme/app_theme.dart';
 import '../../theme/platform_ui.dart';
 import '../../layouts/web_shell.dart';
@@ -70,13 +71,13 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
     // Index de l'onglet Profil selon le rôle
     int profileIndex;
     if (role == UserRole.educator) {
-      profileIndex = 1;
+      profileIndex = 2; // [Educateur, Messages, Profil]
     } else if (role == UserRole.user) {
-      profileIndex = 5;
+      profileIndex = 6; // [Feed, Multimedia, Rewards, Map, Community, Messages, Profil]
     } else if (role == UserRole.intercommunality ||
                role == UserRole.pointManager ||
                role == UserRole.collector) {
-      profileIndex = 2; // [EspaceMetier, Carte, Profil]
+      profileIndex = 3; // [EspaceMetier, Messages, Carte, Profil]
     } else {
       profileIndex = 4;
     }
@@ -95,38 +96,42 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
     }
 
     switch (role) {
-      // ── Rôle Éducateur : 2 onglets uniquement (Éducateur, Profil) ──
+      // ── Rôle Éducateur : 3 onglets (Espace Éducateur + Messages + Profil) ──
       case UserRole.educator:
         return [
           const EducatorTab(key: ValueKey('educator')),
+          const MessagingScreen(key: ValueKey('messaging')),
           ProfileTab(key: _profileKey),
         ];
 
-      // ── Rôle Collecteur : Espace Collecteur + Carte + Profil (sans Fil ni Impact) ──
+      // ── Rôle Collecteur : Espace Métier + Messages + Carte + Profil ──
       case UserRole.collector:
         return [
           const CollectorTab(key: ValueKey('collector')),
+          const MessagingScreen(key: ValueKey('messaging')),
           const MapTab(key: ValueKey('map')),
           ProfileTab(key: _profileKey),
         ];
 
-      // ── Rôle Intercommunalité : 3 fonctions + Carte + Profil (sans Fil ni Impact) ──
+      // ── Rôle Intercommunalité : Espace Métier + Messages + Carte + Profil ──
       case UserRole.intercommunality:
         return [
           const IntercommunalityTab(key: ValueKey('intercommunality')),
+          const MessagingScreen(key: ValueKey('messaging')),
           const MapTab(key: ValueKey('map')),
           ProfileTab(key: _profileKey),
         ];
 
-      // ── Rôle Gestionnaire : Signalements + Carte + Profil (sans Fil ni Impact) ──
+      // ── Rôle Gestionnaire : Signalements + Messages + Carte + Profil ──
       case UserRole.pointManager:
         return [
           const PointManagerTab(key: ValueKey('pointmanager')),
+          const MessagingScreen(key: ValueKey('messaging')),
           const MapTab(key: ValueKey('map')),
           ProfileTab(key: _profileKey),
         ];
 
-      // ── Rôle Citoyen (user) : 6 onglets avec Communauté ──
+      // ── Rôle Citoyen (user) : 6 onglets avec Communauté + Messages ──
       case UserRole.user:
         return [
           const FeedTab(key: ValueKey('feed')),
@@ -134,6 +139,7 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
           const RewardsTab(key: ValueKey('rewards')),
           const MapTab(key: ValueKey('map')),
           const CommunityScreen(key: ValueKey('community')),
+          const MessagingScreen(key: ValueKey('messaging')),
           ProfileTab(key: _profileKey),
         ];
 
@@ -144,6 +150,7 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
           const RewardsTab(key: ValueKey('rewards')),
           const MapTab(key: ValueKey('map')),
           const CommunityScreen(key: ValueKey('community')),
+          const MessagingScreen(key: ValueKey('messaging')),
           ProfileTab(key: _profileKey),
         ];
     }
@@ -187,27 +194,28 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
       ];
     }
 
-    // ── Éducateur : 2 onglets (pas de Fil, pas d'Impact ni de Carte) ──
+    // ── Éducateur : 3 onglets (Espace Métier + Messages + Profil) ──
     if (role == UserRole.educator) {
       return [
         NavigationDestination(icon: _proTabIcon(role), label: _proTabLabel(role)),
+        const NavigationDestination(icon: Icon(Icons.forum_rounded, size: 22), label: 'Messages'),
         NavigationDestination(icon: const FaIcon(FontAwesomeIcons.user, size: 20), label: L10n.tr('tab_profile')),
       ];
     }
 
-    // ── Intercommunalité / Gestionnaire / Collecteur : 3 onglets ciblés ──
-    // Pas de Fil ni d'Impact — uniquement espace métier + Carte + Profil
+    // ── Intercommunalité / Gestionnaire / Collecteur : 4 onglets avec Messages ──
     if (role == UserRole.intercommunality ||
         role == UserRole.pointManager ||
         role == UserRole.collector) {
       return [
         NavigationDestination(icon: _proTabIcon(role), label: _proTabLabel(role)),
+        const NavigationDestination(icon: Icon(Icons.forum_rounded, size: 22), label: 'Messages'),
         NavigationDestination(icon: const FaIcon(FontAwesomeIcons.mapLocationDot, size: 20), label: L10n.tr('tab_map')),
         NavigationDestination(icon: const FaIcon(FontAwesomeIcons.user, size: 20), label: L10n.tr('tab_profile')),
       ];
     }
 
-    // ── Citoyen : 6 onglets avec Communauté ──
+    // ── Citoyen : 7 onglets avec Communauté + Messages ──
     if (role == UserRole.user) {
       return [
         NavigationDestination(icon: const FaIcon(FontAwesomeIcons.house, size: 20), label: L10n.tr('tab_feed')),
@@ -215,16 +223,18 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
         NavigationDestination(icon: const FaIcon(FontAwesomeIcons.chartLine, size: 20), label: L10n.tr('tab_rewards')),
         NavigationDestination(icon: const FaIcon(FontAwesomeIcons.mapLocationDot, size: 20), label: L10n.tr('tab_map')),
         NavigationDestination(icon: const FaIcon(FontAwesomeIcons.comments, size: 20), label: L10n.tr('tab_community')),
+        const NavigationDestination(icon: Icon(Icons.forum_rounded, size: 22), label: 'Messages'),
         NavigationDestination(icon: const FaIcon(FontAwesomeIcons.user, size: 20), label: L10n.tr('tab_profile')),
       ];
     }
 
-    // Admin et autres : 5 onglets standard
+    // Admin et autres : 5 onglets standard + Messages
     return [
       NavigationDestination(icon: const FaIcon(FontAwesomeIcons.house, size: 20), label: L10n.tr('tab_feed')),
       NavigationDestination(icon: _proTabIcon(role), label: _proTabLabel(role)),
       NavigationDestination(icon: const FaIcon(FontAwesomeIcons.chartLine, size: 20), label: L10n.tr('tab_rewards')),
       NavigationDestination(icon: const FaIcon(FontAwesomeIcons.mapLocationDot, size: 20), label: L10n.tr('tab_map')),
+      const NavigationDestination(icon: Icon(Icons.forum_rounded, size: 22), label: 'Messages'),
       NavigationDestination(icon: const FaIcon(FontAwesomeIcons.user, size: 20), label: L10n.tr('tab_profile')),
     ];
   }

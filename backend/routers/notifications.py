@@ -198,7 +198,28 @@ async def update_fcm_token(
     success = register_fcm_token(db, current_user.id, request.token)
     if not success:
         raise HTTPException(status_code=500, detail="Impossible d'enregistrer le token FCM")
-    return {"message": "Token FCM enregistré avec succès"}
+    return {"message": "Token FCM enregistré avec succès", "user_id": current_user.id}
+
+
+@router.get("/fcm-status")
+async def fcm_status(
+    db: Session = Depends(get_db),
+    current_user: db_models.User = Depends(get_current_user),
+):
+    """
+    Diagnostic : vérifie si le token FCM de l'utilisateur courant est enregistré en base.
+    Accessible depuis Swagger pour tester les push notifications.
+    """
+    has_token = bool(current_user.fcm_token)
+    return {
+        "user_id": current_user.id,
+        "user_name": current_user.full_name,
+        "role": current_user.role,
+        "has_fcm_token": has_token,
+        "fcm_token_preview": (current_user.fcm_token or "")[:30] + "..." if has_token else None,
+        "message": "Token FCM présent - les push devraient fonctionner." if has_token
+                   else "Aucun token FCM. Reconnectez-vous depuis l'app mobile pour enregistrer le token.",
+    }
 
 
 @router.post("/broadcast")

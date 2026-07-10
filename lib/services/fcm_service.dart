@@ -11,6 +11,7 @@ import 'notification_service.dart';
 import '../main.dart' show navigatorKey;
 import '../services/auth_service.dart';
 import '../screens/client/post_detail_screen.dart';
+import '../screens/messaging/messaging_screen.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Canal de notification Android partagé
@@ -109,13 +110,18 @@ class FcmService {
   static Future<void> onUserLoggedIn() async {
     if (kIsWeb) return;
     try {
+      // Étape 0 : effacer le cache du token envoyé pour FORCER le renvoi
+      // (le backend peut avoir perdu le token après un vidage de BDD ou une migration)
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove('fcm_last_sent_token');
+
       // Étape 1 : récupérer le token FCM avec retry
       // getToken() peut retourner null si les permissions viennent d'être
       // accordées et que Firebase n'a pas encore généré le token.
       String? token;
       for (int attempt = 1; attempt <= 5; attempt++) {
         token = await FirebaseMessaging.instance.getToken();
-        debugPrint('[FCM] getToken() tentative $attempt : ${token != null ? token.substring(0, 20) + "..." : "null"}');
+        debugPrint('[FCM] getToken() tentative $attempt : ${token != null ? '${token.substring(0, 20)}...' : 'null'}');
         if (token != null) break;
         await Future.delayed(const Duration(seconds: 2));
       }
@@ -401,18 +407,67 @@ class FcmService {
     }
   }
 
-  // ── Récupère le token et l'envoie au backend ─────────────────────────────
+  // ── Récupère le token et l'envoie au backend (avec retry différé) ──────────
+  // Le token FCM est prêt dès le démarrage, mais le JWT peut ne pas encore
+  // être disponible si la session est en cours de restauration.
+  // On réessaie jusqu'à 3 fois avec un délai croissant.
   Future<void> _getAndSendToken() async {
     try {
       final token = await _messaging.getToken();
-      if (token != null) {
-        debugPrint('[FCM] Token: ${token.substring(0, 20)}...');
-        await _sendTokenToBackend(token);
+      if (token == null) {
+        debugPrint('[FCM] Token null — Firebase pas encore prêt');
+        return;
       }
+      debugPrint('[FCM] Token: ${token.substring(0, 20)}...');
+
+      // Vérifier si le token a changé depuis le dernier envoi
+      final prefs = await SharedPreferences.getInstance();
+      final lastSentToken = prefs.getString('fcm_last_sent_token');
+      final jwt = prefs.getString('jwt_token');
+
+      if (jwt == null) {
+        // JWT pas encore disponible → réessayer après 3s puis 6s
+        debugPrint('[FCM] JWT absent au démarrage → retry dans 3s');
+        _scheduleTokenRetry(token);
+        return;
+      }
+
+      if (lastSentToken == token) {
+        // Token identique et déjà envoyé → pas besoin de renvoyer
+        debugPrint('[FCM] Token inchangé, pas d\'envoi nécessaire');
+        return;
+      }
+
+      await _sendTokenToBackend(token);
     } catch (e) {
       debugPrint('[FCM] Erreur récupération token: $e');
     }
   }
+
+  // ── Retry différé pour envoyer le token quand le JWT est disponible ────────
+  void _scheduleTokenRetry(String token) {
+    Future.delayed(const Duration(seconds: 3), () async {
+      final prefs = await SharedPreferences.getInstance();
+      final jwt = prefs.getString('jwt_token');
+      if (jwt != null) {
+        debugPrint('[FCM] Retry token (3s) — JWT disponible');
+        await _sendTokenToBackend(token);
+      } else {
+        // Deuxième retry après 6s supplémentaires
+        Future.delayed(const Duration(seconds: 6), () async {
+          final prefs2 = await SharedPreferences.getInstance();
+          final jwt2 = prefs2.getString('jwt_token');
+          if (jwt2 != null) {
+            debugPrint('[FCM] Retry token (9s) — JWT disponible');
+            await _sendTokenToBackend(token);
+          } else {
+            debugPrint('[FCM] Token non envoyé après 2 retries (utilisateur non connecté)');
+          }
+        });
+      }
+    });
+  }
+
 
   // ── Envoie le token au backend FastAPI ───────────────────────────────────
   Future<void> _sendTokenToBackend(String token) async {
@@ -433,7 +488,9 @@ class FcmService {
       ).timeout(const Duration(seconds: 10));
 
       if (response.statusCode == 200) {
-        debugPrint('[FCM] ✅ Token enregistré sur le backend');
+        debugPrint('[FCM] Token enregistré sur le backend');
+        // Sauvegarder le token envoyé pour éviter les doublons
+        await prefs.setString('fcm_last_sent_token', token);
       } else {
         debugPrint('[FCM] Erreur backend: ${response.statusCode}');
       }
@@ -482,19 +539,66 @@ class FcmService {
 
   // ── Navigation intelligente depuis un payload (tap local ou FCM) ─────────
   void _navigateFromPayload(Map<String, dynamic> data) {
-    final postIdRaw = data['post_id'];
-    final type = data['type'] ?? '';
-    debugPrint('[FCM] Navigation → type=$type, post_id=$postIdRaw');
+    final postIdRaw       = data['post_id'];
+    final assignmentIdRaw = data['assignment_id'];
+    final type            = data['type'] ?? '';
+    final partnerIdRaw    = data['partner_id'] ?? data['sender_id'];
+    final partnerName     = data['sender_name'] as String? ?? 'Message';
+    final groupIdRaw      = data['group_id'];
+    final groupName       = data['group_name'] as String? ?? 'Groupe';
+    debugPrint('[FCM] Navigation → type=$type, partner=$partnerIdRaw');
 
     final context = navigatorKey.currentContext;
     if (context == null) return;
+
+    // ── Message direct → ouvrir la conversation ───────────────────────────
+    if (type == 'message') {
+      final partnerId = int.tryParse(partnerIdRaw?.toString() ?? '');
+      if (partnerId != null) {
+        Navigator.of(context).push(MaterialPageRoute(
+          builder: (_) => DirectChatRoute(
+            partnerId: partnerId,
+            partnerName: partnerName,
+          ),
+        ));
+        return;
+      }
+    }
+
+    // ── Message de groupe → ouvrir la conversation groupe ─────────────────
+    if (type == 'group_message') {
+      final groupId = int.tryParse(groupIdRaw?.toString() ?? '');
+      if (groupId != null) {
+        Navigator.of(context).push(MaterialPageRoute(
+          builder: (_) => GroupChatRoute(
+            groupId: groupId,
+            groupName: groupName,
+          ),
+        ));
+        return;
+      }
+    }
+
+    // ── Notification de mission (assignment) → Carte mission ─────────────
+    if (type == 'assignment' || type == 'collector_assignment') {
+      final assignmentId = int.tryParse(assignmentIdRaw?.toString() ?? '');
+      if (assignmentId != null && assignmentId > 0) {
+        Navigator.of(context).pushNamed(
+          '/mission-map',
+          arguments: {'assignment_id': assignmentId},
+        );
+        return;
+      }
+      // Fallback si pas d'ID
+      Navigator.of(context).pushNamed('/notifications');
+      return;
+    }
 
     // Types liés à l'intercommunalité → écran Notifications
     const intercommunalityTypes = {
       'intercommunality_message',
       'intercommunality_group_message',
       'actor_reply',
-      'assignment',
     };
     if (intercommunalityTypes.contains(type)) {
       Navigator.of(context).pushNamed('/notifications');
@@ -512,6 +616,7 @@ class FcmService {
     // Fallback : ouvrir l'écran des notifications
     Navigator.of(context).pushNamed('/notifications');
   }
+
 
   // ── Ouvre directement la publication depuis l'API ────────────────────────
   Future<void> _openPost(BuildContext context, int postId) async {

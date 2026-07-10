@@ -48,7 +48,7 @@ class PostOut(PostBase):
     created_at: datetime
     likes_count: int
     # Statut de modération IA
-    status: str = "pending_ai"
+    status: str = "pending_review"
     # Champs d'audit IA
     moderation_score: float = 0.0
     moderation_reason: Optional[str] = None

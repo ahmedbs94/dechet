@@ -205,11 +205,12 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                   // Enregistrer token FCM après MFA
                   FcmService.onUserLoggedIn();
 
-                  if (!mounted) return;
+                  if (!context.mounted) return;
+                  final nav = Navigator.of(context);
                   if (AuthState.isAdmin) {
-                    Navigator.pushReplacementNamed(context, '/admin');
+                    nav.pushReplacementNamed('/admin');
                   } else {
-                    Navigator.pushReplacementNamed(context, '/home');
+                    nav.pushReplacementNamed('/home');
                   }
                 } else {
                   setDialogState(() {

@@ -29,6 +29,29 @@ class SafeNetworkImage extends StatelessWidget {
   Widget build(BuildContext context) {
     if (url.isEmpty) return placeholder ?? const SizedBox.shrink();
 
+    if (url.contains('unsplash.com')) {
+      // Évite les SocketException hors-ligne en servant des dégradés premium locaux
+      final int hash = url.hashCode.abs();
+      final List<List<Color>> gradients = [
+        [const Color(0xFF0D5C3A), const Color(0xFF10B981)], // Vert Éco / Émeraude
+        [const Color(0xFF1E3A8A), const Color(0xFF0D9488)], // Bleu Profond / Cyan
+        [const Color(0xFF311042), const Color(0xFF6C3EB8)], // Violet Royal / Améthyste
+        [const Color(0xFF0F172A), const Color(0xFF334155)], // Ardoise / Anthracite
+      ];
+      final List<Color> colors = gradients[hash % gradients.length];
+      return placeholder ?? Container(
+        width: width,
+        height: height,
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: colors,
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+        ),
+      );
+    }
+
     // Calcul du cacheWidth optimal basé sur la densité d'écran
     // (évite le flou sur les écrans haute densité)
     final double dpr = MediaQuery.of(context).devicePixelRatio;

@@ -25,7 +25,7 @@ class CollectionRouteUpdate(BaseModel):
 # ── Complétion ────────────────────────────────────────────────────────────────
 
 class RouteComplete(BaseModel):
-    total_weight_kg: Optional[str] = Field(None, description="Poids total collecté en kg")
+    total_weight_kg: Optional[float] = Field(None, description="Poids total collecté en kg")
     notes:           Optional[str] = Field(None, description="Observations de fin de tournée")
 
 
@@ -40,7 +40,7 @@ class CollectionRouteOut(BaseModel):
     point_ids:       Optional[List[int]] = None
     points_details:  Optional[List[dict]] = None  # [{id, name, address, status}]
     notes:           Optional[str] = None
-    total_weight_kg: Optional[str] = None
+    total_weight_kg: Optional[float] = None
     completed_at:    Optional[datetime] = None
     created_at:      Optional[datetime] = None
 

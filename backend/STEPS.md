@@ -78,10 +78,20 @@ POST /posts
               │
               ▼
 ┌─────────────────────────────────────────────────────────┐
-│  DÉCISION FINALE                                        │
-│  score < 0.30  → published       (auto-publié)          │
-│  0.30 ≤ s < 0.65 → pending_review (admin review)        │
-│  score ≥ 0.65  → rejected        (auto-rejeté, HTTP 422)│
+│  DÉCISION DU MODÈLE IA (eco_moderator.py)               │
+│  score < 0.30  → published       (approuvé)             │
+│  score ≥ 0.30  → pending_review  (signalé)               │
+│  score ≥ 0.65  → rejected        (verdict IA interne)    │
+└─────────────────────────────────────────────────────────┘
+               │
+               ▾  posts.py (_run_ai_moderation)
+┌─────────────────────────────────────────────────────────┐
+│  DÉCISION FINALE (politique prudente)                   │
+│  published      → published   (visible dans le feed)    │
+│  pending_review → pending_review (file admin)           │
+│  rejected       → pending_review (jamais auto-rejeté)  │
+│                                                         │
+│  L'admin est seul à pouvoir rejeter définitivement.    │
 └─────────────────────────────────────────────────────────┘
 ```
 

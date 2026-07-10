@@ -110,3 +110,7 @@ show_errors.ps1
 backend/test_login.py
 backend/test_backend_endpoints.py
 backend/list_users.py
+
+# Dev scratch and temp files
+backend/scratch/
+git_show_file.txt

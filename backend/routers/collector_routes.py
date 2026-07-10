@@ -140,7 +140,7 @@ async def collector_dashboard(
 
     # Tonnage total collecté (ce mois)
     tonnage_raw = (
-        db.query(func.sum(CollectorLog.poids_avant))
+        db.query(func.sum(CollectorLog.weight_before_kg))
         .filter(
             CollectorLog.collector_id == current_user.id,
             CollectorLog.collected_at >= since_30,
@@ -532,8 +532,8 @@ async def collector_logs(
         "bin_collections": [
             {
                 "id":           log.id,
-                "bin_id":       log.bin_id,
-                "poids_avant":  float(log.poids_avant or 0.0),
+                "bin_id":       log.smart_bin_id,
+                "poids_avant":  float(log.weight_before_kg or 0.0),
                 "collected_at": log.collected_at.isoformat() if log.collected_at else None,
             }
             for log in logs
@@ -543,7 +543,7 @@ async def collector_logs(
             "total_bin_collections": len(logs),
             "total_routes":          len(routes),
             "total_weight_kg":       round(
-                sum(float(log.poids_avant or 0.0) for log in logs), 2
+                sum(float(log.weight_before_kg or 0.0) for log in logs), 2
             ),
         },
     }

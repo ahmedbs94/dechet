@@ -1103,7 +1103,8 @@ async def list_assignments(
     db: Session = Depends(get_db),
     current_user: db_models.User = Depends(_require_intercommunality),
 ):
-    """Liste toutes les affectations, enrichies avec les noms de zone/collecteur."""
+    """Liste toutes les affectations, enrichies avec noms de zone/collecteur et coords des centres."""
+    import json as _json
     q = db.query(CollectorZoneAssignment)
     if status:
         q = q.filter(CollectorZoneAssignment.status == status)
@@ -1113,27 +1114,128 @@ async def list_assignments(
 
     result = []
     for a in assignments:
-        zone      = db.query(CollectorZone).filter(CollectorZone.id == a.zone_id).first()
+        zone      = db.query(CollectorZone).filter(CollectorZone.id == a.zone_id).first() if a.zone_id else None
         collector = db.query(db_models.User).filter(db_models.User.id == a.collector_id).first()
         assigner  = db.query(db_models.User).filter(db_models.User.id == a.assigned_by).first()
+
+        # Enrichir avec les données des centres de tri (pour la carte mission)
+        collection_points_data = []
+        if a.collection_point_ids:
+            try:
+                point_ids = _json.loads(a.collection_point_ids)
+                from app.collection_points.models import CollectionPoint
+                for pid in point_ids:
+                    pt = db.query(CollectionPoint).filter(CollectionPoint.id == pid).first()
+                    if pt:
+                        collection_points_data.append({
+                            "id":      pt.id,
+                            "name":    pt.name,
+                            "lat":     pt.lat,
+                            "lng":     pt.lng,
+                            "address": pt.address,
+                            "status":  pt.status,
+                        })
+            except Exception:
+                pass
+
         result.append({
-            "id":              a.id,
-            "zone_id":         a.zone_id,
-            "zone_name":       zone.name if zone else None,
-            "zone_territory":  zone.territory if zone else None,
-            "zone_color":      zone.color_hex if zone else None,
-            "collector_id":    a.collector_id,
-            "collector_name":  collector.full_name if collector else None,
-            "collector_email": collector.email if collector else None,
-            "assigned_by":     a.assigned_by,
-            "assigner_name":   assigner.full_name if assigner else None,
-            "mission_message": a.mission_message,
-            "priority":        a.priority,
-            "status":          a.status,
-            "due_date":        a.due_date,
-            "assigned_at":     a.assigned_at,
-            "completed_at":    a.completed_at,
-            "collector_notes": a.collector_notes,
+            "id":                     a.id,
+            "zone_id":                a.zone_id,
+            "zone_name":              zone.name if zone else None,
+            "zone_territory":         zone.territory if zone else None,
+            "zone_color":             zone.color_hex if zone else None,
+            "collection_point_ids":   a.collection_point_ids,
+            "target_label":           a.target_label,
+            "collection_points_data": collection_points_data,
+            "collector_id":           a.collector_id,
+            "collector_name":         collector.full_name if collector else None,
+            "collector_email":        collector.email if collector else None,
+            "assigned_by":            a.assigned_by,
+            "assigner_name":          assigner.full_name if assigner else None,
+            "mission_message":        a.mission_message,
+            "priority":               a.priority,
+            "status":                 a.status,
+            "due_date":               a.due_date,
+            "assigned_at":            a.assigned_at,
+            "completed_at":           a.completed_at,
+            "collector_notes":        a.collector_notes,
+        })
+    return result
+
+
+# ── Endpoint collecteur : mes missions ───────────────────────────────────────
+
+@router.get(
+    "/my-assignments",
+    summary="[Collecteur] Mes missions assignées",
+)
+async def get_my_assignments(
+    status: Optional[str] = Query(None, description="pending|in_progress|done|cancelled"),
+    db: Session = Depends(get_db),
+    current_user: db_models.User = Depends(get_current_user),
+):
+    """
+    Retourne les affectations du collecteur connecté.
+    Accessible par les rôles : collector, intercommunality, admin, superadmin.
+    Enrichi avec les coordonnées des centres de tri pour la carte.
+    """
+    import json as _json
+    from app.collection_points.models import CollectionPoint
+
+    # Filtrer selon le rôle — un collecteur ne voit que ses missions
+    allowed = {"collector", "intercommunality", "admin", "superadmin"}
+    if current_user.role not in allowed:
+        raise HTTPException(status_code=403, detail="Accès réservé aux collecteurs")
+
+    q = db.query(CollectorZoneAssignment).filter(
+        CollectorZoneAssignment.collector_id == current_user.id
+    )
+    if status:
+        q = q.filter(CollectorZoneAssignment.status == status)
+
+    assignments = q.order_by(CollectorZoneAssignment.assigned_at.desc()).all()
+
+    result = []
+    for a in assignments:
+        zone = db.query(CollectorZone).filter(CollectorZone.id == a.zone_id).first() if a.zone_id else None
+        assigner = db.query(db_models.User).filter(db_models.User.id == a.assigned_by).first()
+
+        # Construire la liste des centres avec coordonnées
+        collection_points_data = []
+        if a.collection_point_ids:
+            try:
+                point_ids = _json.loads(a.collection_point_ids)
+                for pid in point_ids:
+                    pt = db.query(CollectionPoint).filter(CollectionPoint.id == pid).first()
+                    if pt:
+                        collection_points_data.append({
+                            "id":      pt.id,
+                            "name":    pt.name,
+                            "lat":     float(pt.lat) if pt.lat is not None else None,
+                            "lng":     float(pt.lng) if pt.lng is not None else None,
+                            "address": pt.address,
+                            "status":  pt.status,
+                            "load_level": float(pt.load_level) if pt.load_level is not None else 0.0,
+                        })
+            except Exception:
+                pass
+
+        result.append({
+            "id":                     a.id,
+            "zone_id":                a.zone_id,
+            "zone_name":              zone.name if zone else None,
+            "zone_color":             zone.color_hex if zone else "#4CAF50",
+            "target_label":           a.target_label,
+            "collection_point_ids":   a.collection_point_ids,
+            "collection_points_data": collection_points_data,
+            "assigner_name":          assigner.full_name if assigner else None,
+            "mission_message":        a.mission_message,
+            "priority":               a.priority,
+            "status":                 a.status,
+            "due_date":               a.due_date.isoformat() if a.due_date else None,
+            "assigned_at":            a.assigned_at.isoformat() if a.assigned_at else None,
+            "completed_at":           a.completed_at.isoformat() if a.completed_at else None,
+            "collector_notes":        a.collector_notes,
         })
     return result
 
@@ -1141,18 +1243,59 @@ async def list_assignments(
 @router.post(
     "/assignments",
     status_code=201,
-    summary="[F5] Affecter un collecteur à une zone",
+    summary="[F5] Affecter un collecteur ou groupe à une zone ou centre",
 )
 async def create_assignment(
     data: CollectorZoneAssignmentCreate,
     db: Session = Depends(get_db),
     current_user: db_models.User = Depends(_require_intercommunality),
 ):
-    """Crée une affectation et envoie une notification push au collecteur."""
-    zone = db.query(CollectorZone).filter(CollectorZone.id == data.zone_id).first()
-    if not zone:
-        raise HTTPException(status_code=404, detail="Zone introuvable")
+    """Crée une affectation (zone OU centres directs) et envoie une notification push."""
+    import json as _json
+    from app.collection_points.models import CollectionPoint
 
+    zone = None
+    target_label = None
+    notif_title  = ""
+    notif_body   = ""
+    point_ids_json = None
+
+    # ── Mode 1 : Affectation à une zone existante ───────────────────────────
+    if data.zone_id is not None:
+        zone = db.query(CollectorZone).filter(CollectorZone.id == data.zone_id).first()
+        if not zone:
+            raise HTTPException(status_code=404, detail="Zone introuvable")
+        target_label = zone.name
+        priority_label = (data.priority or "normal").upper()
+        notif_title  = f"[⚠️ MISSION {priority_label}] Zone : {zone.name}"
+        notif_body   = data.mission_message or f"Vous êtes affecté à la zone '{zone.name}' ({zone.territory})."
+
+    # ── Mode 2 : Affectation directe à des centres de tri ──────────────────
+    elif data.collection_point_ids:
+        ids = data.collection_point_ids
+        points = db.query(CollectionPoint).filter(CollectionPoint.id.in_(ids)).all()
+        if not points:
+            raise HTTPException(status_code=404, detail="Aucun centre de tri trouvé pour ces IDs")
+        found_ids   = [p.id for p in points]
+        point_names = [p.name for p in points]
+        # Générer un label lisible : "CR Bardo + CR Manouba"
+        target_label    = " + ".join(point_names[:3]) + ("…" if len(point_names) > 3 else "")
+        point_ids_json  = _json.dumps(found_ids)
+        priority_label  = (data.priority or "normal").upper()
+        notif_title     = f"[⚠️ MISSION {priority_label}] {target_label}"
+        notif_body      = data.mission_message or f"Mission : {target_label}"
+
+    # ── Rétro-compat : ancien champ singulier collection_point_id ───────────
+    elif data.collection_point_id is not None:
+        pt = db.query(CollectionPoint).filter(CollectionPoint.id == data.collection_point_id).first()
+        if not pt:
+            raise HTTPException(status_code=404, detail="Centre de tri introuvable")
+        target_label   = pt.name
+        point_ids_json = _json.dumps([pt.id])
+        notif_title    = f"[⚠️ MISSION] {pt.name}"
+        notif_body     = data.mission_message or f"Mission au centre : {pt.name}"
+
+    # Vérification du collecteur
     collector = db.query(db_models.User).filter(
         db_models.User.id == data.collector_id,
         db_models.User.role == "collector",
@@ -1162,7 +1305,11 @@ async def create_assignment(
 
     assignment = CollectorZoneAssignment(
         zone_id=data.zone_id,
+        collection_point_id=data.collection_point_id,
+        collection_point_ids=point_ids_json,
+        target_label=target_label,
         collector_id=data.collector_id,
+        group_id=data.group_id,
         assigned_by=current_user.id,
         mission_message=data.mission_message,
         priority=data.priority or "normal",
@@ -1172,47 +1319,145 @@ async def create_assignment(
     db.add(assignment)
     db.flush()
 
-    # Notification in-app au collecteur
-    try:
-        import db_models as dbm
-        notif = dbm.Notification(
-            user_id        = collector.id,
-            sender_id      = current_user.id,
-            type           = "collector_assignment",
-            title          = f"[⚠️ MISSION {data.priority.upper()}] Zone : {zone.name}",
-            body           = data.mission_message or f"Vous êtes affecté à la zone '{zone.name}' ({zone.territory}).",
-            from_user_name = current_user.full_name,
-            is_read        = False,
-        )
-        db.add(notif)
-    except Exception:
-        pass  # Non bloquant
+    # Target info for notifications
+    target_name = target_label or "Mission"
+    target_type = "Zone" if data.zone_id is not None else "Centre"
 
-    # FCM push notification
-    try:
-        from services.notification_service import send_push_to_user
-        send_push_to_user(
-            db=db,
-            user_id=collector.id,
-            title=f"Nouvelle mission — {zone.name}",
-            body=data.mission_message or f"Zone : {zone.territory}",
-            data={"type": "collector_assignment", "zone_id": str(data.zone_id),
-                  "assignment_id": str(assignment.id)},
-        )
-    except Exception:
-        pass  # Non bloquant
+    # Collect list of user IDs to notify
+    notify_user_ids = []
+    if collector:
+        notify_user_ids.append(collector.id)
+    elif data.group_id:
+        group = db.query(CustomActorGroup).filter(CustomActorGroup.id == data.group_id).first()
+        if group:
+            try:
+                mids = group.member_ids if isinstance(group.member_ids, list) else _json.loads(group.member_ids)
+                notify_user_ids.extend([int(x) for x in mids])
+            except Exception:
+                pass
+
+    # Send notifications
+    for uid in notify_user_ids:
+        try:
+            import db_models as dbm
+            notif = dbm.Notification(
+                user_id        = uid,
+                sender_id      = current_user.id,
+                type           = "assignment",
+                title          = notif_title,
+                body           = notif_body,
+                from_user_name = current_user.full_name,
+                is_read        = False,
+            )
+            db.add(notif)
+        except Exception:
+            pass
+
+        # FCM push notification
+        try:
+            from services.notification_service import send_push_to_user
+            send_push_to_user(
+                db=db,
+                user_id=uid,
+                title=notif_title,
+                body=notif_body,
+                data={
+                    "type":          "assignment",
+                    "assignment_id": str(assignment.id),
+                    "zone_id":       str(data.zone_id or ""),
+                    "target_label":  target_label or "",
+                },
+            )
+        except Exception:
+            pass
 
     db.commit()
     db.refresh(assignment)
 
     return {
-        "id":              assignment.id,
-        "zone_name":       zone.name,
-        "collector_name":  collector.full_name,
-        "status":          assignment.status,
-        "priority":        assignment.priority,
-        "assigned_at":     assignment.assigned_at,
-        "message":         f"Collecteur '{collector.full_name}' affecté à la zone '{zone.name}'",
+        "id":             assignment.id,
+        "target_label":   target_label,
+        "collector_name": collector.full_name if collector else None,
+        "status":         assignment.status,
+        "priority":       assignment.priority,
+        "assigned_at":    assignment.assigned_at,
+        "message":        f"Affectation créée pour la mission sur '{target_name}'",
+    }
+
+
+
+@router.get(
+    "/assignments/{assignment_id}",
+    summary="[F5/Collecteur] Détail d'une affectation",
+)
+async def get_assignment(
+    assignment_id: int,
+    db: Session = Depends(get_db),
+    current_user: db_models.User = Depends(get_current_user),
+):
+    """
+    Retourne le détail d'une affectation avec les coordonnées des centres.
+    Accessible par intercommunality/admin ou par le collecteur concerné.
+    """
+    import json as _json
+    from app.collection_points.models import CollectionPoint
+
+    a = db.query(CollectorZoneAssignment).filter(
+        CollectorZoneAssignment.id == assignment_id
+    ).first()
+    if not a:
+        raise HTTPException(status_code=404, detail="Affectation introuvable")
+
+    # Autorisation : intercommunality/admin OU collecteur concerné
+    allowed_roles = {"intercommunality", "admin", "superadmin"}
+    if current_user.role not in allowed_roles:
+        if current_user.role == "collector" and a.collector_id != current_user.id:
+            raise HTTPException(status_code=403, detail="Non autorisé")
+        elif current_user.role not in {"collector"}:
+            raise HTTPException(status_code=403, detail="Non autorisé")
+
+    zone = db.query(CollectorZone).filter(CollectorZone.id == a.zone_id).first() if a.zone_id else None
+    collector = db.query(db_models.User).filter(db_models.User.id == a.collector_id).first()
+    assigner = db.query(db_models.User).filter(db_models.User.id == a.assigned_by).first()
+
+    collection_points_data = []
+    if a.collection_point_ids:
+        try:
+            point_ids = _json.loads(a.collection_point_ids)
+            for pid in point_ids:
+                pt = db.query(CollectionPoint).filter(CollectionPoint.id == pid).first()
+                if pt:
+                    collection_points_data.append({
+                        "id":      pt.id,
+                        "name":    pt.name,
+                        "lat":     float(pt.lat) if pt.lat is not None else None,
+                        "lng":     float(pt.lng) if pt.lng is not None else None,
+                        "address": pt.address,
+                        "status":  pt.status,
+                        "load_level": float(pt.load_level) if pt.load_level is not None else 0.0,
+                    })
+        except Exception:
+            pass
+
+    return {
+        "id":                     a.id,
+        "zone_id":                a.zone_id,
+        "zone_name":              zone.name if zone else None,
+        "zone_color":             zone.color_hex if zone else "#4CAF50",
+        "target_label":           a.target_label,
+        "collection_point_ids":   a.collection_point_ids,
+        "collection_points_data": collection_points_data,
+        "collector_id":           a.collector_id,
+        "collector_name":         collector.full_name if collector else None,
+        "assigned_by":            a.assigned_by,
+        "assigner_name":          assigner.full_name if assigner else None,
+        "mission_message":        a.mission_message,
+        "priority":               a.priority,
+        "status":                 a.status,
+        "due_date":               a.due_date.isoformat() if a.due_date else None,
+        "assigned_at":            a.assigned_at.isoformat() if a.assigned_at else None,
+        "completed_at":           a.completed_at.isoformat() if a.completed_at else None,
+        "collector_notes":        a.collector_notes,
     }
 
 

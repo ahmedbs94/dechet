@@ -16,6 +16,7 @@ import '../../screens/client/notifications_screen.dart';
 import '../../screens/client/bin_scanner_screen.dart';
 import '../../features/scan/scan_history_screen.dart';
 import '../../services/l10n_service.dart';
+import '../../widgets/safe_network_image.dart';
 
 class HomeDashboardTab extends StatefulWidget {
   final Function(int) onNavigate;
@@ -912,12 +913,12 @@ class _HomeDashboardTabState extends State<HomeDashboardTab> with SingleTickerPr
         borderRadius: BorderRadius.circular(24),
         child: Stack(
           children: [
-            Image.network(
+            SafeNetworkImage(
               image,
               fit: BoxFit.cover,
               width: double.infinity,
               height: double.infinity,
-              errorBuilder: (c, e, s) => Container(
+              placeholder: Container(
                 color: AppTheme.primaryGreen.withOpacity(0.1),
                 child: const Center(
                   child: Icon(Icons.play_circle_fill_rounded, color: AppTheme.primaryGreen, size: 40),

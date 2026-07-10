@@ -8,6 +8,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
+import 'dart:io';
 import '../../theme/app_theme.dart';
 import '../../widgets/glass_card.dart';
 import '../../services/auth_service.dart';
@@ -153,12 +154,32 @@ class _MapTabState extends State<MapTab> {
   static const _kCacheVersion  = 'map_points_version_v2';
   bool _isRefreshing = false;
 
+  /// `true` = on a accès à tile.openstreetmap.org → on affiche la vraie carte.
+  /// `false` = hors-ligne → placeholder premium, 0 log d'erreur.
+  bool _mapOnline = false;
+
   @override
   void initState() {
     super.initState();
     L10n.addListener(_onLocaleChange);
     _loadFromCache();
     _checkAndRefreshCache();
+    _checkMapConnectivity();
+  }
+
+  /// Test rapide TCP vers tile.openstreetmap.org:80 (< 3 s).
+  /// N'utilise PAS HttpOverrides — connexion directe.
+  Future<void> _checkMapConnectivity() async {
+    try {
+      final socket = await Socket.connect(
+        'tile.openstreetmap.org', 80,
+        timeout: const Duration(seconds: 3),
+      );
+      socket.destroy();
+      if (mounted) setState(() => _mapOnline = true);
+    } catch (_) {
+      // Hors-ligne : _mapOnline reste false
+    }
   }
 
   void _onLocaleChange() {
@@ -545,29 +566,113 @@ class _MapTabState extends State<MapTab> {
     );
   }
 
+  /// Affiché à la place de FlutterMap quand tile.openstreetmap.org est inaccessible.
+  Widget _buildOfflineMapPlaceholder(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: isDark
+              ? [const Color(0xFF0F172A), const Color(0xFF1E293B), const Color(0xFF0D3320)]
+              : [const Color(0xFF1A3A2A), const Color(0xFF0D5C3A), const Color(0xFF0F4C2A)],
+        ),
+      ),
+      child: Stack(
+        children: [
+          CustomPaint(painter: _MapGridPainter(), size: Size.infinite),
+          Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.08),
+                    shape: BoxShape.circle,
+                    border: Border.all(color: Colors.white.withOpacity(0.15), width: 1.5),
+                  ),
+                  child: const Icon(Icons.map_outlined, color: Colors.white, size: 52),
+                )
+                    .animate(onPlay: (c) => c.repeat(reverse: true))
+                    .scale(begin: const Offset(1, 1), end: const Offset(1.05, 1.05), duration: 2.seconds),
+                const SizedBox(height: 24),
+                Text(
+                  L10n.isArabic ? 'الخريطة غير متاحة' : 'Carte indisponible',
+                  style: GoogleFonts.inter(fontSize: 20, fontWeight: FontWeight.w700, color: Colors.white),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  L10n.isArabic
+                      ? 'يتطلب تحميل الخريطة اتصالاً بالإنترنت'
+                      : 'La carte nécessite une connexion internet',
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.inter(fontSize: 13, color: Colors.white.withOpacity(0.6)),
+                ),
+                const SizedBox(height: 28),
+                if (_allPoints.isNotEmpty)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: AppTheme.primaryGreen.withOpacity(0.18),
+                      borderRadius: BorderRadius.circular(30),
+                      border: Border.all(color: AppTheme.primaryGreen.withOpacity(0.4)),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.location_on_rounded, color: AppTheme.primaryGreen, size: 16),
+                        const SizedBox(width: 6),
+                        Text(
+                          L10n.isArabic
+                              ? '${_allPoints.length} نقطة في التخزين المؤقت'
+                              : '${_allPoints.length} points en cache',
+                          style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600, color: AppTheme.primaryGreen),
+                        ),
+                      ],
+                    ),
+                  ),
+                const SizedBox(height: 16),
+                TextButton.icon(
+                  onPressed: _checkMapConnectivity,
+                  icon: const Icon(Icons.refresh_rounded, size: 16, color: Colors.white54),
+                  label: Text(
+                    L10n.isArabic ? 'إعادة المحاولة' : 'Réessayer',
+                    style: GoogleFonts.inter(fontSize: 13, color: Colors.white54),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: Stack(
         children: [
-          // ── Carte flutter_map ────────────────────────────────────────────
-          FlutterMap(
-            mapController: _mapController,
-            options: const MapOptions(
-              initialCenter: LatLng(36.8065, 10.1815),
-              initialZoom: 11.5,
-              minZoom: 5,
-            ),
-            children: [
-              TileLayer(
-                urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                userAgentPackageName: 'com.ecorewind.app',
-                tileProvider: CancellableNetworkTileProvider(),
-                errorTileCallback: (tile, error, stackTrace) {
-                  // Tuiles inaccessibles (pas de réseau) → échec silencieux
-                },
+          // ── Carte flutter_map (seulement si réseau disponible) ──────────
+          if (_mapOnline)
+            FlutterMap(
+              mapController: _mapController,
+              options: const MapOptions(
+                initialCenter: LatLng(36.8065, 10.1815),
+                initialZoom: 11.5,
+                minZoom: 5,
               ),
+              children: [
+                TileLayer(
+                  urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                  userAgentPackageName: 'com.ecorewind.app',
+                  tileProvider: CancellableNetworkTileProvider(),
+                  errorTileCallback: (tile, error, stackTrace) {
+                    // Tuiles inaccessibles (pas de réseau) → échec silencieux
+                  },
+                ),
 
               // ── Tracé de l'itinéraire ────────────────────────────────
               if (_routePoints.isNotEmpty)
@@ -641,8 +746,11 @@ class _MapTabState extends State<MapTab> {
                     ),
                 ],
               ),
-            ],
-          ),
+              ],
+            )
+          else
+            // ── Placeholder hors-ligne ──────────────────────────────────────
+            _buildOfflineMapPlaceholder(context),
 
           // ── Overlay de chargement initial ────────────────────────────────
           if (_isLoading)
@@ -1492,4 +1600,24 @@ class _StatChip extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Grille décorative en arrière-plan du placeholder hors-ligne.
+class _MapGridPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = Colors.white.withOpacity(0.06)
+      ..strokeWidth = 0.8;
+    const step = 60.0;
+    for (double x = 0; x < size.width; x += step) {
+      canvas.drawLine(Offset(x, 0), Offset(x, size.height), paint);
+    }
+    for (double y = 0; y < size.height; y += step) {
+      canvas.drawLine(Offset(0, y), Offset(size.width, y), paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

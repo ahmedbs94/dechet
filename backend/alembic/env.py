@@ -1,11 +1,11 @@
-"""
+﻿"""
 alembic/env.py — Configuration de l'environnement Alembic pour EcoRewind
 =========================================================================
-- Lit DATABASE_URL depuis .env (SQLite fallback si absent)
+- Lit DATABASE_URL depuis .env
+- PostgreSQL est la base officielle (obligatoire en staging/production)
+- SQLite toléré uniquement en développement local avec warning explicite
 - Importe tous les modèles SQLAlchemy via db_models (nécessaire pour --autogenerate)
 - Supporte les migrations online (PostgreSQL) et offline (génération SQL pure)
-- Gestion du dialecte SQLite : certaines opérations DDL (ALTER COLUMN)
-  ne sont pas supportées → batch mode activé automatiquement.
 """
 
 import os
@@ -36,16 +36,35 @@ from app.intercommunality import models as intercommunality_models  # noqa: F401
 
 # ── Résoudre l'URL de la base de données ────────────────────────────────────
 DATABASE_URL = os.getenv("DATABASE_URL", "")
+APP_ENV = os.getenv("APP_ENV", "development").lower()
+_IS_PRODUCTION = APP_ENV in ("production", "staging", "prod", "stage")
 
 if DATABASE_URL:
     # Compatibilité Railway/Render : postgres:// → postgresql://
     if DATABASE_URL.startswith("postgres://"):
         DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
 else:
-    # Fallback SQLite local
+    if _IS_PRODUCTION:
+        print(
+            "\n" + "="*70 + "\n"
+            "[Alembic] [ERR]  ERREUR CRITIQUE — DATABASE_URL non défini en production.\n"
+            "[Alembic]     PostgreSQL est obligatoire pour APP_ENV=production/staging.\n"
+            "[Alembic]     Définissez DATABASE_URL dans .env avant de lancer les migrations.\n"
+            + "="*70 + "\n"
+        )
+        sys.exit(1)
+    # Fallback SQLite (développement uniquement)
     _sqlite_path = os.path.join(_backend_dir, "sql_app.db")
     DATABASE_URL = f"sqlite:///{_sqlite_path}"
-    print(f"[Alembic] WARN: DATABASE_URL non defini — SQLite en fallback : {_sqlite_path}")
+    print(
+        "\n[Alembic] [WARN]  WARNING — DATABASE_URL non défini.\n"
+        f"[Alembic] [WARN]  SQLite en fallback : {_sqlite_path}\n"
+        "[Alembic] [WARN]  Les migrations SQLite peuvent différer de PostgreSQL (ALTER TABLE, JSON, FK).\n"
+        "[Alembic] [WARN]  Définissez DATABASE_URL pour utiliser PostgreSQL.\n"
+    )
+
+# ── Détection du dialecte ────────────────────────────────────────────────────
+_IS_SQLITE = DATABASE_URL.startswith("sqlite")
 
 # ── Configuration Alembic ────────────────────────────────────────────────────
 config = context.config
@@ -58,8 +77,7 @@ if config.config_file_name is not None:
 # Metadata cible pour --autogenerate
 target_metadata = Base.metadata
 
-# ── Détection du dialecte SQLite ────────────────────────────────────────────
-_IS_SQLITE = DATABASE_URL.startswith("sqlite")
+print(f"[Alembic] [DB]  Cible : {'SQLite' if _IS_SQLITE else 'PostgreSQL'} ({DATABASE_URL.split('@')[-1] if '@' in DATABASE_URL else DATABASE_URL[:40]})")
 
 
 def run_migrations_offline() -> None:
@@ -108,3 +126,4 @@ if context.is_offline_mode():
     run_migrations_offline()
 else:
     run_migrations_online()
+

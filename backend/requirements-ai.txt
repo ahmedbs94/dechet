@@ -1,0 +1,68 @@
+# =============================================================================
+# requirements-ai.txt — Dépendances du Worker IA EcoRewind (OPTIONNEL)
+# =============================================================================
+# Ce fichier contient les dépendances LOURDES utilisées uniquement par le
+# worker de modération automatique des posts (ai_worker/worker.py).
+#
+# ⚠️  NE PAS installer sur la machine de l'API principale si non nécessaire.
+#
+# Prérequis :
+#   - Python 3.11+
+#   - RAM : minimum 4 Go (modèles IA chargés en mémoire)
+#   - Espace disque : ~3–5 Go (modèles téléchargés au premier démarrage)
+#   - GPU optionnel (CUDA) — le worker fonctionne en CPU-only
+#
+# Installation :
+#   pip install -r requirements.txt       ← toujours requis en premier
+#   pip install -r requirements-ai.txt    ← uniquement pour le worker IA
+#
+# Lancement du worker IA (depuis backend/) :
+#   python -m ai_worker.worker
+#
+# Ou via Docker (voir ai_worker/Dockerfile) :
+#   docker build -f ai_worker/Dockerfile -t ecorewind-ai-worker .
+#   docker run --env-file .env ecorewind-ai-worker
+# =============================================================================
+
+# ── Dépendances core de l'API (héritées) ─────────────────────────────────────
+# Le worker a besoin de l'API core pour accéder à la base de données
+-r requirements.txt
+
+# ── Détection toxicité texte (BERT léger, ~500 Mo) ───────────────────────────
+# Modèle : unitary/toxic-bert (multilingue)
+# Usage : filtrage des descriptions de posts injurieux ou offensants
+detoxify>=0.5.2
+
+# ── Classification image NSFW (CNN, ~50 Mo) ───────────────────────────────────
+# Modèle : nudenet (ResNet-based detector)
+# Usage : filtrage des images de posts inappropriés
+nudenet>=3.4.2
+
+# ── NLP avancé : Transformers HuggingFace (~1–3 Go selon le modèle) ──────────
+# Modèles utilisés :
+#   • XLM-RoBERTa zero-shot → classification texte multilingue (FR/AR/EN)
+#   • CLIP ViT-B/32         → analyse sémantique image
+transformers>=4.40.0
+
+# ── Deep Learning framework (~2 Go) ──────────────────────────────────────────
+# CPU-only par défaut. Pour GPU CUDA, remplacer par :
+#   pip install torch torchvision --index-url https://download.pytorch.org/whl/cu118
+torch>=2.1.0
+torchvision>=0.16.0
+
+# ── Tokenizers & Protobuf ─────────────────────────────────────────────────────
+sentencepiece>=0.1.99   # Tokenizer XLM-RoBERTa
+protobuf>=4.0.0         # Requis par SentencePiece
+tiktoken>=0.5.0         # Fallback tokenizer BPE (OpenAI-compatible)
+
+# ── ML classique (CNN custom Text + ResNet18) ─────────────────────────────────
+pandas>=1.5.0
+scikit-learn>=1.3.0
+
+# ── Embeddings pré-entraînés ──────────────────────────────────────────────────
+# Téléchargement automatique au premier usage (~200 Mo)
+gensim>=4.3.0           # FastText / Word2Vec embeddings
+
+# ── Outils dataset (ENTRAÎNEMENT uniquement — pas nécessaire en prod) ─────────
+# Décommentez uniquement si vous souhaitez re-générer le dataset d'images
+# icrawler>=0.6.6       # Bing Image Crawler — DÉSACTIVÉ en prod

@@ -54,3 +54,6 @@ from app.reports.models import CitizenReport  # noqa: F401
 
 # ── Tournées de collecte ──────────────────────────────────────────────────────
 from app.collector_routes.models import CollectionRoute  # noqa: F401
+
+# ── Messagerie inter-rôles ────────────────────────────────────────────────────
+from app.messaging.models import Message, MessageGroupRecipient  # noqa: F401

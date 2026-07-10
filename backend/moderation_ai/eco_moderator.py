@@ -243,17 +243,21 @@ class EcoCNNModerator(AIModerator):
         off_img   = cnn_img_probs.get("off_topic", 0.0)
         eco_img   = cnn_img_probs.get("eco",   0.0)
 
-        # ── NSFW image : rejet automatique ───────────────────────────────────
+        # ── NSFW image : verdict IA = rejected ──────────────────────────────
+        # Note : ce statut est le VERDICT DU MODÈLE IA.
+        # La politique finale (posts.py) le reclasse en 'pending_review'
+        # pour arbitrage admin. L'IA ne décide jamais la sanction finale.
         if cnn_img_decision == "nsfw":
             result.score  = 0.95
             result.status = ModerationStatus.REJECTED.value
             result.processing_time_ms = round((time.time() - t0) * 1000, 2)
             return result
 
-        # ── Texte toxique confirmé : rejet automatique ───────────────────────
+        # ── Texte toxique confirmé : verdict IA = rejected ─────────────────────
         # Si le TextCNN classe le texte comme toxique ET que Detoxify confirme
-        # (toxicity > 0.5), le contenu est rejeté quel que soit l'image.
-        # Ex: "Vous êtes des connards et des salopes" → rejected
+        # (toxicity > 0.5), le modèle recommande le rejet. La décision finale
+        # reste à l'admin (posts.py reclasse ce statut en 'pending_review').
+        # Ex: "Vous êtes des connards et des salopes" → verdict IA : rejected
         ml_toxicity = result.text_analysis.get("categories", {}).get("ml_toxicity", {})
         detoxify_tox = ml_toxicity.get("toxicity", 0.0)
         profanity_sc = result.text_analysis.get("categories", {}).get("profanity", {}).get("score", 0.0)

@@ -1,19 +1,26 @@
-# docker-compose.yml — PostgreSQL local pour EcoRewind
+# docker-compose.yml — Services EcoRewind
 # =========================================================
-# Utilisation :
-#   docker compose up -d          → Démarre PostgreSQL en arrière-plan
-#   docker compose down           → Arrête et supprime le conteneur
-#   docker compose down -v        → Supprime aussi les données (volume)
-#   docker compose logs -f        → Voir les logs en temps réel
 #
-# Après démarrage, vérifier que .env contient :
+# USAGE RAPIDE (développement / jury) :
+#   docker compose up -d                    → PostgreSQL uniquement (léger)
+#   docker compose --profile ai up -d      → PostgreSQL + Worker IA
+#
+# Commandes utiles :
+#   docker compose down                     → Arrêter les conteneurs
+#   docker compose down -v                  → Arrêter + supprimer les données
+#   docker compose logs -f                  → Voir les logs en temps réel
+#   docker compose logs -f ai_worker        → Logs du worker IA uniquement
+#
+# Prérequis .env :
 #   DATABASE_URL=postgresql://postgres:postgres@localhost:5432/ecorewind
 #
-# Puis appliquer les migrations :
-#   cd backend
-#   alembic upgrade head
+# Migrations (après démarrage) :
+#   cd backend && alembic upgrade head
+# =========================================================
 
 services:
+
+  # ── PostgreSQL ──────────────────────────────────────────────────────────────
   postgres:
     image: postgres:16-alpine
     container_name: ecorewind_postgres
@@ -22,7 +29,6 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: ecorewind
-      # Timezone cohérente avec le backend
       TZ: Africa/Tunis
     ports:
       - "5432:5432"
@@ -35,21 +41,49 @@ services:
       retries: 5
       start_period: 10s
 
-  # ── AI Worker (modèles IA dans un processus séparé) ──────────────────────
-  # Décommente ce bloc pour lancer le worker IA dans Docker
-  # ai_worker:
-  #   build:
-  #     context: .
-  #     dockerfile: ai_worker/Dockerfile
-  #   container_name: ecorewind_ai_worker
-  #   restart: unless-stopped
-  #   env_file: .env
-  #   depends_on:
-  #     postgres:
-  #       condition: service_healthy
-  #   volumes:
-  #     - ./uploads:/app/uploads
+  # ── AI Worker (modèles IA — OPTIONNEL) ───────────────────────────────────────
+  # Activé uniquement avec le profil "ai" :
+  #   docker compose --profile ai up -d
+  #
+  # ⚠️  Premier démarrage lent (~5–10 min) : téléchargement des modèles IA
+  # Les modèles sont mis en cache dans le volume "ai_models" (persistant)
+  ai_worker:
+    profiles:
+      - ai
+    build:
+      context: .
+      dockerfile: ai_worker/Dockerfile
+    container_name: ecorewind_ai_worker
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      # Surcharge pour pointer vers le service postgres Docker (pas localhost)
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/ecorewind
+      AI_WORKER_POLL_INTERVAL: 5
+      AI_WORKER_BATCH_SIZE: 10
+      AI_WORKER_LOG_LEVEL: INFO
+      # Cache HuggingFace persistant entre redémarrages
+      TRANSFORMERS_CACHE: /app/models
+      HF_HOME: /app/models
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      # Partage le dossier uploads avec l'API FastAPI (si elle tourne aussi en Docker)
+      - ./uploads:/app/uploads
+      # Cache des modèles HuggingFace — évite re-téléchargement à chaque restart
+      - ai_models:/app/models
+    # Limite ressources pour éviter de saturer la machine de démonstration
+    deploy:
+      resources:
+        limits:
+          memory: 6G
+        reservations:
+          memory: 2G
 
 volumes:
   pgdata:
+    driver: local
+  # Volume persistant pour les modèles IA (HuggingFace cache)
+  ai_models:
     driver: local

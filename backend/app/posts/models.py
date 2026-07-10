@@ -19,11 +19,12 @@ class Post(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     likes_count = Column(Integer, default=0)
     # ── Modération IA ──────────────────────────────────────────────────────────
-    # Flux : pending_ai → published | pending_review | rejected
-    # Aucun post avec status='published' n'atteint la DB sans avoir été analysé.
+    # Flux réel : pending_review → published | pending_review (admin) | rejected
+    # Les posts sont créés en 'pending_review' puis traités par BackgroundTask.
+    # 'pending_ai' n'est PAS utilisé dans ce projet.
     status = Column(
         String,
-        default="pending_ai",
+        default="pending_review",
         nullable=False,
         index=True,           # index pour COUNT GROUP BY status
     )

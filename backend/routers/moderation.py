@@ -14,6 +14,7 @@ from sqlalchemy import desc, func, and_
 import db_models as db_models
 from database import get_db
 from core.deps import get_admin_user, _utc_iso
+from services.firebase_service import update_admin_stats
 
 router = APIRouter(prefix="/admin/moderation", tags=["moderation"])
 
@@ -66,6 +67,11 @@ async def approve_post(post_id: int, reason: Optional[str] = None,
     db.add(db_models.Notification(user_id=post.user_id, type="moderation", title="✅ Publication approuvée",
         body="Votre publication a été validée.", from_user_name="Administration EcoRewind", post_id=post_id))
     db.commit()
+    # ── Sync Firebase : pending_moderation -1 ──────────────────────────────
+    try:
+        update_admin_stats(db)
+    except Exception:
+        pass
     return {"message": "Publication approuvée", "post_id": post_id}
 
 @router.put("/{post_id}/reject")
@@ -81,6 +87,11 @@ async def reject_post(post_id: int, reason: Optional[str] = None,
         body=f"Votre publication a été refusée par l'administrateur : {reject_reason}",
         from_user_name="Administration EcoRewind", post_id=post_id))
     db.commit()
+    # ── Sync Firebase : pending_moderation -1 ──────────────────────────────
+    try:
+        update_admin_stats(db)
+    except Exception:
+        pass
     return {"message": "Publication rejetée", "post_id": post_id, "reason": reject_reason}
 
 @router.post("/bulk/approve")
@@ -97,6 +108,11 @@ async def bulk_approve_posts(post_ids: List[int], reason: Optional[str] = None,
                 body="Votre publication a été validée.", from_user_name="Administration EcoRewind", post_id=post_id))
             count += 1
     db.commit()
+    # ── Sync Firebase : pending_moderation recalculé (bulk) ────────────────
+    try:
+        update_admin_stats(db)
+    except Exception:
+        pass
     return {"message": f"{count} publications approuvées", "approved_count": count}
 
 @router.post("/bulk/reject")
@@ -115,47 +131,82 @@ async def bulk_reject_posts(post_ids: List[int], reason: Optional[str] = None,
                 from_user_name="Administration EcoRewind", post_id=post_id))
             count += 1
     db.commit()
+    # ── Sync Firebase : pending_moderation recalculé (bulk) ────────────────
+    try:
+        update_admin_stats(db)
+    except Exception:
+        pass
     return {"message": f"{count} publications rejetées", "rejected_count": count}
 
 @router.get("/stats")
 async def moderation_stats(db: Session = Depends(get_db), admin: db_models.User = Depends(get_admin_user)):
     total       = db.query(db_models.Post).count()
     published   = db.query(db_models.Post).filter(db_models.Post.status == "published").count()
-    pending_ai  = db.query(db_models.Post).filter(db_models.Post.status == "pending_ai").count()
     pending_rev = db.query(db_models.Post).filter(db_models.Post.status == "pending_review").count()
     rejected    = db.query(db_models.Post).filter(db_models.Post.status == "rejected").count()
     avg_score   = db.query(func.avg(db_models.Post.moderation_score)).scalar() or 0
+
+    # Posts bloqués : pending_review sans modération appliquée depuis > 10 min
+    # Indique un échec de la BackgroundTask (pipeline principal)
+    stale_threshold = datetime.utcnow() - timedelta(minutes=10)
+    stale_count = (
+        db.query(db_models.Post)
+        .filter(
+            db_models.Post.status == "pending_review",
+            db_models.Post.moderated_at.is_(None),
+            db_models.Post.created_at <= stale_threshold,
+        )
+        .count()
+    )
+
     return {
         "total_posts":              total,
         "published":                published,
-        "pending_ai":               pending_ai,      # En attente du worker IA
-        "pending_review":           pending_rev,     # En attente de validation admin
+        "pending_review":           pending_rev,     # En attente de validation admin (signalés par l'IA)
+        "stale_unmoderated":        stale_count,     # Posts bloqués (BackgroundTask échouée)
         "rejected":                 rejected,
         "auto_approve_rate":        round(published / total * 100, 1) if total > 0 else 0,
         "average_moderation_score": round(avg_score, 3),
-        # Pipeline santé : si pending_ai > 100, le worker IA est peut-être arrêté
-        "worker_pipeline_health":   "ok" if pending_ai < 100 else "warning",
+        # Santé du pipeline : si des posts sont bloqués depuis > 10 min, l'IA a un problème
+        "pipeline_health":          "ok" if stale_count == 0 else ("warning" if stale_count < 10 else "critical"),
     }
 
 
 @router.get("/worker/status")
 async def worker_status(db: Session = Depends(get_db), admin: db_models.User = Depends(get_admin_user)):
     """
-    Statut du pipeline de modération IA.
-    Indique combien de posts attendent le worker et depuis combien de temps.
-    Utile pour détecter si le worker ai_worker/worker.py est arrêté.
-    """
-    pending_ai = db.query(db_models.Post).filter(db_models.Post.status == "pending_ai").count()
+    Santé du pipeline de modération IA (BackgroundTasks).
 
-    # Post le plus ancien en attente → indique le retard du worker
+    Détecte les posts bloqués en 'pending_review' sans modération appliquée
+    depuis plus de 10 minutes — signe que la BackgroundTask a échouée.
+    Le worker de rattrapage (ai_worker/worker.py) traite ces cas automatiquement.
+    """
+    stale_threshold = datetime.utcnow() - timedelta(minutes=10)
+
+    # Posts non modérés bloqués depuis > 10 min
+    stale_count = (
+        db.query(db_models.Post)
+        .filter(
+            db_models.Post.status == "pending_review",
+            db_models.Post.moderated_at.is_(None),
+            db_models.Post.created_at <= stale_threshold,
+        )
+        .count()
+    )
+
+    # Post le plus ancien bloqué → indique le retard maximal
     oldest = (
         db.query(db_models.Post)
-        .filter(db_models.Post.status == "pending_ai")
+        .filter(
+            db_models.Post.status == "pending_review",
+            db_models.Post.moderated_at.is_(None),
+            db_models.Post.created_at <= stale_threshold,
+        )
         .order_by(db_models.Post.created_at.asc())
         .first()
     )
 
-    # Dernier post modéré → indique que le worker tourne bien
+    # Dernier post modéré → indique que l'IA fonctionne bien
     last_moderated = (
         db.query(db_models.Post)
         .filter(db_models.Post.moderated_at.isnot(None))
@@ -163,26 +214,27 @@ async def worker_status(db: Session = Depends(get_db), admin: db_models.User = D
         .first()
     )
 
-    oldest_pending_at = _utc_iso(oldest.created_at) if oldest else None
+    oldest_stale_at   = _utc_iso(oldest.created_at) if oldest else None
     last_moderated_at = _utc_iso(last_moderated.moderated_at) if last_moderated else None
 
-    # Calcul du retard en minutes
+    # Retard maximal en minutes
     delay_minutes = None
     if oldest and oldest.created_at:
-        delta = datetime.utcnow() - oldest.created_at.replace(tzinfo=None) if oldest.created_at.tzinfo else datetime.utcnow() - oldest.created_at
-        delay_minutes = int(delta.total_seconds() / 60)
+        dt = oldest.created_at.replace(tzinfo=None) if oldest.created_at.tzinfo else oldest.created_at
+        delay_minutes = int((datetime.utcnow() - dt).total_seconds() / 60)
 
-    status = "ok"
-    if pending_ai >= 50:
-        status = "critical"   # Worker probablement arrêté
-    elif pending_ai >= 10:
-        status = "warning"    # Retard inhabituel
+    pipeline_status = "ok"
+    if stale_count >= 50:
+        pipeline_status = "critical"   # BackgroundTasks probablement en erreur
+    elif stale_count >= 10:
+        pipeline_status = "warning"    # Retard inhabituel
 
     return {
-        "status":              status,
-        "pending_ai_count":    pending_ai,
-        "oldest_pending_at":   oldest_pending_at,
-        "last_moderated_at":   last_moderated_at,
-        "delay_minutes":       delay_minutes,
-        "worker_doc":          "Lancer : python -m ai_worker.worker (depuis backend/)",
+        "pipeline_status":       pipeline_status,
+        "stale_posts_count":     stale_count,      # Posts bloqués sans modération
+        "oldest_stale_at":       oldest_stale_at,
+        "last_moderated_at":     last_moderated_at,
+        "delay_minutes":         delay_minutes,
+        "pipeline_doc":          "Pipeline principal : BackgroundTasks dans routers/posts.py",
+        "rescue_worker_doc":     "Rattrapage optionnel : python -m ai_worker.worker (depuis backend/)",
     }

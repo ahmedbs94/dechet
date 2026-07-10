@@ -198,7 +198,7 @@ def _format_post(post, liked_ids=None, saved_ids=None, is_liked=False, is_saved=
         "created_at": _utc_iso(post.created_at),
         "likes_count": post.likes_count or 0,
         # ── Champs de modération IA ───────────────────────────────────────────
-        "status": post.status or "pending_ai",
+        "status": post.status or "pending_review",
         "moderation_score": post.moderation_score or 0.0,
         "moderation_reason": post.moderation_reason or None,
         "moderated_at": _utc_iso(post.moderated_at) if post.moderated_at else None,
@@ -304,20 +304,83 @@ async def moderate_image(file: UploadFile = File(...)):
 
 # ── Modération IA en tâche de fond ───────────────────────────────────────────
 
+# Chargement paresseux du modérateur IA (une seule tentative par processus)
+# Aligne le comportement du pipeline BackgroundTasks avec le worker de rattrapage.
+_AI_MODERATOR   = None   # instance du modérateur CNN
+_AI_AVAILABLE   = None   # None = pas encore essayé, True/False après 1ère tentative
+
+_BASIC_MOD_KEYWORDS = [
+    "spam", "pub", "promo", "vente", "achat", "soldes",
+    "insulte", "haine", "violence", "connard", "salope",
+]
+
+def _get_moderator():
+    """
+    Retourne le modérateur IA si disponible, sinon None.
+    La tentative de chargement n'est effectuée qu'une seule fois
+    (mise en cache dans _AI_MODERATOR / _AI_AVAILABLE).
+    """
+    global _AI_MODERATOR, _AI_AVAILABLE
+    if _AI_AVAILABLE is not None:
+        return _AI_MODERATOR   # déjà tenté
+    try:
+        from moderation_ai.eco_moderator import cnn_moderator
+        _AI_MODERATOR = cnn_moderator
+        _AI_AVAILABLE = True
+        if IS_DEV:
+            print("[MOD-BG] ✅ Modèles IA disponibles (TextCNN + ResNet18 + NudeNet + Detoxify)")
+    except Exception as e:
+        _AI_MODERATOR = None
+        _AI_AVAILABLE = False
+        print(f"[MOD-BG] ⚠️  Modèles IA non disponibles — mode règles basiques actif : {e}")
+    return _AI_MODERATOR
+
+
+def _basic_mod_fallback(description: str) -> dict:
+    """
+    Modération par règles simples utilisée quand les modèles IA ne sont pas installés.
+    Garantit qu'un post est toujours résolu (publié ou signalé), jamais bloqué.
+    """
+    text = (description or "").lower()
+    for kw in _BASIC_MOD_KEYWORDS:
+        if kw in text:
+            return {
+                "final_status": "pending_review",
+                "score": 0.80,
+                "reason": f"BASIC_RULES:keyword='{kw}'",
+                "model_version": "rules_v1.0",
+                "details": None,
+            }
+    return {
+        "final_status": "published",
+        "score": 0.05,
+        "reason": "BASIC_RULES:approved",
+        "model_version": "rules_v1.0",
+        "details": None,
+    }
+
+
 def _run_ai_moderation(post_id: int, description: str, image_url: str, user_id: int, db: Session):
     """
     Tâche de fond : analyse IA du post après que l'utilisateur a déjà reçu une réponse.
 
+    Politique de modération réelle (prudente) :
+    ─────────────────────────────────────────
+    L'IA ne rejette JAMAIS automatiquement un post. Toute décision de rejet
+    définitif appartient à l'administrateur. Cette prudence évite les faux
+    positifs qui supprimeraient du contenu citoyen légitime.
+
     Flux :
     1. Récupère le post en DB (status = pending_review).
     2. Exécute le pipeline IA (TextCNN + ResNet18 + NudeNet + Detoxify).
-    3. Met à jour le statut :
-         - score < 0.30   → "published"   (visible dans le fil immédiatement)
-         - score ≥ 0.30   → "pending_review" (admin valide manuellement)
-         - score ≥ 0.65   → "pending_review" (jamais auto-supprimé, admin tranche)
-    4. Envoie une notification si le post passe en "published".
+    3. Met à jour le statut selon le score :
+         - score < 0.30  → "published"      (approuvé automatiquement)
+         - score ≥ 0.30  → "pending_review" (signalé à l'admin pour arbitrage)
+         Note : même si l'IA décide "rejected" en interne, le post est
+         reclassé en "pending_review" — l'admin tranche toujours en dernier.
+    4. Envoie une notification à l'utilisateur selon le résultat.
     """
-    from moderation_ai.eco_moderator import cnn_moderator as moderator
+    moderator = _get_moderator()
 
     try:
         post = db.query(db_models.Post).filter(db_models.Post.id == post_id).first()
@@ -332,54 +395,68 @@ def _run_ai_moderation(post_id: int, description: str, image_url: str, user_id: 
             if os.path.exists(candidate):
                 image_local_path = candidate
 
-        # ── Pipeline IA ──────────────────────────────────────────────────────
-        try:
-            mod_result = moderator.moderate(
-                text=description or "",
-                image_local_path=image_local_path,
-            )
-        except Exception as e:
-            if IS_DEV:
-                print(f"[MOD-BG] Erreur IA sur post {post_id} : {e}")
-            post.moderation_reason = f"AI_ERROR:{str(e)[:120]}"
-            post.moderation_status = "pending_review"
-            post.moderated_at = datetime.utcnow()
-            db.commit()
-            return
-
-        if IS_DEV:
-            print(f"[MOD-BG] Post {post_id} score={mod_result.score:.3f} status={mod_result.status}")
-
-        # ── Calculer le statut final ──────────────────────────────────────────
-        model_parts = []
-        if mod_result.text_model_used:
-            model_parts.append(mod_result.text_model_used)
-        if mod_result.image_model_used:
-            model_parts.append(mod_result.image_model_used)
-        try:
-            if hasattr(moderator, '_obj') and moderator._obj is not None:
-                model_parts.append("EcoCNN_v1")
-            elif hasattr(moderator, '_cnn_ready'):
-                model_parts.append("EcoCNN_v1")
-        except Exception:
-            pass
-        model_version = "|".join(model_parts) if model_parts else "rules_only"
-
-        # Contenu rejeté → pending_review (admin décide, jamais auto-supprimé)
-        if mod_result.status == "rejected":
-            details = _rejection_details(mod_result.reasons, mod_result.score)
-            final_status = "pending_review"
-            moderation_reason = f"AI_FLAGGED:{details['category']}"
+        if moderator is None:
+            # ── Mode règles basiques de secours (Fallback si pas d'IA) ─────
+            decision = _basic_mod_fallback(description)
+            final_status = decision["final_status"]
+            moderation_score = decision["score"]
+            moderation_reason = decision["reason"]
+            model_version = decision["model_version"]
+            moderation_details = None
+            details = _rejection_details([moderation_reason], moderation_score) if final_status == "pending_review" else None
         else:
-            details = None
-            final_status = mod_result.status   # "published" ou "pending_review"
-            moderation_reason = mod_result.short_reason
+            # ── Pipeline IA complet ──────────────────────────────────────────
+            try:
+                mod_result = moderator.moderate(
+                    text=description or "",
+                    image_local_path=image_local_path,
+                )
+            except Exception as e:
+                if IS_DEV:
+                    print(f"[MOD-BG] Erreur IA sur post {post_id} : {e}")
+                post.moderation_reason = f"AI_ERROR:{str(e)[:120]}"
+                post.status = "pending_review"
+                post.moderated_at = datetime.utcnow()
+                db.commit()
+                return
+
+            if IS_DEV:
+                print(f"[MOD-BG] Post {post_id} score={mod_result.score:.3f} status={mod_result.status}")
+
+            # ── Calculer le statut final ──────────────────────────────────────────
+            model_parts = []
+            if mod_result.text_model_used:
+                model_parts.append(mod_result.text_model_used)
+            if mod_result.image_model_used:
+                model_parts.append(mod_result.image_model_used)
+            try:
+                if hasattr(moderator, '_obj') and moderator._obj is not None:
+                    model_parts.append("EcoCNN_v1")
+                elif hasattr(moderator, '_cnn_ready'):
+                    model_parts.append("EcoCNN_v1")
+            except Exception:
+                pass
+            model_version = "|".join(model_parts) if model_parts else "rules_only"
+
+            # Contenu signalé par l'IA → toujours en pending_review
+            # L'admin arbitre en dernier. L'IA ne rejette jamais automatiquement.
+            if mod_result.status == "rejected":
+                details = _rejection_details(mod_result.reasons, mod_result.score)
+                final_status = "pending_review"
+                moderation_reason = f"AI_FLAGGED:{details['category']}"
+            else:
+                details = None
+                final_status = mod_result.status
+                moderation_reason = mod_result.short_reason
+            
+            moderation_score = mod_result.score
+            moderation_details = mod_result.to_json()
 
         # ── Mettre à jour le post ────────────────────────────────────────────
         post.status                   = final_status
-        post.moderation_score         = mod_result.score
+        post.moderation_score         = moderation_score
         post.moderation_reason        = moderation_reason
-        post.moderation_details       = mod_result.to_json()
+        post.moderation_details       = moderation_details
         post.moderated_at             = datetime.utcnow()
         post.moderation_model_version = model_version
         db.commit()
@@ -442,8 +519,11 @@ async def create_post(post: models.PostCreate,
        → Aucun blocage côté HTTP.
 
     3. Le statut est mis à jour en arrière-plan :
-         - score < 0.30  → "published"      (visible dans le fil)
-         - score ≥ 0.30  → "pending_review" (admin valide manuellement)
+         - score < 0.30  → "published"      (approuvé automatiquement)
+         - score ≥ 0.30  → "pending_review" (signalé à l'admin pour arbitrage)
+         Note : l'IA ne rejette JAMAIS automatiquement. Même un score très
+         élevé (ex: contenu NSFW, toxique) reste en "pending_review" pour que
+         l'admin confirme. Cela évite les faux positifs sur du contenu citoyen.
 
     4. Une notification est envoyée à l'utilisateur dès la décision IA.
     """

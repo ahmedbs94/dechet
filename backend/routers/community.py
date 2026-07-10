@@ -10,6 +10,7 @@ import db_models as db_models
 import models as models
 from database import get_db
 from core.deps import get_current_user, get_admin_user, _utc_iso
+from services.firebase_service import update_admin_stats
 
 router = APIRouter(tags=["community"])
 
@@ -96,6 +97,11 @@ async def create_testimonial(data: models.TestimonialCreate, db: Session = Depen
     db.add(t)
     db.commit()
     db.refresh(t)
+    # ── Sync Firebase : pending_testimonials +1 ────────────────────────────
+    try:
+        update_admin_stats(db)
+    except Exception:
+        pass
     return {"message": "Témoignage soumis, en attente d'approbation", "id": t.id}
 
 
@@ -107,6 +113,11 @@ async def approve_testimonial(testimonial_id: int, db: Session = Depends(get_db)
         raise HTTPException(status_code=404, detail="Témoignage non trouvé")
     t.is_approved = True
     db.commit()
+    # ── Sync Firebase : pending_testimonials -1 ──────────────────────────
+    try:
+        update_admin_stats(db)
+    except Exception:
+        pass
     return {"message": "Témoignage approuvé"}
 
 
@@ -118,6 +129,11 @@ async def reject_testimonial(testimonial_id: int, db: Session = Depends(get_db),
         raise HTTPException(status_code=404, detail="Témoignage non trouvé")
     db.delete(t)
     db.commit()
+    # ── Sync Firebase : pending_testimonials -1 ──────────────────────────
+    try:
+        update_admin_stats(db)
+    except Exception:
+        pass
     return {"message": "Témoignage supprimé"}
 
 
@@ -173,6 +189,11 @@ async def create_proposal(data: models.CenterProposalCreate, db: Session = Depen
     db.add(proposal)
     db.commit()
     db.refresh(proposal)
+    # ── Sync Firebase : pending_proposals +1 ──────────────────────────────
+    try:
+        update_admin_stats(db)
+    except Exception:
+        pass
     return proposal
 
 
@@ -203,6 +224,11 @@ async def update_proposal_status(proposal_id: int, status_update: dict,
         raise HTTPException(status_code=400, detail="Statut invalide")
     proposal.status = new_status
     db.commit()
+    # ── Sync Firebase : pending_proposals recalculé ───────────────────────
+    try:
+        update_admin_stats(db)
+    except Exception:
+        pass
     return {"message": f"Statut: {new_status}", "proposal_id": proposal_id}
 
 

@@ -12,6 +12,7 @@ import '../../models/user_model.dart';
 import '../../services/auth_service.dart';
 import '../../widgets/auth_prompt_dialog.dart';
 import '../../widgets/safe_network_image.dart';
+import '../../widgets/app_states.dart';
 import '../../constants.dart';
 import '../../services/l10n_service.dart';
 import 'post_detail_screen.dart';
@@ -180,11 +181,16 @@ class _FeedTabState extends State<FeedTab> with SingleTickerProviderStateMixin {
 
             // ── Contenu ──
             if (_loading)
-              const SliverFillRemaining(child: Center(child: CircularProgressIndicator(color: AppTheme.primaryGreen, strokeWidth: 2)))
+              const SliverFillRemaining(child: AppLoadingView(message: "Chargement du fil d'actualité..."))
             else if (_error != null)
-              SliverFillRemaining(child: _ErrorView(message: _error!, onRetry: _loadPosts))
+              SliverFillRemaining(child: AppErrorView(message: _error!, onRetry: _loadPosts))
             else if (_posts.isEmpty)
-              SliverFillRemaining(child: _EmptyView(onTap: _showCreatePost))
+              SliverFillRemaining(child: AppEmptyView(
+                title: L10n.tr('Aucune publication'),
+                description: L10n.tr('Soyez le premier à partager un geste éco !'),
+                actionLabel: L10n.tr('Créer une publication'),
+                onActionPressed: _showCreatePost,
+              ))
             else ...[
               SliverPadding(
                 padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
@@ -292,15 +298,11 @@ class _PinCardState extends State<_PinCard> {
     final isOwn = AuthState.isLoggedIn && name == AuthState.currentUser?.name;
     final commentsCount = (widget.post['comments'] as List?)?.length ?? 0;
 
-    return GestureDetector(
+    return AppCard(
+      padding: EdgeInsets.zero,
       onTap: _goToDetails,
-      child: Container(
-        decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.surface,
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.06), blurRadius: 12, offset: const Offset(0, 4))],
-        ),
-        clipBehavior: Clip.hardEdge,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -666,43 +668,4 @@ class _CreatePostSheetState extends State<_CreatePostSheet> {
   }
 }
 
-// ── Empty & Error views ───────────────────────────────────────────────────────
-class _EmptyView extends StatelessWidget {
-  final VoidCallback onTap;
-  const _EmptyView({required this.onTap});
-  @override
-  Widget build(BuildContext context) {
-    return Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
-      Container(padding: const EdgeInsets.all(24), decoration: BoxDecoration(color: AppTheme.primaryGreen.withOpacity(0.08), shape: BoxShape.circle),
-        child: const Icon(Icons.eco_rounded, size: 52, color: AppTheme.primaryGreen)),
-      const SizedBox(height: 20),
-      Text(L10n.tr('Aucune publication'), style: GoogleFonts.outfit(fontSize: 20, fontWeight: FontWeight.w800, color: const Color(0xFF0F172A))),
-      const SizedBox(height: 8),
-      Text(L10n.tr('Soyez le premier à partager un geste éco !'), style: GoogleFonts.inter(fontSize: 14, color: Colors.grey.shade500), textAlign: TextAlign.center),
-      const SizedBox(height: 24),
-      ElevatedButton.icon(
-        onPressed: onTap,
-        icon: const Icon(Icons.add_rounded, size: 18),
-        label: Text(L10n.tr('Créer une publication'), style: GoogleFonts.outfit(fontWeight: FontWeight.w700)),
-        style: ElevatedButton.styleFrom(backgroundColor: AppTheme.primaryGreen, foregroundColor: Colors.white,
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))),
-      ),
-    ]));
-  }
-}
-
-class _ErrorView extends StatelessWidget {
-  final String message;
-  final VoidCallback onRetry;
-  const _ErrorView({required this.message, required this.onRetry});
-  @override
-  Widget build(BuildContext context) {
-    return Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
-      Icon(Icons.wifi_off_rounded, size: 48, color: Colors.grey.shade400),
-      const SizedBox(height: 16),
-      Text(message, style: GoogleFonts.inter(color: const Color(0xFF334155), fontWeight: FontWeight.w600)),
-      const SizedBox(height: 12),
-      TextButton.icon(onPressed: onRetry, icon: const Icon(Icons.refresh_rounded), label: Text(L10n.tr('Réessayer')), style: TextButton.styleFrom(foregroundColor: AppTheme.primaryGreen)),
-    ]));
-  }
-}
+// Fin de feed_tab.dart

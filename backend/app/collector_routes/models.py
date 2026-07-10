@@ -5,7 +5,7 @@ Tournées de collecte planifiées pour les prestataires (role=collector).
 Permet de planifier, démarrer et terminer une tournée sur plusieurs
 points de collecte.
 """
-from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, JSON
+from sqlalchemy import Column, Float, Integer, String, Text, DateTime, ForeignKey, JSON
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from app.base import Base
@@ -33,7 +33,7 @@ class CollectionRoute(Base):
     notes           = Column(Text, nullable=True)
 
     # Résultat de la tournée
-    total_weight_kg = Column(String, nullable=True)  # kg total collecté
+    total_weight_kg = Column(Float, nullable=True)  # kg total collecté
     completed_at    = Column(DateTime, nullable=True)
 
     # Timestamps

@@ -1,49 +1,50 @@
+# =============================================================================
+# requirements.txt — Dépendances CORE de l'API EcoRewind (FastAPI)
+# =============================================================================
+# Ce fichier contient UNIQUEMENT les dépendances nécessaires au démarrage
+# de l'API FastAPI et de ses fonctionnalités métier.
+#
+# Les dépendances IA lourdes (torch, transformers, detoxify, nudenet...)
+# sont dans : requirements-ai.txt
+#
+# Installation :
+#   pip install -r requirements.txt          ← API seule (léger, rapide)
+#   pip install -r requirements-ai.txt       ← Worker IA (lourd, optionnel)
+# =============================================================================
+
+# ── Framework Web ─────────────────────────────────────────────────────────────
 fastapi
-psycopg2-binary
-firebase-admin
 uvicorn
+
+# ── Base de données ───────────────────────────────────────────────────────────
+sqlalchemy
+alembic>=1.13.0
+psycopg2-binary
+
+# ── Authentification & Sécurité ───────────────────────────────────────────────
 python-jose[cryptography]
 passlib[bcrypt]
 bcrypt==4.0.1
-python-multipart
+pyotp
+
+# ── Firebase & Google Auth ────────────────────────────────────────────────────
+firebase-admin
 google-auth
 google-auth-oauthlib
 google-auth-httplib2
-httpx
-python-dotenv
+
+# ── Schémas & Validation ──────────────────────────────────────────────────────
 pydantic
 pydantic-settings
 email-validator
-fastapi-mail
-sqlalchemy
-alembic>=1.13.0
-Pillow
+
+# ── Requêtes HTTP & Upload ────────────────────────────────────────────────────
 httpx
-pyotp
+python-multipart
+Pillow
 
+# ── Email ─────────────────────────────────────────────────────────────────────
+fastapi-mail
 
-# ─── AI Moderation — Couche 1 : détection toxicité texte (BERT) ───────────────
-detoxify>=0.5.2
-
-# ─── AI Moderation — Couche 2 : classification image NSFW (CNN) ───────────────
-nudenet>=3.4.2
-
-# ─── AI Moderation — Couches 2+3 : NLP + Vision IA ───────────────────────────
-# XLM-RoBERTa zero-shot (classification texte multilingue FR/AR/EN)
-# CLIP ViT-B/32 (analyse sémantique image — détecte accidents, hors-sujet, etc.)
-transformers>=4.40.0
-torch>=2.1.0
-torchvision>=0.16.0
-sentencepiece>=0.1.99      # Tokenizer XLM-RoBERTa
-protobuf>=4.0.0            # Requis par SentencePiece pour XLM-RoBERTa
-tiktoken>=0.5.0            # Fallback tokenizer (BPE)
-
-# ─── AI Moderation — Couche 5 : CNN custom (Text CNN + ResNet18) ───────────
-pandas>=1.5.0
-scikit-learn>=1.3.0
-
-# ─── AI Moderation — Amélioration : embeddings pré-entraînés ──────────────
-gensim>=4.3.0              # FastText / Word2Vec embeddings pré-entraînés
-
-# ─── AI Moderation — Dataset images (téléchargement) ──────────────────────
-icrawler>=0.6.6             # Bing Image Crawler pour dataset images
+# ── Environnement ─────────────────────────────────────────────────────────────
+python-dotenv

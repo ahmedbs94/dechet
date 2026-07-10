@@ -8,11 +8,13 @@ import 'dart:convert';
 import '../../theme/app_theme.dart';
 import 'add_sorting_center_screen.dart';
 import '../../services/auth_service.dart';
+import '../../services/messaging_service.dart';
 import '../client/profile_tab.dart';
 import 'user_management_screen.dart';
 import 'admin_proposals_screen.dart';
 import 'admin_analytics_tab.dart';
 import '../../services/l10n_service.dart';
+import '../messaging/messaging_screen.dart';
 
 
 class AdminDashboardScreen extends StatefulWidget {
@@ -25,15 +27,17 @@ class AdminDashboardScreen extends StatefulWidget {
 class _AdminDashboardScreenState extends State<AdminDashboardScreen> with SingleTickerProviderStateMixin {
   late TabController _tabController;
   final AuthService _authService = AuthService();
+  int _unreadMessages = 0;
 
   // Admin stats (loaded from API)
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 7, vsync: this);
+    _tabController = TabController(length: 8, vsync: this);
     L10n.addListener(_onLocaleChange);
     _loadStats();
+    _loadUnreadCount();
   }
 
   void _onLocaleChange() {
@@ -42,6 +46,11 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> with Single
 
   Future<void> _loadStats() async {
     await _authService.fetchAdminStats();
+  }
+
+  Future<void> _loadUnreadCount() async {
+    final count = await MessagingService.getUnreadCount();
+    if (mounted) setState(() => _unreadMessages = count);
   }
 
   @override
@@ -103,6 +112,23 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> with Single
                     Tab(text: L10n.tr('admin_tab_proposals')),
                     Tab(text: L10n.tr('admin_tab_points')),
                     Tab(text: L10n.tr('admin_tab_users')),
+                    Tab(
+                      child: Row(mainAxisSize: MainAxisSize.min, children: [
+                        const Text('Messages'),
+                        if (_unreadMessages > 0) ...[
+                          const SizedBox(width: 6),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                            decoration: BoxDecoration(
+                              color: AppTheme.primaryGreen,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text('$_unreadMessages',
+                              style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w800)),
+                          ),
+                        ],
+                      ]),
+                    ),
                     Tab(text: L10n.tr('admin_tab_profile')),
                   ],
                 ),
@@ -119,6 +145,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> with Single
             const AdminProposalsScreen(),
             _buildPointsManagementTab(),
             const UserManagementScreen(),
+            const MessagingScreen(key: ValueKey('admin_messaging')),
             const ProfileTab(),
           ],
         ),

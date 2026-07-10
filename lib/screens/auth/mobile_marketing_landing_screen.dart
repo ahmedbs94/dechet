@@ -535,7 +535,7 @@ class _ContinuousKenBurnsState extends State<_ContinuousKenBurns> with TickerPro
             child: child,
           );
         },
-        child: Image.network(
+        child: SafeNetworkImage(
           widget.imageUrls[_index],
           fit: BoxFit.cover,
           width: double.infinity,
