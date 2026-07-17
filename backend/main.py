@@ -145,7 +145,30 @@ async def _check_migrations():
         print(f"[STARTUP] [WARN] Vérification migrations impossible : {e}")
 
 
-# ── Health check ───────────────────────────────────────────────────────────────
+# ── Startup : Sync automatique des poubelles (arriere-plan) ──────────────────
+@app.on_event("startup")
+async def _start_bin_sync():
+    """
+    Lance la boucle de synchronisation bidirectionnelle des poubelles.
+
+    La boucle tourne en arriere-plan via asyncio.create_task :
+      - Premier cycle 30 s apres le demarrage du serveur
+      - Puis toutes les 5 minutes automatiquement
+
+    Directions synchronisees :
+      Firebase -> PostgreSQL : poids IoT, etat (poubelle pleine/videe)
+      PostgreSQL -> Firebase : status, bin_type, capacite_kg
+    """
+    try:
+        from services.bin_sync_service import bin_sync_loop
+        import asyncio as _asyncio
+        _asyncio.create_task(bin_sync_loop())
+        print("[STARTUP] [OK] BinSync : synchronisation automatique des poubelles activee (cycle 5 min)")
+    except Exception as e:
+        print(f"[STARTUP] [WARN] BinSync non demarre : {e}")
+
+
+# ── Health check ──────────────────────────────────────────────────────────────
 @app.get("/", tags=["health"])
 async def root():
     return {"status": "ok", "service": "EcoRewind API", "version": "2.0.0"}

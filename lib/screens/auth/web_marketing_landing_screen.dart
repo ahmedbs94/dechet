@@ -16,6 +16,9 @@ import '../client/rewards_tab.dart';
 import '../client/map_tab.dart';
 import '../client/multimedia_tab.dart';
 
+import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:convert';
+
 class WebMarketingLandingScreen extends StatefulWidget {
   const WebMarketingLandingScreen({Key? key}) : super(key: key);
 
@@ -30,11 +33,9 @@ class _WebMarketingLandingScreenState extends State<WebMarketingLandingScreen> w
   double _scrollOffset = 0;
 
   // Animated counters
-  int _animCO2 = 0;
   int _animUsers = 0;
   int _animCenters = 0;
 
-  int _targetCO2 = 0;
   int _targetUsers = 0;
   int _targetCenters = 0;
   String _heroMembers = '...';
@@ -69,11 +70,22 @@ class _WebMarketingLandingScreenState extends State<WebMarketingLandingScreen> w
   }
 
   void _loadStats() async {
+    int offlineCenters = 10;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString('map_points_cache_v2');
+      if (raw != null && raw.isNotEmpty) {
+        final List<dynamic> decoded = json.decode(raw);
+        if (decoded.isNotEmpty) {
+          offlineCenters = decoded.length;
+        }
+      }
+    } catch (_) {}
+
     try {
       final stats = await AuthService().fetchPlatformStats();
       if (mounted && stats.isNotEmpty) {
         setState(() {
-          _targetCO2 = (stats['co2_saved_kg'] ?? 0).toInt();
           _targetUsers = (stats['total_users'] ?? 0).toInt();
           _targetCenters = (stats['total_collection_points'] ?? 0).toInt();
           
@@ -91,9 +103,25 @@ class _WebMarketingLandingScreenState extends State<WebMarketingLandingScreen> w
           _heroCenters = '$_targetCenters';
         });
         _startCounterAnimation();
+      } else {
+        _setOfflineStats(offlineCenters);
       }
     } catch (e) {
       debugPrint('Error loading stats: $e');
+      _setOfflineStats(offlineCenters);
+    }
+  }
+
+  void _setOfflineStats(int offlineCenters) {
+    if (mounted) {
+      setState(() {
+        _targetUsers = 0;
+        _targetCenters = offlineCenters;
+        _heroMembers = '0';
+        _heroKilos = '0';
+        _heroCenters = '$offlineCenters';
+      });
+      _startCounterAnimation();
     }
   }
 
@@ -103,7 +131,6 @@ class _WebMarketingLandingScreenState extends State<WebMarketingLandingScreen> w
     _counterController.addListener(() {
       if (mounted) {
         setState(() {
-          _animCO2 = (_targetCO2 * _counterController.value).toInt();
           _animUsers = (_targetUsers * _counterController.value).toInt();
           _animCenters = (_targetCenters * _counterController.value).toInt();
         });
@@ -199,22 +226,22 @@ class _WebMarketingLandingScreenState extends State<WebMarketingLandingScreen> w
     final sections = [
       _SectionCard(
         title: 'Notre Impact',
-        subtitle: '$_targetCO2 points distribués',
+        subtitle: '$_targetUsers membres actifs',
         icon: Icons.public_rounded,
         color: const Color(0xFF3B82F6),
         gradient: [const Color(0xFF1E40AF), const Color(0xFF3B82F6)],
         page: const SectionImpact(),
-        imageUrl: 'https://images.unsplash.com/photo-1532996122724-e3c354a0b15b?w=400&q=80',
+        assetImage: 'assets/images/card_impact.png',
         height: 220.0,
       ),
       const _SectionCard(
-        title: 'Témoignages',
+        title: 'Temoignages',
         subtitle: 'Ils nous font confiance',
         icon: Icons.groups_rounded,
         color: Color(0xFF8B5CF6),
         gradient: [Color(0xFF6D28D9), Color(0xFF8B5CF6)],
         page: SectionTestimonials(),
-        imageUrl: 'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=400&q=80',
+        assetImage: 'assets/images/card_community.png',
         height: 260.0,
       ),
       const _SectionCard(
@@ -224,7 +251,7 @@ class _WebMarketingLandingScreenState extends State<WebMarketingLandingScreen> w
         color: Color(0xFFF59E0B),
         gradient: [Color(0xFFB45309), Color(0xFFF59E0B)],
         page: SectionAdvantages(),
-        imageUrl: 'https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?w=400&q=80',
+        assetImage: 'assets/images/card_rewards.png',
         height: 200.0,
       ),
     ];
@@ -320,8 +347,9 @@ class _WebMarketingLandingScreenState extends State<WebMarketingLandingScreen> w
           child: Stack(
             fit: StackFit.expand,
             children: [
-              Image.network(
-                s.imageUrl,
+              // Image illustrative de la fonctionnalite
+              Image.asset(
+                s.assetImage,
                 fit: BoxFit.cover,
                 errorBuilder: (c, e, st) => Container(
                   decoration: BoxDecoration(
@@ -332,7 +360,7 @@ class _WebMarketingLandingScreenState extends State<WebMarketingLandingScreen> w
                     ),
                   ),
                   child: Center(
-                    child: Icon(s.icon, color: Colors.white.withOpacity(0.3), size: 48),
+                    child: Icon(s.icon, color: Colors.white.withOpacity(0.2), size: 80),
                   ),
                 ),
               ),
@@ -531,14 +559,25 @@ class _WebMarketingLandingScreenState extends State<WebMarketingLandingScreen> w
       width: double.infinity,
       child: Stack(
         children: [
-          // Animated Ken Burns Background
-          const Positioned.fill(
-            child: _ContinuousKenBurns(
-              imageUrls: [
-                'https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?w=1600&q=80',
-                'https://images.unsplash.com/photo-1472214103451-9374bd1c798e?w=1600&q=80',
-                'https://images.unsplash.com/photo-1518173946687-a4c8892bbd9f?w=1600&q=80',
-              ],
+          // Fond degrade anime natif — remplace les URLs Unsplash bloquees
+          Positioned.fill(
+            child: AnimatedBuilder(
+              animation: _floatingController,
+              builder: (context, _) {
+                return Container(
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        Color(0xFF0F2D1F),
+                        Color(0xFF071520),
+                        Color(0xFF0D2D24),
+                      ],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                  ),
+                );
+              },
             ),
           ),
           // Dark gradient overlay
@@ -579,15 +618,7 @@ class _WebMarketingLandingScreenState extends State<WebMarketingLandingScreen> w
             );
           }),
 
-          // Subtle texture
-          Positioned.fill(
-            child: Opacity(opacity: 0.04, child: Container(
-              decoration: const BoxDecoration(image: DecorationImage(
-                image: NetworkImage('https://images.unsplash.com/photo-1557683316-973673baf926?w=400&q=20'),
-                fit: BoxFit.cover,
-              )),
-            )),
-          ),
+
 
           // Content
           Padding(
@@ -941,31 +972,35 @@ class _WebMarketingLandingScreenState extends State<WebMarketingLandingScreen> w
     final features = [
       _FeatureData(
         'Fil Communautaire',
-        'Partagez vos actions éco et inspirez votre entourage',
+        'Partagez vos actions eco et inspirez votre entourage',
         FontAwesomeIcons.users,
         const Color(0xFF3B82F6),
-        'https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?w=400&q=80',
+        [const Color(0xFF1E40AF), const Color(0xFF3B82F6)],
+        'assets/images/card_community.png',
       ),
       _FeatureData(
-        'Éducation',
-        'Quiz interactifs, vidéos éducatives et articles sur le tri et le recyclage',
+        'Education',
+        'Quiz interactifs, videos educatives et articles sur le tri et le recyclage',
         FontAwesomeIcons.graduationCap,
         const Color(0xFF8B5CF6),
-        'https://images.unsplash.com/photo-1503676260728-1c00da094a0b?w=400&q=80',
+        [const Color(0xFF6D28D9), const Color(0xFF8B5CF6)],
+        'assets/images/card_impact.png',
       ),
       _FeatureData(
-        'Récompenses',
-        'Échangez vos points contre des cadeaux réels et des réductions',
+        'Recompenses',
+        'Echangez vos points contre des cadeaux reels et des reductions',
         FontAwesomeIcons.trophy,
         const Color(0xFFF59E0B),
-        'https://images.unsplash.com/photo-1532996122724-e3c354a0b15b?w=400&q=80',
+        [const Color(0xFFB45309), const Color(0xFFF59E0B)],
+        'assets/images/card_rewards.png',
       ),
       _FeatureData(
         'Carte Interactive',
-        'Localisez les bornes de tri les plus proches en temps réel',
+        'Localisez les bornes de tri les plus proches en temps reel',
         FontAwesomeIcons.mapLocationDot,
         const Color(0xFF10B981),
-        'https://images.unsplash.com/photo-1595278069441-2cf29f8005a4?w=400&q=80',
+        [const Color(0xFF065F46), const Color(0xFF10B981)],
+        'assets/images/card_map.png',
       ),
     ];
 
@@ -1022,24 +1057,30 @@ class _WebMarketingLandingScreenState extends State<WebMarketingLandingScreen> w
         ),
         child: Row(
           children: [
-            // Image preview
+            // Preview illustratif avec image asset
             ClipRRect(
               borderRadius: const BorderRadius.horizontal(left: Radius.circular(28)),
               child: SizedBox(
                 width: 120,
                 height: double.infinity,
                 child: Stack(
+                  fit: StackFit.expand,
                   children: [
-                    Image.network(
-                      f.imageUrl,
+                    Image.asset(
+                      f.assetImage,
                       fit: BoxFit.cover,
-                      width: double.infinity,
-                      height: double.infinity,
                       errorBuilder: (c, e, s) => Container(
-                        color: f.color.withOpacity(0.1),
-                        child: Icon(f.icon, color: f.color, size: 32),
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: f.gradient,
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                        ),
+                        child: Center(child: Icon(f.icon, color: Colors.white.withOpacity(0.85), size: 36)),
                       ),
                     ),
+                    // Fondu vers blanc pour lisibilite du texte a droite
                     Container(
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
@@ -1047,15 +1088,13 @@ class _WebMarketingLandingScreenState extends State<WebMarketingLandingScreen> w
                           end: Alignment.centerRight,
                           colors: [
                             Colors.transparent,
-                            Colors.white.withOpacity(0.8),
+                            Colors.white.withOpacity(0.6),
                           ],
                         ),
                       ),
                     ),
-                    // Lock badge
                     Positioned(
-                      top: 10,
-                      left: 10,
+                      top: 10, left: 10,
                       child: Container(
                         padding: const EdgeInsets.all(6),
                         decoration: BoxDecoration(
@@ -1251,16 +1290,6 @@ class _WebMarketingLandingScreenState extends State<WebMarketingLandingScreen> w
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
               _buildCounterStat(
-                '$_animCO2',
-                'KG CO2 ÉVITÉS',
-                Icons.cloud_done_rounded,
-              ),
-              Container(
-                width: 1,
-                height: 50,
-                color: Colors.white.withOpacity(0.1),
-              ),
-              _buildCounterStat(
                 '$_animUsers',
                 'CITOYENS ACTIFS',
                 Icons.people_alt_rounded,
@@ -1419,9 +1448,10 @@ class _FeatureData {
   final String description;
   final IconData icon;
   final Color color;
-  final String imageUrl;
+  final List<Color> gradient;
+  final String assetImage;
 
-  _FeatureData(this.title, this.description, this.icon, this.color, this.imageUrl);
+  _FeatureData(this.title, this.description, this.icon, this.color, this.gradient, this.assetImage);
 }
 
 class _SectionCard {
@@ -1431,7 +1461,7 @@ class _SectionCard {
   final Color color;
   final List<Color> gradient;
   final Widget page;
-  final String imageUrl;
+  final String assetImage;
   final double height;
 
   const _SectionCard({
@@ -1441,7 +1471,7 @@ class _SectionCard {
     required this.color,
     required this.gradient,
     required this.page,
-    this.imageUrl = '',
+    this.assetImage = '',
     this.height = 200.0,
   });
 }

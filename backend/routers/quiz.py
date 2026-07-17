@@ -304,6 +304,13 @@ async def submit_quiz_answers(
     if not quiz or quiz.status != "ready":
         raise HTTPException(status_code=404, detail="Quiz non trouvé ou pas encore prêt")
 
+    # Seul le role 'user' (citoyen) gagne des points de quiz.
+    if current_user.role != "user":
+        raise HTTPException(
+            status_code=403,
+            detail="Seuls les citoyens (role=user) peuvent soumettre un quiz et gagner des points.",
+        )
+
     # Vérifier si l'utilisateur a déjà soumis ce quiz
     existing = (
         db.query(db_models.QuizSubmission)
@@ -343,19 +350,45 @@ async def submit_quiz_answers(
         )
         db.add(submission)
 
-        # Ajouter le score au score global de l'utilisateur
+        # SOURCE DE VERITE : recalcul depuis BinScan + QuizSubmission
+        # On commit la soumission, puis on relit les vraies sommes SQL.
         score = round(grading.get("score", 0), 1)
-        if score > 0:
-            if current_user.global_score is None:
-                current_user.global_score = 0.0
-            current_user.global_score += score
-            db.add(current_user)
-
         db.commit()
         db.refresh(submission)
 
+        if score > 0:
+            from sqlalchemy import func as _func
+            _scan_pts = db.query(
+                _func.coalesce(_func.sum(db_models.BinScan.points_earned), 0.0)
+            ).filter(db_models.BinScan.user_id == current_user.id).scalar()
+            _quiz_pts = db.query(
+                _func.coalesce(_func.sum(db_models.QuizSubmission.score), 0.0)
+            ).filter(db_models.QuizSubmission.student_id == current_user.id).scalar()
+            # FIX : prend le MAX entre le recalcul SQL et le score stocke
+            # pour ne jamais ecraser les points Arduino remontés par BinSync.
+            _recalculated = round(float(_scan_pts) + float(_quiz_pts), 2)
+            _stored       = float(current_user.global_score or 0)
+            current_user.global_score = max(_recalculated, _stored)
+            db.add(current_user)
+            db.commit()
+
+        # ── Sync Firebase RTDB (hors transaction SQL, non bloquant) ──────────
+        # Systeme independant du scan de poubelle : on utilise update_quiz_score.
+        if score > 0:
+            try:
+                from services.firebase_service import update_quiz_score as _firebase_quiz
+                _firebase_quiz(
+                    user_id     = current_user.id,
+                    new_total   = current_user.global_score or 0.0,
+                    quiz_points = score,
+                    quiz_id     = quiz_id,
+                    qr_code     = getattr(current_user, "qr_code", None) or "",
+                )
+            except Exception:
+                pass  # Firebase en panne : non bloquant, score SQL deja sauvegarde
+
         return {
-            "message": "Quiz corrigé par l'IA !",
+            "message": "Quiz corrige par l'IA !",
             "submission": _format_submission(submission),
             "grading": grading,
             "global_score": current_user.global_score or 0.0,
@@ -383,6 +416,13 @@ async def submit_quiz_pdf(
     quiz = db.query(db_models.Quiz).filter(db_models.Quiz.id == quiz_id).first()
     if not quiz or quiz.status != "ready":
         raise HTTPException(status_code=404, detail="Quiz non trouvé ou pas encore prêt")
+
+    # Seul le role 'user' (citoyen) gagne des points de quiz.
+    if current_user.role != "user":
+        raise HTTPException(
+            status_code=403,
+            detail="Seuls les citoyens (role=user) peuvent soumettre un quiz et gagner des points.",
+        )
 
     if not file.filename or not file.filename.lower().endswith(".pdf"):
         raise HTTPException(status_code=400, detail="Seuls les fichiers PDF sont acceptés.")
@@ -416,16 +456,41 @@ async def submit_quiz_pdf(
         )
         db.add(submission)
 
-        # Ajouter le score au score global de l'utilisateur
+        # SOURCE DE VERITE : recalcul depuis BinScan + QuizSubmission (idem submit JSON)
         score = round(grading.get("score", 0), 1)
-        if score > 0:
-            if current_user.global_score is None:
-                current_user.global_score = 0.0
-            current_user.global_score += score
-            db.add(current_user)
-
         db.commit()
         db.refresh(submission)
+
+        if score > 0:
+            from sqlalchemy import func as _func
+            _scan_pts = db.query(
+                _func.coalesce(_func.sum(db_models.BinScan.points_earned), 0.0)
+            ).filter(db_models.BinScan.user_id == current_user.id).scalar()
+            _quiz_pts = db.query(
+                _func.coalesce(_func.sum(db_models.QuizSubmission.score), 0.0)
+            ).filter(db_models.QuizSubmission.student_id == current_user.id).scalar()
+            # FIX : prend le MAX entre le recalcul SQL et le score stocke
+            # pour ne jamais ecraser les points Arduino remontés par BinSync.
+            _recalculated = round(float(_scan_pts) + float(_quiz_pts), 2)
+            _stored       = float(current_user.global_score or 0)
+            current_user.global_score = max(_recalculated, _stored)
+            db.add(current_user)
+            db.commit()
+
+        # ── Sync Firebase RTDB (hors transaction SQL, non bloquant) ──────────
+        # Systeme independant du scan de poubelle.
+        if score > 0:
+            try:
+                from services.firebase_service import update_quiz_score as _firebase_quiz
+                _firebase_quiz(
+                    user_id     = current_user.id,
+                    new_total   = current_user.global_score or 0.0,
+                    quiz_points = score,
+                    quiz_id     = quiz_id,
+                    qr_code     = getattr(current_user, "qr_code", None) or "",
+                )
+            except Exception:
+                pass  # Firebase en panne : non bloquant, score SQL deja sauvegarde
 
         return {
             "message": "Copie corrigée par l'IA !",

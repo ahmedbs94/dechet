@@ -1,8 +1,10 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../widgets/auth_prompt_dialog.dart';
 import '../../services/l10n_service.dart';
+import '../../services/firebase_score_service.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../../models/user_model.dart';
 import 'feed_tab.dart';
@@ -35,9 +37,14 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
   late final bool _isLoggedIn;
   List<Widget> get _pages => _initializePages(AuthState.currentUser?.role ?? UserRole.user);
 
-
   // GlobalKeys pour accéder aux states des tabs et appeler refresh()
   final GlobalKey<ProfileTabState> _profileKey = GlobalKey<ProfileTabState>();
+
+  // ── Streams Firebase temps réel ──────────────────────────────────────────
+  /// /scores/{userId}   — mis à jour par l'API (scan Flutter, quiz)
+  StreamSubscription<ScoreSnapshot>? _firebaseScoreSub;
+  /// /utilisateurs/{qrCode}/score — mis à jour par l'Arduino ESP32 directement
+  StreamSubscription<double>? _firebaseArduinoSub;
 
   @override
   void initState() {
@@ -46,6 +53,12 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
     _isLoggedIn = AuthState.currentUser != null;
     _currentIndex = widget.initialTab.clamp(0, _pages.length - 1);
 
+    // Démarrer l'écoute Firebase uniquement pour les citoyens connectés
+    if (_isLoggedIn && AuthState.currentUser?.role == UserRole.user) {
+      _startFirebaseScoreListener();  // chemin API : /scores/{userId}
+      _startArduinoScoreListener();   // chemin Arduino : /utilisateurs/{qrCode}/score
+    }
+
     if (!_isLoggedIn) {
       Future.delayed(const Duration(milliseconds: 700), () {
         if (mounted) AuthPromptDialog.show(context: context);
@@ -53,8 +66,59 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
     }
   }
 
+  /// Écoute /scores/{userId} — mis à jour par l'API FastAPI.
+  void _startFirebaseScoreListener() {
+    final userId = int.tryParse(AuthState.currentUser?.id ?? '');
+    if (userId == null) return;
+
+    _firebaseScoreSub?.cancel();
+    _firebaseScoreSub = FirebaseScoreService()
+        .watchScore(userId)
+        .listen((snapshot) {
+      final newScore = snapshot.total;
+      final currentScore = AuthState.currentUser?.globalScore ?? 0.0;
+      if ((newScore - currentScore).abs() > 0.01) {
+        if (mounted) {
+          setState(() {
+            AuthState.currentUser =
+                AuthState.currentUser?.copyWithScore(newScore);
+          });
+        }
+      }
+    }, onError: (_) {});
+  }
+
+  /// Écoute /utilisateurs/{qrCode}/score — mis à jour par l'Arduino ESP32.
+  /// L'Arduino écrit directement dans Firebase sans passer par l'API :
+  ///   Firebase.setInt(fbdo, "/utilisateurs/" + qrID + "/score", newScore)
+  /// Ce listener garantit que le score affiché dans l'app est mis à jour
+  /// EN TEMPS RÉEL dès qu'un citoyen dépose ses déchets dans la poubelle.
+  void _startArduinoScoreListener() {
+    final qrCode = AuthState.currentUser?.qrCode ?? '';
+    if (qrCode.isEmpty) return;
+
+    _firebaseArduinoSub?.cancel();
+    _firebaseArduinoSub = FirebaseScoreService()
+        .watchArduinoScore(qrCode)
+        .listen((arduinoScore) {
+      if (arduinoScore <= 0) return;
+      final currentScore = AuthState.currentUser?.globalScore ?? 0.0;
+      // On prend toujours le maximum : protège contre les désync temporaires
+      if (arduinoScore > currentScore + 0.01) {
+        if (mounted) {
+          setState(() {
+            AuthState.currentUser =
+                AuthState.currentUser?.copyWithScore(arduinoScore);
+          });
+        }
+      }
+    }, onError: (_) {});
+  }
+
   @override
   void dispose() {
+    _firebaseScoreSub?.cancel();
+    _firebaseArduinoSub?.cancel();
     L10n.removeListener(_onLocaleChange);
     super.dispose();
   }

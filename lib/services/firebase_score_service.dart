@@ -115,6 +115,44 @@ class FirebaseScoreService {
     _subscription?.cancel();
     _subscription = null;
   }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // CHEMIN ARDUINO : /utilisateurs/{qrCode}/score
+  //
+  // L'ESP32 écrit directement :
+  //   Firebase.setInt(fbdo, "/utilisateurs/" + qrID + "/score", newScore)
+  //
+  // Ce stream écoute CE chemin pour que Flutter reçoive les points Arduino
+  // EN TEMPS RÉEL, sans attendre le BinSync (cycle 5 min côté backend).
+  // ─────────────────────────────────────────────────────────────────────────
+
+  /// Écoute /utilisateurs/{qrCode}/score en temps réel.
+  /// Retourne un Stream<double> mis à jour à chaque scan Arduino.
+  /// Retourne Stream.value(0.0) si non authentifié ou qrCode vide.
+  Stream<double> watchArduinoScore(String qrCode) {
+    if (!_isFirebaseAuthenticated || qrCode.isEmpty) {
+      return Stream.value(0.0);
+    }
+    final ref = _db.ref('utilisateurs/$qrCode/score');
+    return ref.onValue.map((event) {
+      final val = event.snapshot.value;
+      if (val == null) return 0.0;
+      return (val as num).toDouble();
+    });
+  }
+
+  /// Lit /utilisateurs/{qrCode}/score une seule fois.
+  Future<double> getArduinoScoreOnce(String qrCode) async {
+    if (!_isFirebaseAuthenticated || qrCode.isEmpty) return 0.0;
+    try {
+      final ref = _db.ref('utilisateurs/$qrCode/score');
+      final snapshot = await ref.get();
+      if (!snapshot.exists || snapshot.value == null) return 0.0;
+      return (snapshot.value as num).toDouble();
+    } catch (_) {
+      return 0.0;
+    }
+  }
 }
 
 

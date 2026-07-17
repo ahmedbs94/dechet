@@ -3,6 +3,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_auth/firebase_auth.dart' as fb_auth;
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'theme/app_theme.dart';
@@ -20,11 +21,14 @@ import 'screens/auth/section_advantages.dart';
 import 'screens/client/client_home.dart';
 import 'screens/admin/admin_dashboard.dart';
 import 'screens/splash_screen.dart';
+import 'features/scan/scan_history_screen.dart';
+import 'constants.dart';
 
 import 'screens/client/sorting_guide_screen.dart';
 import 'screens/client/bin_scanner_screen.dart';
 import 'screens/client/notifications_screen.dart';
 import 'screens/collector/mission_map_screen.dart';
+import 'screens/messaging/messaging_screen.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
 import 'models/post_model.dart';
@@ -204,6 +208,13 @@ Future<void> _restoreSessionIfAvailable() async {
         qrCode: userData['qr_code'] ?? '',
       );
       debugPrint('[Session] Restaurée : ${AuthState.currentUser?.name}');
+
+      // ── Reconnexion Firebase pour activer le stream de score temps réel ──
+      // Sans cette étape, watchScore() retourne Stream.empty() car
+      // FirebaseAuth.instance.currentUser == null après un cold start.
+      if (!kIsWeb && role == UserRole.user) {
+        unawaited(_refreshFirebaseToken());
+      }
     } else {
       if (result['message']?.toString().contains('Erreur réseau') == true || result['message']?.toString().contains('Erreur serveur') == true) {
         debugPrint('[Session] Erreur réseau ignorée. Décodage local du token en fallback.');
@@ -246,6 +257,28 @@ Future<void> _restoreSessionIfAvailable() async {
   }
 }
 
+/// Appelle GET /auth/firebase-token puis connecte Flutter à Firebase RTDB.
+/// Exécuté en arrière-plan après la restauration de session (non bloquant).
+Future<void> _refreshFirebaseToken() async {
+  try {
+    final authService = AuthService();
+    final response = await authService.authenticatedGet(
+      '${ApiConstants.baseUrl}/auth/firebase-token',
+    );
+    if (response.statusCode == 200) {
+      final data = json.decode(utf8.decode(response.bodyBytes));
+      final fbToken = data['firebase_token'] as String?;
+      if (fbToken != null && fbToken.isNotEmpty) {
+        await fb_auth.FirebaseAuth.instance.signInWithCustomToken(fbToken);
+        debugPrint('[Firebase] sessionrestore signInWithCustomToken OK');
+      }
+    }
+  } catch (e) {
+    debugPrint('[Firebase] Refresh token echoue (mode degrade) : $e');
+    // Non bloquant — l app continue sans temps reel Firebase
+  }
+}
+
 class EcoRewindApp extends StatefulWidget {
   const EcoRewindApp({Key? key}) : super(key: key);
 
@@ -280,6 +313,7 @@ class _EcoRewindAppState extends State<EcoRewindApp> {
   Widget build(BuildContext context) {
     return MaterialApp(
       navigatorKey: navigatorKey,
+      navigatorObservers: [scanHistoryRouteObserver],
       title: 'EcoRewind',
       debugShowCheckedModeBanner: false,
       theme: PlatformUI.isWeb ? WebTheme.theme : AppTheme.seniorTheme,
@@ -362,6 +396,8 @@ class _EcoRewindAppState extends State<EcoRewindApp> {
             return buildRoute((_) => const BinScannerScreen(), fullscreen: true);
           case '/notifications':
             return buildRoute((_) => const NotificationsScreen());
+          case '/messaging':
+            return buildRoute((_) => const MessagingScreen());
           case '/mission-map':
             final args = settings.arguments as Map<String, dynamic>?;
             final assignmentId = args?['assignment_id'] as int? ?? 0;

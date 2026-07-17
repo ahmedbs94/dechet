@@ -42,8 +42,12 @@ class ScanHistoryScreen extends StatefulWidget {
   State<ScanHistoryScreen> createState() => _ScanHistoryScreenState();
 }
 
+// RouteObserver global pour détecter le retour sur l'écran
+final RouteObserver<ModalRoute<void>> scanHistoryRouteObserver =
+    RouteObserver<ModalRoute<void>>();
+
 class _ScanHistoryScreenState extends State<ScanHistoryScreen>
-    with SingleTickerProviderStateMixin {
+    with SingleTickerProviderStateMixin, RouteAware {
   late TabController _tabs;
   final ScanService _service = ScanService();
 
@@ -65,13 +69,27 @@ class _ScanHistoryScreenState extends State<ScanHistoryScreen>
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // S'abonner au RouteObserver pour détecter le retour sur cet écran
+    scanHistoryRouteObserver.subscribe(this, ModalRoute.of(context)!);
+  }
+
+  /// Appelé quand l'utilisateur revient sur cet écran (pop depuis scanner)
+  @override
+  void didPopNext() {
+    _loadHistory(); // Recharge l'historique automatiquement
+  }
+
+  @override
   void dispose() {
+    scanHistoryRouteObserver.unsubscribe(this);
     _tabs.dispose();
     super.dispose();
   }
 
   Future<void> _loadHistory() async {
-    setState(() => _loadingHistory = true);
+    if (mounted) setState(() => _loadingHistory = true);
     final data = await _service.getScanHistory(limit: 50);
     if (mounted) {
       final scans = (data['scans'] as List? ?? []).cast<Map<String, dynamic>>();
@@ -147,6 +165,22 @@ class _ScanHistoryScreenState extends State<ScanHistoryScreen>
           fontSize: 18,
         ),
       ),
+      actions: [
+        IconButton(
+          icon: _loadingHistory
+              ? const SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: Colors.white,
+                  ),
+                )
+              : const Icon(Icons.refresh_rounded, color: Colors.white),
+          tooltip: 'Rafraîchir',
+          onPressed: _loadingHistory ? null : () => _loadHistory(),
+        ),
+      ],
       flexibleSpace: FlexibleSpaceBar(
         collapseMode: CollapseMode.parallax,
         background: Container(

@@ -42,8 +42,8 @@ class _MobileMarketingLandingScreenState extends State<MobileMarketingLandingScr
       final stats = await AuthService().fetchPlatformStats();
       if (mounted && stats.isNotEmpty) {
         setState(() {
-          final co2 = (stats['co2_saved_kg'] ?? 0).toDouble();
-          _impactSubtitle = '${co2.toStringAsFixed(1)} kg CO₂';
+          final members = (stats['total_users'] ?? 0).toInt();
+          _impactSubtitle = '$members membres actifs';
         });
       }
     } catch (e) {
@@ -146,13 +146,31 @@ class _MobileMarketingLandingScreenState extends State<MobileMarketingLandingScr
       child: Stack(
         fit: StackFit.expand,
         children: [
-          // Animated Ken Burns Background
-          const _ContinuousKenBurns(
-            imageUrls: [
-              'https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?w=800&q=80',
-              'https://images.unsplash.com/photo-1472214103451-9374bd1c798e?w=800&q=80',
-              'https://images.unsplash.com/photo-1518173946687-a4c8892bbd9f?w=800&q=80',
-            ],
+          // Fond avec image illustrative login_hero_new.png et zoom lent
+          AnimatedBuilder(
+            animation: _bgAnimationController,
+            builder: (context, child) {
+              return Transform.scale(
+                scale: 1.0 + (_bgAnimationController.value * 0.04),
+                child: child,
+              );
+            },
+            child: Image.asset(
+              'assets/images/login_hero_new.png',
+              fit: BoxFit.cover,
+              errorBuilder: (context, error, stackTrace) => Container(
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      Color(0xFF0F2D1F),
+                      Color(0xFF0A1628),
+                    ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                ),
+              ),
+            ),
           ),
           
           // Gradient Overlay
@@ -248,9 +266,11 @@ class _MobileMarketingLandingScreenState extends State<MobileMarketingLandingScr
             child: Column(
               children: [
                 _buildPinCard(
-                  title: 'Impact Réel',
+                  title: 'Impact Reel',
                   subtitle: _impactSubtitle,
-                  imageUrl: 'https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?w=500&q=80',
+                  assetImage: 'assets/images/card_impact.png',
+                  fallbackGrad: const [Color(0xFF064E3B), Color(0xFF0D9488)],
+                  fallbackIcon: Icons.bar_chart_rounded,
                   height: 260,
                   page: const SectionImpact(),
                   isAuthRequired: true,
@@ -258,9 +278,11 @@ class _MobileMarketingLandingScreenState extends State<MobileMarketingLandingScr
                 ),
                 const SizedBox(height: 16),
                 _buildPinCard(
-                  title: 'Récompenses',
+                  title: 'Recompenses',
                   subtitle: 'Cadeaux exclusifs',
-                  imageUrl: 'https://images.unsplash.com/photo-1532996122724-e3c354a0b15b?w=500&q=80',
+                  assetImage: 'assets/images/card_rewards.png',
+                  fallbackGrad: const [Color(0xFF3B0764), Color(0xFF7C3AED)],
+                  fallbackIcon: Icons.card_giftcard_rounded,
                   height: 320,
                   page: const RewardsTab(),
                   isAuthRequired: true,
@@ -275,9 +297,11 @@ class _MobileMarketingLandingScreenState extends State<MobileMarketingLandingScr
               children: [
                 const SizedBox(height: 40),
                 _buildPinCard(
-                  title: 'Communauté',
-                  subtitle: 'Rejoignez le mouv\'',
-                  imageUrl: 'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=500&q=80',
+                  title: 'Communaute',
+                  subtitle: "Rejoignez le mouv'",
+                  assetImage: 'assets/images/card_community.png',
+                  fallbackGrad: const [Color(0xFF1E1B4B), Color(0xFF2563EB)],
+                  fallbackIcon: Icons.groups_rounded,
                   height: 300,
                   page: const FeedTab(),
                   isAuthRequired: true,
@@ -287,7 +311,9 @@ class _MobileMarketingLandingScreenState extends State<MobileMarketingLandingScr
                 _buildPinCard(
                   title: 'Carte',
                   subtitle: 'Trouvez les bornes',
-                  imageUrl: 'https://images.unsplash.com/photo-1595278069441-2cf29f8005a4?w=500&q=80',
+                  assetImage: 'assets/images/card_map.png',
+                  fallbackGrad: const [Color(0xFF052E16), Color(0xFF059669)],
+                  fallbackIcon: Icons.map_rounded,
                   height: 240,
                   page: const MapTab(),
                   isAuthRequired: true,
@@ -304,7 +330,9 @@ class _MobileMarketingLandingScreenState extends State<MobileMarketingLandingScr
   Widget _buildPinCard({
     required String title,
     required String subtitle,
-    required String imageUrl,
+    required String assetImage,
+    required List<Color> fallbackGrad,
+    required IconData fallbackIcon,
     required double height,
     required Widget page,
     bool isAuthRequired = false,
@@ -318,7 +346,7 @@ class _MobileMarketingLandingScreenState extends State<MobileMarketingLandingScr
           borderRadius: BorderRadius.circular(24),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.08),
+              color: Colors.black.withOpacity(0.18),
               blurRadius: 20,
               offset: const Offset(0, 10),
             ),
@@ -329,52 +357,55 @@ class _MobileMarketingLandingScreenState extends State<MobileMarketingLandingScr
           child: Stack(
             fit: StackFit.expand,
             children: [
-              SafeNetworkImage(
-                imageUrl,
+              // Image illustrative de la fonctionnalite
+              Image.asset(
+                assetImage,
                 fit: BoxFit.cover,
-                placeholder: Container(color: Colors.grey.shade200),
+                errorBuilder: (c, e, s) => Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: fallbackGrad,
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                  ),
+                  child: Center(child: Icon(fallbackIcon, color: Colors.white54, size: 48)),
+                ),
               ),
+              // Overlay sombre pour lisibilite
               Container(
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     colors: [
                       Colors.transparent,
-                      Colors.black.withOpacity(0.8),
+                      Colors.black.withOpacity(0.75),
                     ],
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
-                    stops: const [0.5, 1.0],
+                    stops: const [0.4, 1.0],
                   ),
                 ),
               ),
               Positioned(
-                left: 16,
-                right: 16,
-                bottom: 16,
+                left: 16, right: 16, bottom: 16,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.25),
+                        color: Colors.white.withOpacity(0.18),
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(12),
-                        child: BackdropFilter(
-                          filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
-                          child: Text(
-                            subtitle,
-                            style: GoogleFonts.inter(
-                              color: Colors.white,
-                              fontSize: 10,
-                              fontWeight: FontWeight.w700,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
+                      child: Text(
+                        subtitle,
+                        style: GoogleFonts.inter(
+                          color: Colors.white,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w700,
                         ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
                     const SizedBox(height: 8),

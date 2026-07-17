@@ -456,9 +456,9 @@ class _ChatScreenState extends State<_ChatScreen> {
 
   // ── Références RTDB (/typing/{userId}/{partnerId}) ─────────────────────────
   DatabaseReference get _myTypingRef =>
-      FirebaseDatabase.instance.ref('typing/${_myUserId}/${widget.partnerId}');
+      FirebaseDatabase.instance.ref('typing/$_myUserId/${widget.partnerId}');
   DatabaseReference get _partnerTypingRef =>
-      FirebaseDatabase.instance.ref('typing/${widget.partnerId}/${_myUserId}');
+      FirebaseDatabase.instance.ref('typing/${widget.partnerId}/$_myUserId');
 
   @override
   void initState() {
@@ -702,22 +702,22 @@ class _ChatScreenState extends State<_ChatScreen> {
           const SizedBox(width: 8),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-            decoration: BoxDecoration(
-              color: const Color(0xFF1E2D3D),
-              borderRadius: const BorderRadius.only(
+            decoration: const BoxDecoration(
+              color: Color(0xFF1E2D3D),
+              borderRadius: BorderRadius.only(
                 topLeft: Radius.circular(18),
                 topRight: Radius.circular(18),
                 bottomRight: Radius.circular(18),
                 bottomLeft: Radius.circular(4),
               ),
             ),
-            child: Row(
+            child: const Row(
               mainAxisSize: MainAxisSize.min,
               children: [
                 _TypingDot(delay: 0),
-                const SizedBox(width: 4),
+                SizedBox(width: 4),
                 _TypingDot(delay: 150),
-                const SizedBox(width: 4),
+                SizedBox(width: 4),
                 _TypingDot(delay: 300),
               ],
             ),

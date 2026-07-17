@@ -175,22 +175,32 @@ class _WebLoginBodyState extends State<WebLoginBody> with SingleTickerProviderSt
                       child: Stack(
                         fit: StackFit.expand,
                         children: [
-                          // Ken Burns Effect Image
+                          // Illustration de connexion Web (login_illustration.png) avec zoom lent
                           AnimatedBuilder(
                             animation: _bgController,
                             builder: (context, child) {
-                              // De 1.0 à 1.15
-                              final scale = 1.0 + (_bgController.value * 0.15);
+                              final scale = 1.0 + (_bgController.value * 0.05);
                               return Transform.scale(
                                 scale: scale,
-                                child: Image.network(
-                                  'https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?q=80&w=2000',
-                                  fit: BoxFit.cover,
-                                  color: const Color(0xFF064E3B).withOpacity(0.4),
-                                  colorBlendMode: BlendMode.hardLight,
-                                ),
+                                child: child,
                               );
                             },
+                            child: Image.asset(
+                              'assets/images/login_illustration.png',
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) => Container(
+                                decoration: const BoxDecoration(
+                                  gradient: LinearGradient(
+                                    colors: [
+                                      Color(0xFF0F2D1F),
+                                      Color(0xFF0A1628),
+                                    ],
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
+                                  ),
+                                ),
+                              ),
+                            ),
                           ),
                           // Overlay gradient
                           Container(

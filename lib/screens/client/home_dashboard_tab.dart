@@ -16,7 +16,6 @@ import '../../screens/client/notifications_screen.dart';
 import '../../screens/client/bin_scanner_screen.dart';
 import '../../features/scan/scan_history_screen.dart';
 import '../../services/l10n_service.dart';
-import '../../widgets/safe_network_image.dart';
 
 class HomeDashboardTab extends StatefulWidget {
   final Function(int) onNavigate;
@@ -32,7 +31,6 @@ class _HomeDashboardTabState extends State<HomeDashboardTab> with SingleTickerPr
   final AuthService _authService = AuthService();
 
   // Stats dynamiques
-  double _co2 = 0;
   double _waste = 0;
   int _trees = 0;
   bool _statsLoaded = false;
@@ -50,7 +48,10 @@ class _HomeDashboardTabState extends State<HomeDashboardTab> with SingleTickerPr
       if (mounted) setState(() {});
     });
     _fetchStats();
-    _refreshUserScore();
+    // Note : le score est maintenant écouté en temps réel via Firebase
+    // dans MainNavigationShell._startFirebaseScoreListener().
+    // On fait juste un fetch initial pour avoir la valeur SQL à jour au 1er montage.
+    _refreshUserScoreOnce();
     _syncUnreadNotifications();
   }
 
@@ -93,12 +94,23 @@ class _HomeDashboardTabState extends State<HomeDashboardTab> with SingleTickerPr
     if (mounted) setState(() {});
   }
 
-  Future<void> _refreshUserScore() async {
+  /// Fetch unique du profil au 1er montage pour aligner SQL → AuthState.
+  /// Après cela, Firebase RTDB (via MainNavigationShell) prend le relais
+  /// en temps réel pour toutes les mises à jour de score.
+  Future<void> _refreshUserScoreOnce() async {
     if (!AuthState.isLoggedIn) return;
     try {
       final userData = await _authService.fetchUserProfile();
       if (userData != null && mounted) {
-        AuthState.currentUser = User.fromBackend(userData);
+        // Utiliser le max entre SQL et valeur déjà en mémoire
+        // pour éviter de régresser si Firebase a déjà poussé une valeur plus haute
+        final sqlScore = (userData['global_score'] as num?)?.toDouble() ?? 0.0;
+        final memScore = AuthState.currentUser?.globalScore ?? 0.0;
+        final best = sqlScore > memScore ? sqlScore : memScore;
+        AuthState.currentUser = User.fromBackend({
+          ...userData,
+          'global_score': best,
+        });
         if (mounted) setState(() {});
       }
     } catch (_) {}
@@ -113,7 +125,6 @@ class _HomeDashboardTabState extends State<HomeDashboardTab> with SingleTickerPr
         final data = json.decode(res.body);
         if (mounted) {
           setState(() {
-            _co2 = (data['co2_saved_kg'] as num?)?.toDouble() ?? 0;
             _waste = (data['waste_sorted_kg'] as num?)?.toDouble() ?? 0;
             _trees = (data['trees_equivalent'] as num?)?.toInt() ?? 0;
             _statsLoaded = true;
@@ -123,7 +134,7 @@ class _HomeDashboardTabState extends State<HomeDashboardTab> with SingleTickerPr
       }
     } catch (_) {
       if (mounted) {
-        setState(() { _co2 = 0; _waste = 0; _trees = 0; _statsLoaded = true; });
+        setState(() { _waste = 0; _trees = 0; _statsLoaded = true; });
         _counterCtrl.forward();
       }
     }
@@ -830,6 +841,33 @@ class _HomeDashboardTabState extends State<HomeDashboardTab> with SingleTickerPr
   }
 
   Widget _buildVlogSpotlight() {
+    final cards = [
+      (
+        title: L10n.isArabic ? 'مستقبل إعادة التدوير' : 'Le Futur du Recyclage',
+        meta: L10n.isArabic ? 'فيديو • 4 دقائق' : 'Vidéo • 4 min',
+        icon: Icons.recycling_rounded,
+        gradientColors: [const Color(0xFF0F4C33), const Color(0xFF1A7A50)],
+        accentColor: AppTheme.primaryGreen,
+        tabIndex: 1,
+      ),
+      (
+        title: L10n.isArabic ? 'أساسيات الفرز' : "L'Essentiel du Tri",
+        meta: L10n.isArabic ? 'مقال • 3 دقائق' : 'Article • 3 min',
+        icon: Icons.sort_rounded,
+        gradientColors: [const Color(0xFF0C3547), const Color(0xFF1565C0)],
+        accentColor: const Color(0xFF42A5F5),
+        tabIndex: 1,
+      ),
+      (
+        title: L10n.isArabic ? 'اختبار الأسبوع' : 'Quiz Hebdo',
+        meta: L10n.isArabic ? 'اختبار • +100 نقطة' : 'Quiz • +100 pts',
+        icon: Icons.quiz_rounded,
+        gradientColors: [const Color(0xFF3A1060), const Color(0xFF6A1B9A)],
+        accentColor: const Color(0xFFCE93D8),
+        tabIndex: 1,
+      ),
+    ];
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -868,92 +906,116 @@ class _HomeDashboardTabState extends State<HomeDashboardTab> with SingleTickerPr
         const SizedBox(height: 12),
         SizedBox(
           height: 200,
-          child: ListView(
+          child: ListView.builder(
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.symmetric(horizontal: 12),
             physics: const BouncingScrollPhysics(),
-            children: [
-              _buildVlogCard(
-                L10n.isArabic ? 'مستقبل إعادة التدوير' : 'Le Futur du Recyclage',
-                'https://images.unsplash.com/photo-1532996122724-e3c354a0b15b?w=400&q=80',
-                L10n.isArabic ? 'فيديو • 4 دقائق' : 'Vidéo • 4 min',
-              ),
-              _buildVlogCard(
-                L10n.isArabic ? 'أساسيات الفرز' : 'L\'Essentiel du Tri',
-                'https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?w=400&q=80',
-                L10n.isArabic ? 'مقال • 3 دقائق' : 'Article • 3 min',
-              ),
-              _buildVlogCard(
-                L10n.isArabic ? 'اختبار الأسبوع' : 'Quiz Hebdo',
-                'https://images.unsplash.com/photo-1595278069441-2cf29f8005a4?w=400&q=80',
-                L10n.isArabic ? 'اختبار • +100 نقطة' : 'Quiz • +100 pts',
-              ),
-            ],
+            itemCount: cards.length,
+            itemBuilder: (context, i) {
+              final card = cards[i];
+              return _buildVlogCard(
+                card.title,
+                card.meta,
+                card.icon,
+                card.gradientColors,
+                card.accentColor,
+                card.tabIndex,
+                animIndex: i,
+              );
+            },
           ),
         ),
       ],
     );
   }
 
-  Widget _buildVlogCard(String title, String image, String meta) {
-    return Container(
-      width: 260,
-      margin: const EdgeInsets.symmetric(horizontal: 8),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.08),
-            blurRadius: 15,
-            offset: const Offset(0, 8),
+  Widget _buildVlogCard(
+    String title,
+    String meta,
+    IconData icon,
+    List<Color> gradientColors,
+    Color accentColor,
+    int tabIndex, {
+    int animIndex = 0,
+  }) {
+    return GestureDetector(
+      onTap: () => widget.onNavigate(tabIndex),
+      child: Container(
+        width: 260,
+        margin: const EdgeInsets.symmetric(horizontal: 8),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(24),
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: gradientColors,
           ),
-        ],
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(24),
+          boxShadow: [
+            BoxShadow(
+              color: gradientColors.last.withOpacity(0.35),
+              blurRadius: 18,
+              offset: const Offset(0, 8),
+            ),
+          ],
+        ),
         child: Stack(
           children: [
-            SafeNetworkImage(
-              image,
-              fit: BoxFit.cover,
-              width: double.infinity,
-              height: double.infinity,
-              placeholder: Container(
-                color: AppTheme.primaryGreen.withOpacity(0.1),
-                child: const Center(
-                  child: Icon(Icons.play_circle_fill_rounded, color: AppTheme.primaryGreen, size: 40),
-                ),
-              ),
-            ),
-            Container(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [Colors.transparent, Colors.black.withOpacity(0.85)],
+            // Decorative background circle
+            Positioned(
+              top: -30,
+              right: -30,
+              child: Container(
+                width: 130,
+                height: 130,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.white.withOpacity(0.05),
                 ),
               ),
             ),
             Positioned(
-              bottom: 16,
-              left: 16,
-              right: 16,
+              bottom: -20,
+              left: -20,
+              child: Container(
+                width: 90,
+                height: 90,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.white.withOpacity(0.04),
+                ),
+              ),
+            ),
+            // Content
+            Padding(
+              padding: const EdgeInsets.all(20),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // Icon pill
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
-                      color: AppTheme.primaryGreen,
-                      borderRadius: BorderRadius.circular(8),
+                      color: Colors.white.withOpacity(0.12),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: Colors.white.withOpacity(0.15)),
+                    ),
+                    child: Icon(icon, color: accentColor, size: 22),
+                  ),
+                  const Spacer(),
+                  // Meta badge
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: accentColor.withOpacity(0.25),
+                      borderRadius: BorderRadius.circular(6),
                     ),
                     child: Text(
                       meta.toUpperCase(),
                       style: GoogleFonts.inter(
-                        color: Colors.white,
-                        fontSize: 9,
+                        color: accentColor,
+                        fontSize: 8,
                         fontWeight: FontWeight.w900,
-                        letterSpacing: 0.5,
+                        letterSpacing: 0.6,
                       ),
                     ),
                   ),
@@ -964,25 +1026,39 @@ class _HomeDashboardTabState extends State<HomeDashboardTab> with SingleTickerPr
                     overflow: TextOverflow.ellipsis,
                     style: GoogleFonts.spaceGrotesk(
                       color: Colors.white,
-                      fontSize: 16,
+                      fontSize: 15,
                       fontWeight: FontWeight.w800,
+                      height: 1.25,
                     ),
                   ),
                 ],
               ),
             ),
+            // Play button overlay
+            Positioned(
+              top: 16,
+              right: 16,
+              child: Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.15),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.arrow_forward_rounded, color: Colors.white, size: 14),
+              ),
+            ),
           ],
         ),
       ),
-    );
+    ).animate().fadeIn(delay: Duration(milliseconds: 100 + animIndex * 80)).slideX(begin: 0.1);
   }
 
   Widget _buildGlobalImpact() {
     const curve = Curves.easeOutCubic;
     final t = _statsLoaded ? curve.transform(_counterCtrl.value) : 0.0;
-    final co2Val = _co2 * t;
     final wasteVal = _waste * t;
     final treesVal = (_trees * t).toInt();
+
 
     return Container(
       margin: const EdgeInsets.all(20),
@@ -1045,8 +1121,6 @@ class _HomeDashboardTabState extends State<HomeDashboardTab> with SingleTickerPr
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              Expanded(child: _buildImpactStat(_fmt(co2Val), L10n.tr('home_stat_co2'), Icons.cloud_done_rounded)),
-              Container(width: 1, height: 40, color: Colors.white.withOpacity(0.08)),
               Expanded(child: _buildImpactStat(_fmt(wasteVal, kg: true), L10n.tr('home_stat_sorted'), Icons.recycling_rounded)),
               Container(width: 1, height: 40, color: Colors.white.withOpacity(0.08)),
               Expanded(child: _buildImpactStat('$treesVal 🌳', L10n.tr('home_stat_trees'), Icons.forest_rounded)),

@@ -144,6 +144,55 @@ def update_user_score(user_id: int, new_total: float, points_added: float,
         return False
 
 
+def update_quiz_score(user_id: int, new_total: float, quiz_points: float,
+                      quiz_id: int, qr_code: Optional[str] = None) -> bool:
+    """
+    Met a jour le score d'un citoyen apres un quiz dans Firebase RTDB.
+
+    Systeme independant du scan de poubelle — pas de champs bin_type / bin_id.
+
+    Structure mise a jour : /scores/{user_id}/
+      - total           : float  (score cumule global)
+      - last_points     : float  (points gagnes sur ce quiz)
+      - last_activity   : str    (ISO datetime UTC)
+      - last_source     : str    (toujours "quiz")
+      - last_quiz_id    : int    (ID du quiz complete)
+
+    Met egalement a jour /utilisateurs/{qr_code}/score si qr_code fourni.
+
+    Retourne True si l'ecriture a reussi, False sinon.
+    """
+    if not _init_firebase():
+        return False
+
+    try:
+        from firebase_admin import db as rtdb
+
+        # 1) Mise a jour du noeud /scores/{user_id}
+        ref = rtdb.reference(f"scores/{user_id}")
+        ref.update({
+            "total":          round(new_total, 2),
+            "last_points":    round(quiz_points, 2),
+            "last_activity":  datetime.now(timezone.utc).isoformat(),
+            "last_source":    "quiz",
+            "last_quiz_id":   quiz_id,
+        })
+
+        # 2) Mise a jour du champ score dans /utilisateurs/{qr_code}
+        if qr_code:
+            user_ref = rtdb.reference(f"utilisateurs/{qr_code}")
+            user_data = user_ref.get()
+            if user_data and isinstance(user_data, dict) and user_data.get("role") == "user":
+                user_ref.update({"score": round(new_total, 2)})
+
+        _safe_print(f"[Firebase] [OK] Quiz score user {user_id} : {new_total} pts (+{quiz_points} quiz #{quiz_id})")
+        return True
+    except Exception as e:
+        _safe_print(f"[Firebase] [ERREUR] update_quiz_score user {user_id} : {e}")
+        traceback.print_exc()
+        return False
+
+
 def get_user_score(user_id: int) -> Optional[dict]:
     """Recupere les donnees de score d'un citoyen depuis Firebase RTDB."""
     if not _init_firebase():
@@ -225,7 +274,7 @@ def sync_user_to_firebase(
     full_name: str = "",
     email: str = "",
     score: Optional[float] = None,
-) -> bool:
+) -> float:
     """
     Synchronise les donnees d'identification d'un utilisateur dans Firebase RTDB.
 
@@ -237,16 +286,23 @@ def sync_user_to_firebase(
       - role      : str  (ex: "user", "admin", "collector"...)
       - score     : float  (UNIQUEMENT pour role="user" / citoyens)
 
-    A appeler lors du login ou de la creation de compte.
-    Retourne True si l'ecriture a reussi, False sinon.
+    Strategie score (protection contre l'ecrasement Arduino) :
+      - Lit le score ACTUEL dans Firebase avant d'ecrire
+      - Conserve le MAXIMUM entre le score Firebase (mis a jour par l'Arduino)
+        et le score PostgreSQL (mis a jour par l'API scan)
+      - Cela empeche le login de remettre le score a 0 si l'Arduino a deja
+        enregistre des points directement dans Firebase RTDB.
+
+    Retourne le score autoritatif retenu (utile pour re-sync PostgreSQL).
+    Retourne -1.0 en cas d'echec.
     """
     if not _init_firebase():
-        return False
+        return -1.0
 
     # Si pas de QR code, impossible d'ecrire le noeud
     if not qr_code:
         _safe_print(f"[Firebase] [WARN] sync_user_to_firebase : qr_code vide pour user {user_id} — skip")
-        return False
+        return -1.0
 
     try:
         from firebase_admin import db as rtdb
@@ -260,17 +316,36 @@ def sync_user_to_firebase(
             "role":      role,
         }
 
-        # Le champ "score" n'existe QUE pour les citoyens (role="user")
+        # ── Score : protection contre l'ecrasement du score Arduino ────────────
+        # L'Arduino met a jour /utilisateurs/{qr}/score directement dans Firebase.
+        # Lors du login, PostgreSQL.global_score peut valoir 0 (pas encore sync).
+        # On lit le score Firebase existant et on prend le MAXIMUM pour ne jamais
+        # regresser le score affiche dans l'app.
+        authoritative_score = 0.0
         if role == "user":
-            data["score"] = round(float(score), 2) if score is not None else 0
+            pg_score = round(float(score), 2) if score is not None else 0.0
+            # Lire le score actuel Firebase (ecrit par l'Arduino ou l'API)
+            try:
+                current_data = ref.get() or {}
+                fb_score = float(current_data.get("score", 0.0))
+            except Exception:
+                fb_score = 0.0
+            # Conserver le score le plus eleve (Arduino peut avoir score > PostgreSQL)
+            authoritative_score = round(max(pg_score, fb_score), 2)
+            data["score"] = authoritative_score
 
-        ref.set(data)
-        _safe_print(f"[Firebase] [OK] Utilisateur {qr_code} ({full_name}) synchro (role={role})")
-        return True
+        # Utiliser update() au lieu de set() pour ne pas ecraser les champs
+        # eventuellement ecrits par d'autres processus (Arduino, BinSync...)
+        ref.update(data)
+        _safe_print(
+            f"[Firebase] [OK] Utilisateur {qr_code} ({full_name}) synchro "
+            f"(role={role}" + (f", score={authoritative_score}" if role == "user" else "") + ")"
+        )
+        return authoritative_score
     except Exception as e:
         _safe_print(f"[Firebase] [ERREUR] sync_user_to_firebase user {user_id} : {e}")
         traceback.print_exc()
-        return False
+        return -1.0
 
 
 def get_firebase_user(qr_code: str) -> Optional[dict]:

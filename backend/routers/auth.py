@@ -61,12 +61,33 @@ async def register(user: models.UserCreate, db: Session = Depends(get_db)):
     db.add(new_user)
     db.commit()
     db.refresh(new_user)
-    # ── Sync Firebase : met à jour total_users et new_users_month ────────────
+
+    # ── Sync Firebase immédiat dès l'inscription ──────────────────────────────
+    # IMPORTANT : l'Arduino lit /utilisateurs/{qrCode}/role pour vérifier le rôle
+    # AVANT d'ouvrir le couvercle. Si ce nœud n'existe pas (parce que l'utilisateur
+    # ne s'est pas encore connecté à l'app), l'Arduino affiche "Erreur Utilisateur
+    # inconnu" et refuse d'ouvrir le bac.
+    # En créant le nœud Firebase dès l'inscription, l'utilisateur peut scanner
+    # la poubelle immédiatement, même s'il n'a jamais ouvert l'app Flutter.
+    try:
+        sync_user_to_firebase(
+            user_id  = new_user.id,
+            role     = new_user.role or "user",
+            qr_code  = new_user.qr_code or "",
+            full_name= new_user.full_name or "",
+            email    = new_user.email or "",
+            score    = 0.0,
+        )
+    except Exception:
+        pass  # Non bloquant — l'inscription réussit même si Firebase est indisponible
+
+    # ── Sync stats admin ──────────────────────────────────────────────────────
     try:
         update_admin_stats(db)
     except Exception:
         pass  # Non bloquant
     return new_user
+
 
 
 # ── OTP ───────────────────────────────────────────────────────────────────────
@@ -160,7 +181,9 @@ async def verify_otp(request: models.OTPVerifyRequest, db: Session = Depends(get
             }
         access_token = create_access_token(data={"sub": user.email})
         # Synchronise les infos utilisateur dans Firebase pour identifier le QR code
-        sync_user_to_firebase(
+        # sync_user_to_firebase retourne le score autoritatif (max Firebase/PostgreSQL)
+        # ce qui protege contre l'ecrasement des points enregistres par l'Arduino
+        authoritative_score = sync_user_to_firebase(
             user_id=user.id,
             role=user.role or "user",
             qr_code=user.qr_code or "",
@@ -168,6 +191,11 @@ async def verify_otp(request: models.OTPVerifyRequest, db: Session = Depends(get
             email=user.email or "",
             score=getattr(user, 'global_score', 0) or 0,
         )
+        # Si Firebase avait un score superieur (Arduino), re-sync PostgreSQL
+        if authoritative_score > 0 and authoritative_score > (user.global_score or 0):
+            user.global_score = authoritative_score
+            db.add(user)
+            db.commit()
         return {
             "success": True, "message": "Compte vérifié",
             "access_token": access_token, "token_type": "bearer",
@@ -198,7 +226,8 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = 
         }
 
     # Synchronise les infos utilisateur dans Firebase pour identifier le QR code
-    sync_user_to_firebase(
+    # sync_user_to_firebase retourne le score autoritatif (max Firebase/PostgreSQL)
+    authoritative_score = sync_user_to_firebase(
         user_id=user.id,
         role=user.role or "user",
         qr_code=user.qr_code or "",
@@ -206,6 +235,11 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = 
         email=user.email or "",
         score=getattr(user, 'global_score', 0) or 0,
     )
+    # Si Firebase avait un score superieur (Arduino), re-sync PostgreSQL
+    if authoritative_score > 0 and authoritative_score > (user.global_score or 0):
+        user.global_score = authoritative_score
+        db.add(user)
+        db.commit()
     return {
         "access_token": create_access_token({"sub": user.email}),
         "refresh_token": create_refresh_token({"sub": user.email}),
@@ -267,7 +301,7 @@ async def verify_mfa_login(body: models.MFAVerifyLoginRequest, db: Session = Dep
         raise HTTPException(status_code=401, detail="Code de validation incorrect ou expiré")
 
     # Synchronise les infos utilisateur dans Firebase pour identifier le QR code
-    sync_user_to_firebase(
+    authoritative_score = sync_user_to_firebase(
         user_id=user.id,
         role=user.role or "user",
         qr_code=user.qr_code or "",
@@ -275,6 +309,10 @@ async def verify_mfa_login(body: models.MFAVerifyLoginRequest, db: Session = Dep
         email=user.email or "",
         score=getattr(user, 'global_score', 0) or 0,
     )
+    if authoritative_score > 0 and authoritative_score > (user.global_score or 0):
+        user.global_score = authoritative_score
+        db.add(user)
+        db.commit()
     return {
         "access_token": create_access_token({"sub": user.email}),
         "refresh_token": create_refresh_token({"sub": user.email}),
@@ -326,7 +364,7 @@ async def google_auth(google_data: models.GoogleAuth, db: Session = Depends(get_
             }
 
         # Synchronise les infos utilisateur dans Firebase pour identifier le QR code
-        sync_user_to_firebase(
+        authoritative_score = sync_user_to_firebase(
             user_id=user.id,
             role=user.role or "user",
             qr_code=user.qr_code or "",
@@ -334,6 +372,10 @@ async def google_auth(google_data: models.GoogleAuth, db: Session = Depends(get_
             email=user.email or "",
             score=getattr(user, 'global_score', 0) or 0,
         )
+        if authoritative_score > 0 and authoritative_score > (user.global_score or 0):
+            user.global_score = authoritative_score
+            db.add(user)
+            db.commit()
         return {"access_token": create_access_token({"sub": email}),
                 "token_type": "bearer", "role": user.role,
                 "id": user.id, "email": user.email,
@@ -390,7 +432,7 @@ async def facebook_auth(fb_data: models.FacebookAuth, db: Session = Depends(get_
             }
 
         # Synchronise les infos utilisateur dans Firebase pour identifier le QR code
-        sync_user_to_firebase(
+        authoritative_score = sync_user_to_firebase(
             user_id=user.id,
             role=user.role or "user",
             qr_code=user.qr_code or "",
@@ -398,6 +440,10 @@ async def facebook_auth(fb_data: models.FacebookAuth, db: Session = Depends(get_
             email=user.email or "",
             score=getattr(user, 'global_score', 0) or 0,
         )
+        if authoritative_score > 0 and authoritative_score > (user.global_score or 0):
+            user.global_score = authoritative_score
+            db.add(user)
+            db.commit()
         return {"access_token": create_access_token({"sub": user.email}),
                 "token_type": "bearer", "role": user.role,
                 "id": user.id, "email": user.email,
@@ -493,3 +539,28 @@ async def change_password(data: models.ChangePasswordRequest, db: Session = Depe
     current_user.hashed_password = get_password_hash(data.new_password)
     db.commit()
     return {"message": "Mot de passe modifié"}
+
+
+# ── Firebase Token (restauration de session) ──────────────────────────────────
+
+@router.get("/auth/firebase-token")
+async def get_firebase_token(
+    current_user: db_models.User = Depends(get_current_user),
+):
+    """
+    Génère un Firebase Custom Token pour l'utilisateur déjà authentifié (JWT valide).
+
+    Utilisé lors de la restauration de session (cold start / hot reload) pour
+    connecter Flutter à Firebase RTDB et activer le stream de score temps réel.
+
+    Returns:
+        { "firebase_token": "eyJ..." }
+    """
+    token = generate_custom_token(current_user.id)
+    if token is None:
+        # Firebase indisponible côté backend — mode dégradé, non bloquant
+        raise HTTPException(
+            status_code=503,
+            detail="Firebase indisponible — score temps réel désactivé",
+        )
+    return {"firebase_token": token}

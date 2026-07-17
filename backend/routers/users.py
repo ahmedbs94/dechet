@@ -2,6 +2,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 from typing import List
 
 import db_models as db_models
@@ -101,17 +102,48 @@ async def delete_user(user_id: int, db: Session = Depends(get_db),
 # ── Current user profile ──────────────────────────────────────────────────────
 
 @router.get("/users/me")
-async def get_me(current_user: db_models.User = Depends(get_current_user)):
+async def get_me(
+    current_user: db_models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Retourne le profil de l'utilisateur connecté.
+
+    global_score : recalculé en temps réel depuis BinScan + QuizSubmission
+    pour garantir la cohérence même si la colonne SQL est périmée.
+    Si le vrai total diffère de la colonne, la colonne est corrigée.
+    """
+    # Recalcul depuis les tables sources (source de vérité)
+    scan_pts = db.query(
+        func.coalesce(func.sum(db_models.BinScan.points_earned), 0.0)
+    ).filter(db_models.BinScan.user_id == current_user.id).scalar()
+
+    quiz_pts = db.query(
+        func.coalesce(func.sum(db_models.QuizSubmission.score), 0.0)
+    ).filter(db_models.QuizSubmission.student_id == current_user.id).scalar()
+
+    computed_score = round(float(scan_pts) + float(quiz_pts), 2)
+    stored_score   = float(current_user.global_score or 0.0)
+
+    # Si Firebase a poussé une valeur plus haute que SQL, on garde la plus haute
+    true_score = max(computed_score, stored_score)
+
+    # Corriger silencieusement la colonne si elle est désynchronisée
+    if abs(stored_score - true_score) > 0.01:
+        current_user.global_score = true_score
+        db.add(current_user)
+        db.commit()
+
     return {
-        "id": current_user.id,
-        "email": current_user.email,
-        "full_name": current_user.full_name,
-        "role": current_user.role,
-        "avatar_url": getattr(current_user, "avatar_url", None) or "",
-        "qr_code": current_user.qr_code,
-        "points": getattr(current_user, "points", 0),
-        "global_score": getattr(current_user, "global_score", 0.0) or 0.0,
-        "mfa_enabled": getattr(current_user, "mfa_enabled", False) or False,
+        "id":           current_user.id,
+        "email":        current_user.email,
+        "full_name":    current_user.full_name,
+        "role":         current_user.role,
+        "avatar_url":   getattr(current_user, "avatar_url", None) or "",
+        "qr_code":      current_user.qr_code,
+        "points":       getattr(current_user, "points", 0),
+        "global_score": true_score,
+        "mfa_enabled":  getattr(current_user, "mfa_enabled", False) or False,
     }
 
 
@@ -236,7 +268,12 @@ async def get_my_stats(db: Session = Depends(get_db),
 @router.get("/users/me/points-history")
 async def get_points_history(db: Session = Depends(get_db),
                              current_user: db_models.User = Depends(get_current_user)):
-    """Historique chronologique des points gagnés par l'utilisateur (quiz, scans)."""
+    """Historique chronologique des points gagnés par l'utilisateur (quiz, scans).
+
+    Inclut aussi une entrée synthétique 'Capteur IoT' si global_score est
+    supérieur à la somme des points tracés en SQL — cas des points enregistrés
+    directement par l'Arduino dans Firebase sans créer de BinScan PostgreSQL.
+    """
     # 1. Récupérer les scans de poubelles
     scans = db.query(db_models.BinScan).filter(
         db_models.BinScan.user_id == current_user.id
@@ -271,7 +308,25 @@ async def get_points_history(db: Session = Depends(get_db),
                 "description": f"Quiz complété : {qs.quiz.title if qs.quiz else 'Quiz'}"
             })
 
-    # Trier par date décroissante
+    # ── FIX : Points Arduino non tracés en SQL ────────────────────────────────
+    # L'Arduino peut écrire directement dans Firebase /utilisateurs/{qr}/score
+    # sans créer de BinScan en PostgreSQL. Ces points sont rattrapés dans
+    # global_score par BinSync toutes les 5 min mais n'apparaissent pas dans
+    # l'historique. On ajoute une entrée synthétique si l'écart est significatif.
+    history_points_total = round(sum(h["points"] for h in history), 2)
+    stored_score = round(float(current_user.global_score or 0), 2)
+    arduino_delta = round(stored_score - history_points_total, 2)
+
+    if arduino_delta > 0.01:
+        history.append({
+            "id": "arduino_iot",
+            "type": "arduino",
+            "points": arduino_delta,
+            "date": None,  # pas de timestamp disponible pour les points Arduino directs
+            "description": f"Points enregistrés par capteur IoT (+{arduino_delta} pts)"
+        })
+
+    # Trier par date décroissante (les entrées sans date vont en fin de liste)
     history.sort(key=lambda x: x["date"] or "", reverse=True)
 
     return history
@@ -356,3 +411,140 @@ async def get_my_impact(
         "likes_received":    int(likes_received),
     }
 
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# NIVEAUX & AVANTAGES & RÉCOMPENSES EXCLUSIVES
+# ═══════════════════════════════════════════════════════════════════════════════
+
+@router.get("/users/me/level", tags=["levels"])
+async def get_my_level(
+    db: Session = Depends(get_db),
+    current_user: db_models.User = Depends(get_current_user),
+):
+    """
+    Retourne le palier actuel de l'utilisateur connecté, sa progression,
+    ses avantages actifs, ses multiplicateurs de points et ses récompenses
+    exclusives débloquées.
+
+    Déclenche également le déblocage automatique des récompenses non encore
+    enregistrées en base (idempotent grâce à la contrainte UNIQUE PostgreSQL).
+
+    Réponse :
+      - current_level    : palier actuel (rank, name, icon, color, min_points)
+      - next_level       : prochain palier ou null si niveau maximum
+      - score            : score global actuel
+      - progress_percent : 0–100 % vers le palier suivant
+      - points_to_next   : points manquants pour passer au palier suivant
+      - scan_multiplier  : multiplicateur de points sur les scans QR
+      - quiz_multiplier  : multiplicateur de points sur les quiz
+      - advantages       : liste des avantages du palier actuel
+      - unlocked_rewards : toutes les récompenses débloquées (historique)
+      - newly_unlocked   : récompenses débloquées lors de cet appel
+    """
+    from app.levels.service import build_level_response
+
+    # Recalcul du score depuis les sources (cohérent avec GET /users/me)
+    scan_pts = db.query(
+        func.coalesce(func.sum(db_models.BinScan.points_earned), 0.0)
+    ).filter(db_models.BinScan.user_id == current_user.id).scalar()
+
+    quiz_pts = db.query(
+        func.coalesce(func.sum(db_models.QuizSubmission.score), 0.0)
+    ).filter(db_models.QuizSubmission.student_id == current_user.id).scalar()
+
+    computed_score = round(float(scan_pts) + float(quiz_pts), 2)
+    stored_score   = float(current_user.global_score or 0.0)
+    true_score     = max(computed_score, stored_score)
+
+    # Corriger silencieusement si désynchronisé
+    if abs(stored_score - true_score) > 0.01:
+        current_user.global_score = true_score
+        db.add(current_user)
+        db.commit()
+
+    return build_level_response(
+        user_id=current_user.id,
+        score=true_score,
+        db=db,
+    )
+
+
+@router.get("/users/me/rewards", tags=["levels"])
+async def get_my_rewards(
+    db: Session = Depends(get_db),
+    current_user: db_models.User = Depends(get_current_user),
+):
+    """
+    Retourne l'historique complet des récompenses exclusives débloquées
+    par l'utilisateur connecté, triées par date de déblocage ascendante.
+
+    Chaque récompense contient :
+      - reward_key  : identifiant unique de la récompense
+      - reward_type : "badge" | "discount" | "feature" | "certificate"
+      - label       : nom affiché
+      - description : description de la récompense
+      - icon        : emoji représentant la récompense
+      - unlocked_at : date ISO 8601 du déblocage
+    """
+    from app.levels.service import get_all_user_rewards
+
+    rewards = get_all_user_rewards(current_user.id, db)
+    return {
+        "total": len(rewards),
+        "rewards": [
+            {
+                "reward_key":  r.reward_key,
+                "reward_type": r.reward_type,
+                "label":       r.label,
+                "description": r.description,
+                "icon":        r.icon,
+                "unlocked_at": r.unlocked_at.isoformat() if r.unlocked_at else None,
+            }
+            for r in rewards
+        ],
+    }
+
+
+@router.get("/levels/all", tags=["levels"])
+async def get_all_levels():
+    """
+    Retourne le référentiel public de tous les paliers EcoRewind
+    avec leurs seuils de points, avantages et récompenses exclusives.
+
+    Endpoint public (aucune authentification requise) — utilisé par le
+    Flutter pour afficher l'écran 'Niveaux & Avantages'.
+    """
+    from app.levels.definitions import LEVELS
+
+    return {
+        "total_levels": len(LEVELS),
+        "levels": [
+            {
+                "rank":        lvl.rank,
+                "name":        lvl.name,
+                "min_points":  lvl.min_points,
+                "icon":        lvl.icon,
+                "color":       lvl.color,
+                "gradient":    lvl.gradient,
+                "advantages": [
+                    {
+                        "key":         adv.key,
+                        "label":       adv.label,
+                        "description": adv.description,
+                    }
+                    for adv in lvl.advantages
+                ],
+                "exclusive_rewards": [
+                    {
+                        "key":         r.key,
+                        "label":       r.label,
+                        "description": r.description,
+                        "icon":        r.icon,
+                        "reward_type": r.reward_type,
+                    }
+                    for r in lvl.rewards
+                ],
+            }
+            for lvl in LEVELS
+        ],
+    }

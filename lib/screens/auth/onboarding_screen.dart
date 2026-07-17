@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../theme/app_theme.dart';
@@ -87,82 +87,99 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             onPageChanged: (value) => setState(() => _currentPage = value),
             itemCount: _data.length,
             itemBuilder: (context, index) {
-              return Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 40.0),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    // High-Quality Lottie with Complex Container
-                    SizedBox(
-                      height: 350,
-                      child: Stack(
-                        alignment: Alignment.center,
-                        children: [
-                          // Background glowing effect
-                          Animate(
-                            onPlay: (c) => c.repeat(),
-                            effects: [
-                              ScaleEffect(begin: const Offset(0.8, 0.8), end: const Offset(1.2, 1.2), duration: 2.seconds, curve: Curves.easeInOut),
-                              FadeEffect(begin: 0.3, end: 0.1, duration: 2.seconds),
-                            ],
-                            child: Container(
-                              width: 280,
-                              height: 280,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: _data[index].accentColor.withOpacity(0.1),
+              return LayoutBuilder(
+                builder: (context, constraints) {
+                  // Adapte la taille de l'image selon la hauteur disponible
+                  final imageHeight = (constraints.maxHeight * 0.42).clamp(160.0, 300.0);
+                  return SingleChildScrollView(
+                    physics: const NeverScrollableScrollPhysics(),
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                      child: IntrinsicHeight(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 40.0),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              // Image avec hauteur adaptative
+                              SizedBox(
+                                height: imageHeight + 40,
+                                child: Stack(
+                                  alignment: Alignment.center,
+                                  children: [
+                                    // Background glowing effect
+                                    Animate(
+                                      onPlay: (c) => c.repeat(),
+                                      effects: [
+                                        ScaleEffect(begin: const Offset(0.8, 0.8), end: const Offset(1.2, 1.2), duration: 2.seconds, curve: Curves.easeInOut),
+                                        FadeEffect(begin: 0.3, end: 0.1, duration: 2.seconds),
+                                      ],
+                                      child: Container(
+                                        width: imageHeight * 0.95,
+                                        height: imageHeight * 0.95,
+                                        decoration: BoxDecoration(
+                                          shape: BoxShape.circle,
+                                          color: _data[index].accentColor.withOpacity(0.1),
+                                        ),
+                                      ),
+                                    ),
+                                    // The Visual Content
+                                    Image.asset(
+                                      _data[index].assetPath,
+                                      height: imageHeight,
+                                      fit: BoxFit.contain,
+                                      errorBuilder: (context, error, stackTrace) {
+                                        return Icon(
+                                          _getIconForIndex(index),
+                                          size: imageHeight * 0.65,
+                                          color: _data[index].accentColor,
+                                        ).animate(onPlay: (c) => c.repeat(reverse: true)).shimmer(duration: 2.seconds);
+                                      },
+                                    ),
+                                  ],
+                                ),
                               ),
-                            ),
+                              SizedBox(height: constraints.maxHeight < 600 ? 24 : 40),
+                              Animate(
+                                key: ValueKey('title_$index'),
+                                effects: const [FadeEffect(), SlideEffect(begin: Offset(0, 0.2))],
+                                child: Text(
+                                  L10n.tr('onboarding_title_${index + 1}'),
+                                  style: GoogleFonts.outfit(
+                                    fontSize: constraints.maxHeight < 600 ? 26 : 34,
+                                    fontWeight: FontWeight.bold,
+                                    color: AppTheme.deepSlate,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ),
+                              const SizedBox(height: 16),
+                              Animate(
+                                key: ValueKey('desc_$index'),
+                                effects: const [FadeEffect(delay: Duration(milliseconds: 200)), SlideEffect(begin: Offset(0, 0.1))],
+                                child: Text(
+                                  L10n.tr('onboarding_desc_${index + 1}'),
+                                  style: GoogleFonts.inter(
+                                    fontSize: constraints.maxHeight < 600 ? 14 : 17,
+                                    height: 1.6,
+                                    color: AppTheme.textMuted,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ),
+                              // Espace pour le bas (boutons positionnés en absolu)
+                              const SizedBox(height: 120),
+                            ],
                           ),
-                          // The Visual Content
-                          Image.asset(
-                            _data[index].assetPath,
-                            height: 280,
-                            fit: BoxFit.contain,
-                            errorBuilder: (context, error, stackTrace) {
-                              return Icon(
-                                _getIconForIndex(index),
-                                size: 180,
-                                color: _data[index].accentColor,
-                              ).animate(onPlay: (c) => c.repeat(reverse: true)).shimmer(duration: 2.seconds);
-                            },
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 50),
-                    Animate(
-                      key: ValueKey('title_$index'),
-                      effects: const [FadeEffect(), SlideEffect(begin: Offset(0, 0.2))],
-                      child: Text(
-                        L10n.tr('onboarding_title_${index + 1}'),
-                        style: GoogleFonts.outfit(
-                          fontSize: 34,
-                          fontWeight: FontWeight.bold,
-                          color: AppTheme.deepSlate,
                         ),
-                        textAlign: TextAlign.center,
                       ),
                     ),
-                    const SizedBox(height: 16),
-                    Animate(
-                      key: ValueKey('desc_$index'),
-                      effects: const [FadeEffect(delay: Duration(milliseconds: 200)), SlideEffect(begin: Offset(0, 0.1))],
-                      child: Text(
-                        L10n.tr('onboarding_desc_${index + 1}'),
-                        style: GoogleFonts.inter(
-                          fontSize: 17,
-                          height: 1.6,
-                          color: AppTheme.textMuted,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                    ),
-                  ],
-                ),
+                  );
+                },
               );
             },
           ),
+
           
           // Premium Bottom Controls
           Positioned(

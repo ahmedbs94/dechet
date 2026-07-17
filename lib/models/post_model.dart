@@ -92,59 +92,6 @@ class Post {
   }
 }
 
-// Mock Data for demonstration
-final List<Post> mockPosts = [
-  Post(
-    id: '1',
-    userName: 'Amine T.',
-    userAvatarUrl: '',
-    timeAgo: 'Il y a 2h',
-    imageUrl: '',
-    description:
-        'Je viens de recycler 5kg de plastique ! Pensez à rincer vos bouteilles avant de les jeter. #EcoVie #Recyclage',
-    likes: 24,
-    comments: 2,
-    commentList: ['Bravo Amine !', 'Très bon conseil pour le rinçage.'],
-    status: PostStatus.approved,
-  ),
-  Post(
-    id: '2',
-    userName: 'Sarah B.',
-    userAvatarUrl: '',
-    timeAgo: 'Il y a 4h',
-    imageUrl: '',
-    description:
-        'J\'ai commencé mon premier bac à compost aujourd\'hui ! 🌱 C\'est incroyable tout ce qu\'on peut réduire comme déchets.',
-    likes: 45,
-    comments: 1,
-    commentList: ['C\'est super Sarah, le compost change tout !'],
-    status: PostStatus.approved,
-  ),
-  Post(
-    id: '3',
-    userName: 'Collectif Vert',
-    userAvatarUrl: '',
-    timeAgo: 'Hier',
-    imageUrl:
-        'https://media.istockphoto.com/id/1156692026/fr/vectoriel/b%C3%A9n%C3%A9voles-ramassant-les-ordures-en-plastique-%C3%A0-lext%C3%A9rieur-concept-de-volontariat.jpg?s=612x612&w=0&k=20&c=yRbJL49HMH_KYLDcRq7ehn5DWNMRiP87sms-WYpGBDU=',
-    description:
-        'Une journée incroyable de nettoyage avec nos bénévoles. Plus de 200kg collectés ! Rejoignez-nous la semaine prochaine. 🌍💙 #Volontariat #PlanètePropre',
-    likes: 156,
-    comments: 3,
-    commentList: ['Merci pour votre engagement.', 'C\'était une super journée !', 'À la semaine prochaine.'],
-    status: PostStatus.approved,
-  ),
-  Post(
-    id: '4',
-    userName: 'Utilisateur Test',
-    userAvatarUrl: '',
-    timeAgo: 'Il y a 1h',
-    imageUrl: '',
-    description: 'Description suspecte bloquée par l\'IA.',
-    status: PostStatus.rejectedByAI,
-  ),
-];
-
 /// Comment model for posts
 class PostComment {
   final String? id;
@@ -166,7 +113,8 @@ class PostComment {
 
 /// Global registry for managing posts with reactive updates
 class PostRegistry {
-  static final ValueNotifier<List<Post>> postsNotifier = ValueNotifier<List<Post>>(List<Post>.from(mockPosts));
+  // Liste vide — les vraies donnees viennent de l'API via FeedTab (fetchPosts)
+  static final ValueNotifier<List<Post>> postsNotifier = ValueNotifier<List<Post>>([]);
 
   /// Signal for navigating to a specific post (postId or null)
   static final ValueNotifier<String?> navigationSignal = ValueNotifier<String?>(null);
@@ -237,10 +185,9 @@ class PostRegistry {
     postsNotifier.value = List<Post>.from(postsNotifier.value);
   }
 
-  /// Sync all posts (simulated - in a real app this would fetch from server)
+  /// Sync avec le backend — appelé pour forcer un rechargement
   static Future<void> syncAllPosts() async {
-    await Future.delayed(const Duration(milliseconds: 500));
-    // Recharger les états sauvegardés après synchronisation
+    await Future.delayed(const Duration(milliseconds: 100));
     await loadSavedStates();
   }
 

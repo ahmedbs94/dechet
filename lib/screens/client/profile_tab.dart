@@ -61,13 +61,21 @@ class ProfileTabState extends State<ProfileTab> {
     if (mounted) setState(() {});
   }
 
-  /// Méthode publique appelée par le shell quand on arrive sur cet onglet
+  /// Méthode publique appelée par le shell quand on arrive sur cet onglet.
+  /// Fetch SQL → mais garde le max entre SQL et la valeur Firebase en mémoire
+  /// pour éviter que le profil affiche une valeur périmée.
   Future<void> refreshScore() async {
     if (!AuthState.isLoggedIn) return;
     try {
       final userData = await _authService.fetchUserProfile();
       if (userData != null && mounted) {
-        AuthState.currentUser = User.fromBackend(userData);
+        final sqlScore = (userData['global_score'] as num?)?.toDouble() ?? 0.0;
+        final memScore = AuthState.currentUser?.globalScore ?? 0.0;
+        final best = sqlScore > memScore ? sqlScore : memScore;
+        AuthState.currentUser = User.fromBackend({
+          ...userData,
+          'global_score': best,
+        });
         _mfaEnabled = AuthState.currentUser?.mfaEnabled ?? false;
         if (mounted) setState(() {});
       }
@@ -1012,15 +1020,29 @@ class ProfileTabState extends State<ProfileTab> {
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(Icons.emoji_events_rounded, color: AppTheme.primaryGreen, size: 24),
-                  const SizedBox(width: 12),
-                  Text(L10n.tr('prof_stats_score'), style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w900, color: _isDarkMode ? const Color(0xFF94A3B8) : AppTheme.textMuted, letterSpacing: 1)),
-                  const SizedBox(width: 12),
-                  Text(globalScore.toStringAsFixed(1), style: GoogleFonts.outfit(fontSize: 26, fontWeight: FontWeight.bold, color: AppTheme.primaryGreen)),
+                  const Icon(Icons.emoji_events_rounded, color: AppTheme.primaryGreen, size: 22),
+                  const SizedBox(width: 8),
+                  Flexible(
+                    child: Text(
+                      L10n.tr('prof_stats_score'),
+                      style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w900, color: _isDarkMode ? const Color(0xFF94A3B8) : AppTheme.textMuted, letterSpacing: 1),
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 1,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      globalScore.toStringAsFixed(1),
+                      style: GoogleFonts.outfit(fontSize: 26, fontWeight: FontWeight.bold, color: AppTheme.primaryGreen),
+                    ),
+                  ),
                   const SizedBox(width: 4),
                   Text('pts', style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600, color: _isDarkMode ? const Color(0xFF94A3B8) : AppTheme.textMuted)),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: 8),
                   Icon(
                     Icons.arrow_forward_ios_rounded,
                     size: 14,

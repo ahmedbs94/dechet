@@ -8,6 +8,8 @@ import 'package:http/http.dart' as http;
 import '../../theme/app_theme.dart';
 import '../../constants.dart';
 
+import 'package:shared_preferences/shared_preferences.dart';
+
 class SectionImpact extends StatefulWidget {
   const SectionImpact({Key? key}) : super(key: key);
 
@@ -21,14 +23,12 @@ class _SectionImpactState extends State<SectionImpact>
   late AnimationController _pulseController;
 
   // Valeurs cibles depuis l'API
-  double _targetCO2 = 0;
   int _targetUsers = 0;
   int _targetCenters = 0;
   double _targetWaste = 0;
   int _targetTrees = 0;
 
   // Valeurs animées
-  double _animCO2 = 0;
   double _animUsers = 0;
   double _animCenters = 0;
   double _animWaste = 0;
@@ -52,7 +52,6 @@ class _SectionImpactState extends State<SectionImpact>
       if (mounted) {
         final v = Curves.easeOutCubic.transform(_counterController.value);
         setState(() {
-          _animCO2 = _targetCO2 * v;
           _animUsers = _targetUsers * v;
           _animCenters = _targetCenters * v;
           _animWaste = _targetWaste * v;
@@ -73,7 +72,6 @@ class _SectionImpactState extends State<SectionImpact>
         final data = json.decode(utf8.decode(response.bodyBytes));
         if (mounted) {
           setState(() {
-            _targetCO2 = (data['co2_saved_kg'] as num?)?.toDouble() ?? 0;
             _targetUsers = (data['total_users'] as num?)?.toInt() ?? 0;
             _targetCenters =
                 (data['total_collection_points'] as num?)?.toInt() ?? 0;
@@ -94,12 +92,23 @@ class _SectionImpactState extends State<SectionImpact>
     }
   }
 
-  void _useFallback() {
+  void _useFallback() async {
+    int offlineCenters = 10;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString('map_points_cache_v2');
+      if (raw != null && raw.isNotEmpty) {
+        final List<dynamic> decoded = json.decode(raw);
+        if (decoded.isNotEmpty) {
+          offlineCenters = decoded.length;
+        }
+      }
+    } catch (_) {}
+
     if (mounted) {
       setState(() {
-        _targetCO2 = 0;
         _targetUsers = 0;
-        _targetCenters = 0;
+        _targetCenters = offlineCenters;
         _targetWaste = 0;
         _targetTrees = 0;
         _isLoading = false;
@@ -109,6 +118,7 @@ class _SectionImpactState extends State<SectionImpact>
       });
     }
   }
+
 
   String _fmtKg(double v) {
     if (v >= 1000000) return '${(v / 1000000).toStringAsFixed(1)}M kg';
@@ -340,13 +350,6 @@ class _SectionImpactState extends State<SectionImpact>
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                     children: [
                       _buildCounterItem(
-                        '${_animCO2.toInt()} kg',
-                        'CO₂ ÉVITÉ',
-                        Icons.cloud_done_rounded,
-                        AppTheme.primaryGreen,
-                      ),
-                      _buildDivider(),
-                      _buildCounterItem(
                         _fmtNum(_animUsers),
                         'CITOYENS',
                         Icons.people_alt_rounded,
@@ -436,16 +439,6 @@ class _SectionImpactState extends State<SectionImpact>
         subtitle: 'préservée par le plastique recyclé',
         gradient: [const Color(0xFF3B82F6), const Color(0xFF2563EB)],
         bgColor: const Color(0xFFEFF6FF),
-      ),
-      _ImpactCard(
-        icon: Icons.bolt_rounded,
-        title: 'Énergie économisée',
-        value: _isLoading
-            ? '...'
-            : '${(_animCO2 * 3.2).toInt()} kWh',
-        subtitle: 'grâce au recyclage des métaux',
-        gradient: [const Color(0xFFF59E0B), const Color(0xFFD97706)],
-        bgColor: const Color(0xFFFFFBEB),
       ),
     ];
 

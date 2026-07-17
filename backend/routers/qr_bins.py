@@ -308,9 +308,46 @@ async def scan_bin(data: BinScanRequest, db: Session = Depends(get_db)):
         )
 
     # ── 4. Calculer les points (type vient du bac, non falsifiable) ───────────
-    waste_type   = smart_bin.bin_type
-    points       = calculate_points(waste_type, data.weight_kg)
-    score_before = user.global_score or 0.0
+    # Seul le role 'user' (citoyen) gagne des points.
+    # Les admins, collecteurs, educateurs, etc. ne sont jamais credites.
+    if user.role != "user":
+        raise HTTPException(
+            status_code=403,
+            detail="Seuls les citoyens (role=user) peuvent gagner des points de tri.",
+        )
+
+    waste_type = smart_bin.bin_type
+    points     = calculate_points(waste_type, data.weight_kg)
+
+    # ════════════════════════════════════════════════════════════════════════
+    # SOURCE DE VERITE : recalcul depuis BinScan + QuizSubmission
+    #
+    # Attention : l'Arduino met a jour directement Firebase/global_score SANS
+    # creer de BinScan. Le recalcul depuis BinScan seul ignorerait ces points.
+    #
+    # Strategie : on prend le MAXIMUM entre
+    #   - le recalcul depuis les tables (BinScan + QuizSubmission)
+    #   - user.global_score (maintenu par BinSync toutes les 5 min depuis Arduino)
+    #
+    # Cela garantit que les points Arduino ne sont jamais perdus lors d'un
+    # scan via l'app, meme si aucun BinScan ne leur correspond.
+    # ════════════════════════════════════════════════════════════════════════
+    scan_total = db.query(
+        func.coalesce(func.sum(db_models.BinScan.points_earned), 0.0)
+    ).filter(db_models.BinScan.user_id == user.id).scalar()
+
+    quiz_total = db.query(
+        func.coalesce(func.sum(db_models.QuizSubmission.score), 0.0)
+    ).filter(db_models.QuizSubmission.student_id == user.id).scalar()
+
+    # Score recalcule depuis les tables sources
+    score_from_tables = round(float(scan_total) + float(quiz_total), 2)
+
+    # Score stocke (inclut les points Arduino remontés par BinSync)
+    score_stored = round(float(user.global_score or 0), 2)
+
+    # On retient le maximum pour ne jamais regresser les points Arduino
+    score_before = max(score_from_tables, score_stored)
     score_after  = round(score_before + points, 2)
 
     # ════════════════════════════════════════════════════════════════════════
@@ -441,7 +478,229 @@ async def scan_bin(data: BinScanRequest, db: Session = Depends(get_db)):
     )
 
 
-# ── GET /qr/scan-history ─────────────────────────────────────────────────────
+# ═════════════════════════════════════════════════════════════════════════════
+# ENDPOINTS ARDUINO ESP32 — pas de JWT, authentification par QR code + api_key
+# ═════════════════════════════════════════════════════════════════════════════
+#
+# L'Arduino ne peut pas gerer les JWT Bearer tokens.
+# Ces deux endpoints sont proteges par :
+#   1. La validite du qr_code (doit exister dans PostgreSQL avec le bon role)
+#   2. Une cle API legere (ARDUINO_API_KEY dans .env)
+#
+# POST /qr/arduino-collect  — collecteur vide la poubelle           (Bug #5)
+# POST /qr/arduino-scan     — citoyen depose des dechets via Arduino
+# ─────────────────────────────────────────────────────────────────────────────
+
+import os as _os
+
+_ARDUINO_API_KEY = _os.getenv("ARDUINO_API_KEY", "ecorewind-arduino-2025")
+# Definir ARDUINO_API_KEY dans .env pour le changer en production.
+
+
+class ArduinoCollectRequest(BaseModel):
+    """
+    Payload envoye par l'Arduino quand un COLLECTEUR scanne sa poubelle.
+
+    L'Arduino doit appeler cet endpoint AVANT d'ouvrir le servo collecteur
+    et AVANT de faire scale.tare() — le poids mesure est enregistre.
+    """
+    bin_code:        str   = Field(..., description="Code de la poubelle ex: BIN-GENERAL-001")
+    qr_code:         str   = Field(..., description="QR code du collecteur ex: TRIDECHET-xxx")
+    weight_before_kg: float = Field(0.0, description="Poids mesure par l'Arduino avant vidage (kg)")
+    api_key:         str   = Field(..., description="Cle API Arduino (ARDUINO_API_KEY dans .env)")
+
+
+class ArduinoCollectResponse(BaseModel):
+    success:         bool
+    action:          str    # "open_collector_servo" | "denied"
+    message:         str
+    weight_before_kg: float
+    log_id:          Optional[int]
+    notified:        bool
+
+
+class ArduinoScanRequest(BaseModel):
+    """
+    Payload envoye par l'Arduino quand un CITOYEN scanne son QR code.
+
+    Utiliser cet endpoint a la place de updateUserScore() Arduino.
+    Le backend gere le score, le BinScan et la sync Firebase correctement.
+    """
+    bin_code:   str            = Field(..., description="Code de la poubelle")
+    qr_code:    str            = Field(..., description="QR code du citoyen")
+    weight_kg:  Optional[float] = Field(None, description="Poids mesure par l'Arduino (kg)")
+    api_key:    str            = Field(..., description="Cle API Arduino")
+
+
+# ── POST /qr/arduino-collect ─────────────────────────────────────────────────
+
+@router.post("/qr/arduino-collect", response_model=ArduinoCollectResponse)
+async def arduino_collect(data: ArduinoCollectRequest, db: Session = Depends(get_db)):
+    """
+    Appele par l'Arduino quand un collecteur scanne la poubelle.
+
+    Workflow :
+      1. Verifie la cle API Arduino
+      2. Verifie que le QR code appartient bien a un collecteur
+      3. Verifie que la poubelle existe
+      4. Cree un CollectorLog avec le poids mesure par l'Arduino
+      5. Remet Firebase a zero (poids + etat -> vide)
+      6. Notifie l'intercommunalite
+      7. Repond "open_collector_servo" pour que l'Arduino ouvre le servo
+
+    L'Arduino doit appeler cet endpoint AVANT scale.tare() et AVANT d'ouvrir
+    le servo — comme ca le weight_before_kg est enregistre proprement.
+    """
+    # ── 1. Verifier la cle API ────────────────────────────────────────────────
+    if data.api_key != _ARDUINO_API_KEY:
+        raise HTTPException(status_code=403, detail="Cle API Arduino invalide")
+
+    # ── 2. Verifier le collecteur ─────────────────────────────────────────────
+    collector = (
+        db.query(db_models.User)
+        .filter(db_models.User.qr_code == data.qr_code)
+        .first()
+    )
+    if not collector:
+        return ArduinoCollectResponse(
+            success=False, action="denied",
+            message="QR code collecteur introuvable",
+            weight_before_kg=0.0, log_id=None, notified=False,
+        )
+    if collector.role != "collector":
+        return ArduinoCollectResponse(
+            success=False, action="denied",
+            message=f"Role {collector.role} non autorise pour cette action",
+            weight_before_kg=0.0, log_id=None, notified=False,
+        )
+
+    # ── 3. Verifier la poubelle ───────────────────────────────────────────────
+    smart_bin = (
+        db.query(db_models.SmartBin)
+        .filter(db_models.SmartBin.bin_code == data.bin_code)
+        .first()
+    )
+    if not smart_bin:
+        return ArduinoCollectResponse(
+            success=False, action="denied",
+            message=f"Poubelle {data.bin_code} introuvable",
+            weight_before_kg=0.0, log_id=None, notified=False,
+        )
+
+    weight_before = round(float(data.weight_before_kg), 3)
+
+    # ── 4. Creer le CollectorLog ──────────────────────────────────────────────
+    try:
+        log = db_models.CollectorLog(
+            collector_id     = collector.id,
+            smart_bin_id     = smart_bin.id,
+            bin_code         = data.bin_code,
+            bin_type         = smart_bin.bin_type,
+            weight_before_kg = weight_before,
+            notified         = False,
+        )
+        db.add(log)
+        smart_bin.status = "active"
+        db.add(smart_bin)
+        db.commit()
+        db.refresh(log)
+    except Exception as exc:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Erreur enregistrement collecte : {exc}")
+
+    # ── 5. Remettre Firebase a zero ───────────────────────────────────────────
+    try:
+        update_bin_status(data.bin_code, poids=0.0, etat="vide")
+    except Exception:
+        pass  # Non bloquant
+
+    # ── 6. Notifier l'intercommunalite ────────────────────────────────────────
+    notified = False
+    try:
+        intercom_users = (
+            db.query(db_models.User)
+            .filter(
+                db_models.User.role == "intercommunality",
+                db_models.User.is_active == True,
+            )
+            .all()
+        )
+        now_str = datetime.utcnow().strftime("%d/%m/%Y a %H:%M")
+        for iuser in intercom_users:
+            ok = send_push_to_user(
+                db=db,
+                user_id=iuser.id,
+                title="Collecte effectuee (Arduino)",
+                body=(
+                    f"Collecteur : {collector.full_name or collector.email}\n"
+                    f"Poubelle : {data.bin_code} ({smart_bin.bin_type})\n"
+                    f"Quantite collectee : {weight_before:.2f} kg\n"
+                    f"Date : {now_str}"
+                ),
+                data={
+                    "type":         "collection",
+                    "source":       "arduino",
+                    "bin_code":     data.bin_code,
+                    "collector_id": str(collector.id),
+                    "weight_kg":    str(weight_before),
+                },
+            )
+            if ok:
+                notified = True
+
+        if notified:
+            log.notified = True
+            db.add(log)
+            db.commit()
+    except Exception:
+        pass  # Non bloquant
+
+    # ── 7. Repondre a l'Arduino ───────────────────────────────────────────────
+    return ArduinoCollectResponse(
+        success          = True,
+        action           = "open_collector_servo",
+        message          = (
+            f"Collecte enregistree : {weight_before:.2f} kg"
+            f" — {data.bin_code} | Collecteur : {collector.full_name or collector.email}"
+        ),
+        weight_before_kg = weight_before,
+        log_id           = log.id,
+        notified         = notified,
+    )
+
+
+# ── POST /qr/arduino-scan ────────────────────────────────────────────────────
+
+@router.post("/qr/arduino-scan", response_model=BinScanResponse)
+async def arduino_scan(data: ArduinoScanRequest, db: Session = Depends(get_db)):
+    """
+    Appele par l'Arduino quand un CITOYEN depose ses dechets.
+
+    Remplace updateUserScore() dans le code Arduino.
+    Avantages par rapport a l'ecriture directe dans Firebase :
+      - Cree un BinScan en PostgreSQL -> historique complet
+      - Calcule les points correctement (baremes du backend)
+      - Sync Firebase correctement (score + stats admin)
+      - Pas de regression de score possible
+
+    L'Arduino envoie le poids mesure (weight_kg) et le backend fait tout.
+    """
+    # ── 1. Verifier la cle API ────────────────────────────────────────────────
+    if data.api_key != _ARDUINO_API_KEY:
+        raise HTTPException(status_code=403, detail="Cle API Arduino invalide")
+
+    # ── 2. Deléguer au scan standard via BinScanRequest ───────────────────────
+    # On reutilise exactement la meme logique que POST /qr/scan-bin
+    # en passant les memes parametres — seule difference : api_key en plus.
+    scan_data = BinScanRequest(
+        bin_code  = data.bin_code,
+        qr_code   = data.qr_code,
+        weight_kg = data.weight_kg,
+    )
+    return await scan_bin(scan_data, db)
+
+
+
 
 @router.get("/qr/scan-history")
 async def get_scan_history(
@@ -564,26 +823,95 @@ async def get_leaderboard(limit: int = 10, db: Session = Depends(get_db)):
 
 
 # ════════════════════════════════════════════════════════════════════════════
-# ADMIN — Smart Bins CRUD
+# ADMIN — Smart Bins CRUD + Sync
 # ════════════════════════════════════════════════════════════════════════════
+
+
+@router.post("/qr/sync-bins")
+async def sync_bins_to_firebase(
+    db:    Session        = Depends(get_db),
+    admin: db_models.User = Depends(get_admin_user),
+):
+    """
+    Resynchronise toutes les poubelles depuis PostgreSQL vers Firebase RTDB.
+
+    Pour chaque poubelle :
+      - Lit le poids actuel depuis Firebase (conserve)
+      - Pousse status, bin_type, capacite_kg, etat calcule vers /poubelles/{bin_code}
+
+    A appeler apres une migration ou une panne Firebase.
+    """
+    bins = db.query(db_models.SmartBin).order_by(db_models.SmartBin.id).all()
+    ok_count    = 0
+    fail_count  = 0
+    results     = []
+
+    for b in bins:
+        success = False
+        try:
+            success = _sync_bin_status_to_firebase(b)
+        except Exception:
+            pass
+
+        if success:
+            ok_count += 1
+        else:
+            fail_count += 1
+
+        fb_data = None
+        try:
+            fb_data = get_bin_status(b.bin_code)
+        except Exception:
+            pass
+
+        results.append({
+            "bin_code":        b.bin_code,
+            "bin_type":        b.bin_type,
+            "status":          b.status,
+            "firebase_synced": success,
+            "firebase_etat":   fb_data.get("etat") if fb_data else None,
+            "firebase_poids":  fb_data.get("poids") if fb_data else None,
+        })
+
+    return {
+        "message":    str(ok_count) + "/" + str(len(bins)) + " poubelles synchronisees vers Firebase",
+        "ok":         ok_count,
+        "errors":     fail_count,
+        "bins":       results,
+    }
 
 @router.get("/qr/smart-bins")
 async def list_smart_bins(
-    status:   Optional[str] = None,
-    bin_type: Optional[str] = None,
-    db: Session = Depends(get_db),
-    admin: db_models.User = Depends(get_admin_user),
+    status:        Optional[str]  = None,
+    bin_type:      Optional[str]  = None,
+    with_firebase: bool           = True,
+    db:            Session        = Depends(get_db),
+    admin:         db_models.User = Depends(get_admin_user),
 ):
-    """Liste toutes les poubelles intelligentes avec filtres optionnels."""
+    """
+    Liste toutes les poubelles intelligentes.
+    with_firebase=true (defaut) : enrichit chaque poubelle avec poids + etat temps-reel Firebase.
+    """
     q = db.query(db_models.SmartBin)
     if status:
         q = q.filter(db_models.SmartBin.status == status)
     if bin_type:
         q = q.filter(db_models.SmartBin.bin_type == bin_type)
     bins = q.order_by(db_models.SmartBin.id).all()
+
+    result = []
+    for b in bins:
+        fb_data = None
+        if with_firebase:
+            try:
+                fb_data = get_bin_status(b.bin_code)  # lit /poubelles/{bin_code}
+            except Exception:
+                pass
+        result.append(_serialize_bin(b, fb_data))
+
     return {
         "total": len(bins),
-        "smart_bins": [_serialize_bin(b) for b in bins],
+        "smart_bins": result,
     }
 
 
@@ -637,14 +965,19 @@ async def create_smart_bin(
 @router.get("/qr/smart-bins/{bin_id}")
 async def get_smart_bin(
     bin_id: int,
-    db: Session = Depends(get_db),
-    admin: db_models.User = Depends(get_admin_user),
+    db:     Session        = Depends(get_db),
+    admin:  db_models.User = Depends(get_admin_user),
 ):
-    """Détail d'une poubelle intelligente."""
+    """Detail d'une poubelle intelligente avec poids/etat temps-reel depuis Firebase."""
     smart_bin = db.query(db_models.SmartBin).filter(db_models.SmartBin.id == bin_id).first()
     if not smart_bin:
         raise HTTPException(status_code=404, detail="Poubelle introuvable")
-    return _serialize_bin(smart_bin)
+    fb_data = None
+    try:
+        fb_data = get_bin_status(smart_bin.bin_code)
+    except Exception:
+        pass
+    return _serialize_bin(smart_bin, fb_data)
 
 
 @router.patch("/qr/smart-bins/{bin_id}")
@@ -685,7 +1018,27 @@ async def update_smart_bin(
 
     db.commit()
     db.refresh(smart_bin)
-    return {"message": "Poubelle mise à jour", "smart_bin": _serialize_bin(smart_bin)}
+
+    # ── Sync Firebase : status + bin_type + capacite_kg ──────────────────────
+    # Toute modification (status, type, capacite) est propagee vers Firebase
+    # pour que l'app et la poubelle physique soient toujours coherents.
+    fb_ok = False
+    try:
+        fb_ok = _sync_bin_status_to_firebase(smart_bin)
+    except Exception:
+        pass
+
+    fb_data = None
+    try:
+        fb_data = get_bin_status(smart_bin.bin_code)
+    except Exception:
+        pass
+
+    return {
+        "message":        "Poubelle mise a jour (PostgreSQL + Firebase)",
+        "firebase_synced": fb_ok,
+        "smart_bin":       _serialize_bin(smart_bin, fb_data),
+    }
 
 
 @router.delete("/qr/smart-bins/{bin_id}")
@@ -705,7 +1058,15 @@ async def delete_smart_bin(
 
     smart_bin.status = "inactive"
     db.commit()
-    return {"message": f"Poubelle {smart_bin.bin_code} désactivée (status=inactive)"}
+    db.refresh(smart_bin)
+
+    # Sync Firebase : marquer la poubelle comme en_maintenance
+    try:
+        _sync_bin_status_to_firebase(smart_bin)
+    except Exception:
+        pass
+
+    return {"message": "Poubelle " + smart_bin.bin_code + " desactivee (status=inactive, Firebase=en_maintenance)"}
 
 
 # ── GET /qr/bin-stats (admin — global) ──────────────────────────────────────
@@ -787,14 +1148,85 @@ async def get_single_bin_stats(
 
 # ── Sérialiseur interne ───────────────────────────────────────────────────────
 
-def _serialize_bin(b: db_models.SmartBin) -> dict:
-    return {
-        "id":                 b.id,
-        "bin_code":           b.bin_code,
-        "bin_type":           b.bin_type,
+# Mapping PostgreSQL status -> Firebase etat
+_STATUS_TO_ETAT = {
+    "active":      None,          # etat calcule depuis le poids
+    "full":        "plein",
+    "maintenance": "en_maintenance",
+    "inactive":    "en_maintenance",
+}
+
+
+def _serialize_bin(b: db_models.SmartBin, firebase_data: dict = None) -> dict:
+    """Serialise une SmartBin. Si firebase_data fourni, enrichit avec poids/etat temps-reel."""
+    result = {
+        "id":                  b.id,
+        "bin_code":            b.bin_code,
+        "bin_type":            b.bin_type,
         "collection_point_id": b.collection_point_id,
-        "capacity_kg":        b.capacity_kg,
-        "location_note":      b.location_note,
-        "status":             b.status,
-        "created_at":         b.created_at.isoformat() if b.created_at else None,
+        "capacity_kg":         b.capacity_kg,
+        "location_note":       b.location_note,
+        "status":              b.status,
+        "created_at":          b.created_at.isoformat() if b.created_at else None,
+        # Champs Firebase (null si non disponible)
+        "poids_actuel_kg":     None,
+        "etat_firebase":       None,
+        "derniere_mise_a_jour": None,
+        "firebase_synced":     False,
     }
+    if firebase_data and isinstance(firebase_data, dict):
+        result["poids_actuel_kg"]      = firebase_data.get("poids")
+        result["etat_firebase"]        = firebase_data.get("etat")
+        result["derniere_mise_a_jour"] = firebase_data.get("derniere_mise_a_jour")
+        result["firebase_synced"]      = True
+    return result
+
+
+def _sync_bin_status_to_firebase(smart_bin: db_models.SmartBin) -> bool:
+    """
+    Synchronise le statut d'une poubelle depuis PostgreSQL vers Firebase RTDB.
+
+    Mapping PostgreSQL -> Firebase :
+      active      -> etat inchange (calcule depuis poids)
+      full        -> etat='plein'
+      maintenance -> etat='en_maintenance'
+      inactive    -> etat='en_maintenance'
+
+    Met egalement a jour bin_type et capacite_kg dans Firebase.
+    """
+    try:
+        etat_cible = _STATUS_TO_ETAT.get(smart_bin.status)
+
+        # Lire le poids actuel depuis Firebase pour ne pas l'ecraser
+        current = get_bin_status(smart_bin.bin_code)
+        poids_actuel = 0.0
+        if current and isinstance(current, dict):
+            poids_actuel = float(current.get("poids", 0.0))
+
+        # Si status=active, on garde l'etat calcule depuis le poids
+        if etat_cible is None:
+            cap = smart_bin.capacity_kg or 100.0
+            ratio = poids_actuel / cap if cap > 0 else 0
+            if ratio >= 0.9:
+                etat_cible = "plein"
+            elif ratio >= 0.5:
+                etat_cible = "mi-plein"
+            else:
+                etat_cible = "vide"
+
+        from firebase_admin import db as rtdb
+        from services.firebase_service import _init_firebase
+        from datetime import timezone
+        _init_firebase()
+        ref = rtdb.reference("poubelles/" + smart_bin.bin_code)
+        ref.update({
+            "poids":                poids_actuel,
+            "etat":                 etat_cible,
+            "bin_type":             smart_bin.bin_type,
+            "capacite_kg":          smart_bin.capacity_kg,
+            "status_sql":           smart_bin.status,
+            "derniere_mise_a_jour": datetime.now(timezone.utc).isoformat(),
+        })
+        return True
+    except Exception:
+        return False

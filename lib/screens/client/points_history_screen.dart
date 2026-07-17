@@ -1,9 +1,11 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/web_back_button.dart';
 import '../../services/auth_service.dart';
+import '../../services/firebase_score_service.dart';
 import '../../services/l10n_service.dart';
 import '../../services/theme_service.dart';
 import '../../models/user_model.dart';
@@ -22,12 +24,58 @@ class _PointsHistoryScreenState extends State<PointsHistoryScreen> {
   List<dynamic> _history = [];
   double _totalScore = 0.0;
 
+  // Streams Firebase : /scores/{userId} (API) + /utilisateurs/{qrCode}/score (Arduino)
+  StreamSubscription<ScoreSnapshot>? _firebaseScoreSub;
+  StreamSubscription<double>? _firebaseArduinoSub;
+  double _lastKnownScore = 0.0;
+
   bool get _isDarkMode => ThemeService.isDarkMode;
 
   @override
   void initState() {
     super.initState();
     _loadHistory();
+    _startFirebaseListeners();
+  }
+
+  /// Écoute les DEUX chemins Firebase en temps réel :
+  ///   • /scores/{userId}               — mis à jour par l'API FastAPI
+  ///   • /utilisateurs/{qrCode}/score   — mis à jour directement par l'Arduino
+  /// Quand l'un ou l'autre augmente, on recharge l'historique.
+  void _startFirebaseListeners() {
+    final userId = int.tryParse(AuthState.currentUser?.id ?? '');
+    final qrCode = AuthState.currentUser?.qrCode ?? '';
+
+    // Stream 1 : chemin API
+    if (userId != null) {
+      _firebaseScoreSub = FirebaseScoreService()
+          .watchScore(userId)
+          .listen((snapshot) {
+        if (snapshot.total > _lastKnownScore + 0.01) {
+          _lastKnownScore = snapshot.total;
+          if (mounted && !_loading) _loadHistory();
+        }
+      }, onError: (_) {});
+    }
+
+    // Stream 2 : chemin Arduino (l'ESP32 écrit directement ici)
+    if (qrCode.isNotEmpty) {
+      _firebaseArduinoSub = FirebaseScoreService()
+          .watchArduinoScore(qrCode)
+          .listen((arduinoScore) {
+        if (arduinoScore > _lastKnownScore + 0.01) {
+          _lastKnownScore = arduinoScore;
+          if (mounted && !_loading) _loadHistory();
+        }
+      }, onError: (_) {});
+    }
+  }
+
+  @override
+  void dispose() {
+    _firebaseScoreSub?.cancel();
+    _firebaseArduinoSub?.cancel();
+    super.dispose();
   }
 
   Future<void> _loadHistory() async {
@@ -36,7 +84,7 @@ class _PointsHistoryScreenState extends State<PointsHistoryScreen> {
       _error = null;
     });
     try {
-      // 1. Charger le profil utilisateur le plus récent pour obtenir le score global précis
+      // 1. Charger le profil pour le score global précis
       final profile = await _authService.fetchUserProfile();
       if (profile != null) {
         _totalScore = (profile['global_score'] as num?)?.toDouble() ?? 0.0;
@@ -50,6 +98,10 @@ class _PointsHistoryScreenState extends State<PointsHistoryScreen> {
         setState(() {
           _history = data;
           _loading = false;
+          // Aligne le seuil sur le score chargé pour éviter des reloads infinis
+          if (_totalScore > _lastKnownScore) {
+            _lastKnownScore = _totalScore;
+          }
         });
       }
     } catch (e) {
@@ -200,6 +252,9 @@ class _PointsHistoryScreenState extends State<PointsHistoryScreen> {
   }
 
   Widget _buildContent() {
+    final hasArduinoPoints =
+        _history.any((h) => (h['type'] as String?) == 'arduino');
+
     return RefreshIndicator(
       color: AppTheme.primaryGreen,
       onRefresh: _loadHistory,
@@ -208,7 +263,8 @@ class _PointsHistoryScreenState extends State<PointsHistoryScreen> {
         padding: const EdgeInsets.symmetric(horizontal: 20),
         children: [
           const SizedBox(height: 12),
-          // ── Carte récapitulative du Score Total ──────────────────────────
+
+          // ── Carte Score Total ────────────────────────────────────────────
           Container(
             width: double.infinity,
             padding: const EdgeInsets.all(24),
@@ -263,13 +319,49 @@ class _PointsHistoryScreenState extends State<PointsHistoryScreen> {
                     fontWeight: FontWeight.w500,
                   ),
                 ),
+                // Badge IoT : affiché quand des points Arduino sont présents
+                if (hasArduinoPoints) ...[
+                  const SizedBox(height: 12),
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF59E0B).withOpacity(0.25),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: const Color(0xFFF59E0B).withOpacity(0.5),
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(
+                          Icons.sensors_rounded,
+                          color: Color(0xFFF59E0B),
+                          size: 14,
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          L10n.isArabic
+                              ? 'يشمل نقاط المستشعر الذكي'
+                              : 'Inclut des points capteur IoT',
+                          style: GoogleFonts.inter(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: const Color(0xFFF59E0B),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ],
             ),
           ).animate().fadeIn().slideY(begin: -0.15, curve: Curves.easeOutCubic),
 
           const SizedBox(height: 28),
 
-          // ── Liste de l'historique ──────────────────────────
+          // ── Titre liste ──────────────────────────────────────────────────
           Text(
             L10n.isArabic ? 'تفاصيل المعاملات' : 'Détail des gains',
             style: GoogleFonts.outfit(
@@ -302,13 +394,32 @@ class _PointsHistoryScreenState extends State<PointsHistoryScreen> {
     final desc = item['description'] as String? ?? '';
 
     final isQuiz = type == 'quiz';
+    final isArduino = type == 'arduino';
 
-    // Différenciation de style
-    final Color itemColor = isQuiz ? const Color(0xFF8B5CF6) : const Color(0xFF10B981);
-    final IconData icon = isQuiz ? Icons.school_rounded : Icons.recycling_rounded;
+    // Couleur par type : violet (quiz), ambre IoT (arduino), vert (tri)
+    final Color itemColor = isQuiz
+        ? const Color(0xFF8B5CF6)
+        : isArduino
+            ? const Color(0xFFF59E0B)
+            : const Color(0xFF10B981);
+
+    final IconData icon = isQuiz
+        ? Icons.school_rounded
+        : isArduino
+            ? Icons.sensors_rounded
+            : Icons.recycling_rounded;
+
     final String categoryLabel = isQuiz
         ? (L10n.isArabic ? 'اختبار بيئي' : 'Quiz éco-responsable')
-        : (L10n.isArabic ? 'فرز النفايات' : 'Tri de déchets');
+        : isArduino
+            ? (L10n.isArabic ? 'مستشعر إنترنت الأشياء' : 'Capteur IoT Arduino')
+            : (L10n.isArabic ? 'فرز النفايات' : 'Tri de déchets');
+
+    final String dateLabel = isArduino
+        ? (L10n.isArabic
+            ? 'عبر مستشعر IoT · غير محدد'
+            : 'Via capteur IoT · horodatage non dispo.')
+        : (dateStr != null ? _formatDate(dateStr) : '—');
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -316,13 +427,17 @@ class _PointsHistoryScreenState extends State<PointsHistoryScreen> {
         color: _isDarkMode ? const Color(0xFF1E293B) : Colors.white,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: _isDarkMode
-              ? Colors.white.withOpacity(0.05)
-              : Colors.black.withOpacity(0.04),
+          color: isArduino
+              ? const Color(0xFFF59E0B).withOpacity(0.25)
+              : (_isDarkMode
+                  ? Colors.white.withOpacity(0.05)
+                  : Colors.black.withOpacity(0.04)),
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(_isDarkMode ? 0.2 : 0.03),
+            color: isArduino
+                ? const Color(0xFFF59E0B).withOpacity(0.08)
+                : Colors.black.withOpacity(_isDarkMode ? 0.2 : 0.03),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -334,20 +449,18 @@ class _PointsHistoryScreenState extends State<PointsHistoryScreen> {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // Indicateur latéral de couleur
-              Container(
-                width: 6,
-                color: itemColor,
-              ),
+              // Barre latérale colorée
+              Container(width: 6, color: itemColor),
               const SizedBox(width: 12),
 
-              // Contenu principal
+              // Contenu
               Expanded(
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 4),
+                  padding:
+                      const EdgeInsets.symmetric(vertical: 16, horizontal: 4),
                   child: Row(
                     children: [
-                      // Icône type
+                      // Icône type dans cercle
                       Container(
                         width: 44,
                         height: 44,
@@ -359,19 +472,71 @@ class _PointsHistoryScreenState extends State<PointsHistoryScreen> {
                       ),
                       const SizedBox(width: 16),
 
-                      // Description et dates
+                      // Textes
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Text(
-                              categoryLabel,
-                              style: GoogleFonts.outfit(
-                                fontSize: 13,
-                                fontWeight: FontWeight.bold,
-                                color: itemColor,
-                              ),
+                            // Label + badge IoT pulsant
+                            Row(
+                              children: [
+                                Flexible(
+                                  child: Text(
+                                    categoryLabel,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: GoogleFonts.outfit(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.bold,
+                                      color: itemColor,
+                                    ),
+                                  ),
+                                ),
+                                if (isArduino) ...[
+                                  const SizedBox(width: 6),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 6, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFF59E0B)
+                                          .withOpacity(0.15),
+                                      borderRadius: BorderRadius.circular(6),
+                                      border: Border.all(
+                                        color: const Color(0xFFF59E0B)
+                                            .withOpacity(0.4),
+                                      ),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Container(
+                                          width: 5,
+                                          height: 5,
+                                          decoration: const BoxDecoration(
+                                            color: Color(0xFFF59E0B),
+                                            shape: BoxShape.circle,
+                                          ),
+                                        )
+                                            .animate(
+                                                onPlay: (c) => c.repeat())
+                                            .fadeIn(duration: 600.ms)
+                                            .then()
+                                            .fadeOut(duration: 600.ms),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          'IoT',
+                                          style: GoogleFonts.outfit(
+                                            fontSize: 9,
+                                            fontWeight: FontWeight.w800,
+                                            color: const Color(0xFFF59E0B),
+                                            letterSpacing: 0.5,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ],
                             ),
                             const SizedBox(height: 2),
                             Text(
@@ -381,15 +546,21 @@ class _PointsHistoryScreenState extends State<PointsHistoryScreen> {
                               style: GoogleFonts.inter(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w600,
-                                color: _isDarkMode ? Colors.white : AppTheme.deepSlate,
+                                color: _isDarkMode
+                                    ? Colors.white
+                                    : AppTheme.deepSlate,
                               ),
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              dateStr != null ? _formatDate(dateStr) : '—',
+                              dateLabel,
                               style: GoogleFonts.inter(
                                 fontSize: 11,
-                                color: _isDarkMode ? const Color(0xFF64748B) : AppTheme.textMuted,
+                                color: isArduino
+                                    ? const Color(0xFFF59E0B).withOpacity(0.7)
+                                    : (_isDarkMode
+                                        ? const Color(0xFF64748B)
+                                        : AppTheme.textMuted),
                               ),
                             ),
                           ],
@@ -397,7 +568,7 @@ class _PointsHistoryScreenState extends State<PointsHistoryScreen> {
                       ),
                       const SizedBox(width: 12),
 
-                      // Nombre de points gagnés
+                      // Points
                       Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         crossAxisAlignment: CrossAxisAlignment.end,
@@ -415,7 +586,9 @@ class _PointsHistoryScreenState extends State<PointsHistoryScreen> {
                             style: GoogleFonts.inter(
                               fontSize: 11,
                               fontWeight: FontWeight.w600,
-                              color: _isDarkMode ? const Color(0xFF64748B) : AppTheme.textMuted,
+                              color: _isDarkMode
+                                  ? const Color(0xFF64748B)
+                                  : AppTheme.textMuted,
                             ),
                           ),
                         ],
@@ -438,16 +611,22 @@ class _PointsHistoryScreenState extends State<PointsHistoryScreen> {
       final now = DateTime.now();
       final diff = now.difference(dt);
       if (diff.inMinutes < 60) {
-        return L10n.isArabic ? 'منذ ${diff.inMinutes} دقيقة' : 'il y a ${diff.inMinutes} min';
+        return L10n.isArabic
+            ? 'منذ ${diff.inMinutes} دقيقة'
+            : 'il y a ${diff.inMinutes} min';
       }
       if (diff.inHours < 24) {
-        return L10n.isArabic ? 'منذ ${diff.inHours} ساعة' : 'il y a ${diff.inHours}h';
+        return L10n.isArabic
+            ? 'منذ ${diff.inHours} ساعة'
+            : 'il y a ${diff.inHours}h';
       }
       if (diff.inDays == 1) {
         return L10n.isArabic ? 'أمس' : 'hier';
       }
       if (diff.inDays < 7) {
-        return L10n.isArabic ? 'منذ ${diff.inDays} أيام' : 'il y a ${diff.inDays}j';
+        return L10n.isArabic
+            ? 'منذ ${diff.inDays} أيام'
+            : 'il y a ${diff.inDays}j';
       }
       return '${dt.day.toString().padLeft(2, '0')}/${dt.month.toString().padLeft(2, '0')}/${dt.year}';
     } catch (_) {

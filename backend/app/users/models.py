@@ -40,3 +40,4 @@ class User(Base):
     posts = relationship("Post", back_populates="author")
     saved_posts = relationship("SavedPost", back_populates="user")
     likes = relationship("Like", back_populates="user")
+    rewards = relationship("UserReward", back_populates="user", cascade="all, delete-orphan", lazy="dynamic")

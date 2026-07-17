@@ -152,6 +152,130 @@ class _MapTabState extends State<MapTab> {
 
   static const _kCachePoints   = 'map_points_cache_v2';
   static const _kCacheVersion  = 'map_points_version_v2';
+  
+  static const List<Map<String, dynamic>> _kFallbackPoints = [
+    {
+      "id": 1,
+      "name": "Ariana Nord",
+      "lat": 36.8665,
+      "lng": 10.1647,
+      "is_verified": true,
+      "types": ["Plastique", "Verre", "Papier"],
+      "address": "Rue de la République, Ariana",
+      "hours": "8h-18h",
+      "status": "disponible",
+      "load_level": "0.45"
+    },
+    {
+      "id": 2,
+      "name": "Tunis Centre",
+      "lat": 36.8065,
+      "lng": 10.1815,
+      "is_verified": false,
+      "types": ["Plastique", "Batteries"],
+      "address": "Avenue Habib Bourguiba, Tunis",
+      "hours": "7h-20h",
+      "status": "disponible",
+      "load_level": "0.85"
+    },
+    {
+      "id": 3,
+      "name": "La Marsa",
+      "lat": 36.8782,
+      "lng": 10.3247,
+      "is_verified": true,
+      "types": ["Plastique", "Verre", "Compost"],
+      "address": "Rue du Lac, La Marsa",
+      "hours": "9h-17h",
+      "status": "maintenance",
+      "load_level": "0.0"
+    },
+    {
+      "id": 4,
+      "name": "Bardo",
+      "lat": 36.8189,
+      "lng": 10.1658,
+      "is_verified": false,
+      "types": ["Plastique", "Papier"],
+      "address": "Avenue du Bardo, Le Bardo",
+      "hours": "8h-16h",
+      "status": "disponible",
+      "load_level": "0.45"
+    },
+    {
+      "id": 5,
+      "name": "Ben Arous",
+      "lat": 36.7256,
+      "lng": 10.2164,
+      "is_verified": true,
+      "types": ["Plastique", "Verre", "Batteries", "Electronique"],
+      "address": "Zone industrielle, Ben Arous",
+      "hours": "7h-19h",
+      "status": "disponible",
+      "load_level": "0.72"
+    },
+    {
+      "id": 6,
+      "name": "Manouba",
+      "lat": 36.8094,
+      "lng": 10.0971,
+      "is_verified": true,
+      "types": ["Plastique", "Verre"],
+      "address": "Centre ville, Manouba",
+      "hours": "8h-17h",
+      "status": "disponible",
+      "load_level": "0.30"
+    },
+    {
+      "id": 7,
+      "name": "Carthage",
+      "lat": 36.8528,
+      "lng": 10.3306,
+      "is_verified": true,
+      "types": ["Plastique", "Verre", "Papier", "Compost"],
+      "address": "Rue Hannibal, Carthage",
+      "hours": "8h-18h",
+      "status": "disponible",
+      "load_level": "0.55"
+    },
+    {
+      "id": 8,
+      "name": "Lac 1",
+      "lat": 36.8325,
+      "lng": 10.2336,
+      "is_verified": false,
+      "types": ["Plastique", "Batteries"],
+      "address": "Les Berges du Lac, Tunis",
+      "hours": "9h-20h",
+      "status": "saturé",
+      "load_level": "0.98"
+    },
+    {
+      "id": 9,
+      "name": "Sidi Bou Said",
+      "lat": 36.8687,
+      "lng": 10.3414,
+      "is_verified": true,
+      "types": ["Plastique", "Verre", "Compost"],
+      "address": "Village de Sidi Bou Said",
+      "hours": "9h-16h",
+      "status": "disponible",
+      "load_level": "0.20"
+    },
+    {
+      "id": 10,
+      "name": "Hammam Lif",
+      "lat": 36.7333,
+      "lng": 10.1667,
+      "is_verified": true,
+      "types": ["Plastique", "Verre", "Papier", "Electronique"],
+      "address": "Avenue de la Plage, Hammam Lif",
+      "hours": "7h-18h",
+      "status": "disponible",
+      "load_level": "0.60"
+    }
+  ];
+
   bool _isRefreshing = false;
 
   /// `true` = on a accès à tile.openstreetmap.org → on affiche la vraie carte.
@@ -208,7 +332,15 @@ class _MapTabState extends State<MapTab> {
       }
       await _fetchAndCachePoints();
     } catch (_) {
-      await _fetchAndCachePoints();
+      if (mounted) {
+        setState(() {
+          if (_allPoints.isEmpty) {
+            _allPoints = List<Map<String, dynamic>>.from(_kFallbackPoints);
+            _applyFilters();
+          }
+          _isLoading = false;
+        });
+      }
     }
   }
 
@@ -239,12 +371,26 @@ class _MapTabState extends State<MapTab> {
         if (newVersion != null) await prefs.setDouble(_kCacheVersion, newVersion);
         _allPoints = points;
         _applyFilters();
+      } else {
+        if (_allPoints.isEmpty) {
+          _allPoints = List<Map<String, dynamic>>.from(_kFallbackPoints);
+          _applyFilters();
+        }
       }
       if (mounted) setState(() => _isLoading = false);
     } catch (e) {
-      if (mounted) setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() {
+          if (_allPoints.isEmpty) {
+            _allPoints = List<Map<String, dynamic>>.from(_kFallbackPoints);
+            _applyFilters();
+          }
+          _isLoading = false;
+        });
+      }
     }
   }
+
 
   void _applyFilters() {
     final rawQuery = _searchQuery.trim();

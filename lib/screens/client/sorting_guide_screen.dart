@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../theme/app_theme.dart';
@@ -42,71 +42,77 @@ class SortingGuideScreen extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Image principale du guide
-                  Animate(
-                    effects: const [FadeEffect(), ScaleEffect(begin: Offset(0.9, 0.9))],
-                    child: Container(
-                      width: double.infinity,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(32),
-                        boxShadow: AppTheme.premiumShadow,
-                      ),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(32),
+                  // Image principale du guide (hauteur responsive)
+                  LayoutBuilder(
+                    builder: (context, constraints) {
+                      final imgH = (MediaQuery.of(context).size.height * 0.33).clamp(180.0, 300.0);
+                      return Animate(
+                        effects: const [FadeEffect(), ScaleEffect(begin: Offset(0.9, 0.9))],
                         child: Container(
-                          color: Theme.of(context).colorScheme.surface,
-                          child: Image.asset(
-                            'assets/images/onboarding.png',
-                            fit: BoxFit.contain,
-                            height: 300,
-                            width: double.infinity,
-                            errorBuilder: (context, error, stackTrace) => Container(
-                              height: 300,
-                              decoration: const BoxDecoration(
-                                gradient: LinearGradient(
-                                  colors: [Color(0xFF0F172A), Color(0xFF0F2D24)],
-                                  begin: Alignment.topLeft,
-                                  end: Alignment.bottomRight,
-                                ),
-                              ),
-                              child: Center(
-                                child: Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Container(
-                                      padding: const EdgeInsets.all(16),
-                                      decoration: BoxDecoration(
-                                        color: AppTheme.primaryGreen.withOpacity(0.15),
-                                        shape: BoxShape.circle,
-                                      ),
-                                      child: const Icon(Icons.auto_awesome_rounded, size: 48, color: AppTheme.accentTeal),
+                          width: double.infinity,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(32),
+                            boxShadow: AppTheme.premiumShadow,
+                          ),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(32),
+                            child: Container(
+                              color: Theme.of(context).colorScheme.surface,
+                              child: Image.asset(
+                                'assets/images/onboarding.png',
+                                fit: BoxFit.contain,
+                                height: imgH,
+                                width: double.infinity,
+                                errorBuilder: (context, error, stackTrace) => Container(
+                                  height: imgH,
+                                  decoration: const BoxDecoration(
+                                    gradient: LinearGradient(
+                                      colors: [Color(0xFF0F172A), Color(0xFF0F2D24)],
+                                      begin: Alignment.topLeft,
+                                      end: Alignment.bottomRight,
                                     ),
-                                    const SizedBox(height: 16),
-                                    Text(
-                                      'Guide du Tri Écologique',
-                                      style: GoogleFonts.spaceGrotesk(
-                                        color: Colors.white,
-                                        fontSize: 18,
-                                        fontWeight: FontWeight.w800,
-                                      ),
+                                  ),
+                                  child: Center(
+                                    child: Column(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        Container(
+                                          padding: const EdgeInsets.all(16),
+                                          decoration: BoxDecoration(
+                                            color: AppTheme.primaryGreen.withOpacity(0.15),
+                                            shape: BoxShape.circle,
+                                          ),
+                                          child: const Icon(Icons.auto_awesome_rounded, size: 48, color: AppTheme.accentTeal),
+                                        ),
+                                        const SizedBox(height: 16),
+                                        Text(
+                                          'Guide du Tri Écologique',
+                                          style: GoogleFonts.spaceGrotesk(
+                                            color: Colors.white,
+                                            fontSize: 18,
+                                            fontWeight: FontWeight.w800,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          'Suivez les règles ci-dessous pour trier vos déchets',
+                                          style: GoogleFonts.inter(
+                                            color: Colors.white.withOpacity(0.5),
+                                            fontSize: 12,
+                                          ),
+                                        ),
+                                      ],
                                     ),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      'Suivez les règles ci-dessous pour trier vos déchets',
-                                      style: GoogleFonts.inter(
-                                        color: Colors.white.withOpacity(0.5),
-                                        fontSize: 12,
-                                      ),
-                                    ),
-                                  ],
+                                  ),
                                 ),
                               ),
                             ),
                           ),
                         ),
-                      ),
-                    ),
+                      );
+                    },
                   ),
+
                   const SizedBox(height: 40),
                   Text('LES 3 RÈGLES D\'OR', style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w900, letterSpacing: 2, color: AppTheme.primaryGreen)),
                   const SizedBox(height: 24),

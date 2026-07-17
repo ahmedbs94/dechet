@@ -35,29 +35,57 @@ const Map<String, Color> _wasteColors = {
 
 class LiveScoreWidget extends StatelessWidget {
   final int userId;
+  final String qrCode;       // QR code du citoyen (chemin Arduino)
   final double fallbackScore;
 
   const LiveScoreWidget({
     super.key,
     required this.userId,
+    this.qrCode = '',
     this.fallbackScore = 0.0,
   });
 
   @override
   Widget build(BuildContext context) {
-    return StreamBuilder<ScoreSnapshot>(
-      stream: FirebaseScoreService().watchScore(userId),
-      builder: (context, snapshot) {
-        final data = snapshot.data ?? ScoreSnapshot.empty();
-        final score = data.total > 0 ? data.total : fallbackScore;
-        final hasNewPoints = data.lastPoints > 0;
+    // Stream 1 : /scores/{userId} — mis à jour par l'API (quiz, scan Flutter)
+    final apiStream = FirebaseScoreService().watchScore(userId);
+    // Stream 2 : /utilisateurs/{qrCode}/score — mis à jour par l'Arduino ESP32
+    final arduinoStream = FirebaseScoreService().watchArduinoScore(qrCode);
 
-        return _ScoreCard(
-          score: score,
-          lastPoints: data.lastPoints,
-          lastBinType: data.lastBinType,
-          hasNewPoints: hasNewPoints,
-          isLoading: snapshot.connectionState == ConnectionState.waiting,
+    return StreamBuilder<ScoreSnapshot>(
+      stream: apiStream,
+      builder: (context, apiSnap) {
+        final apiData = apiSnap.data ?? ScoreSnapshot.empty();
+
+        return StreamBuilder<double>(
+          stream: arduinoStream,
+          builder: (context, arduinoSnap) {
+            final arduinoScore = arduinoSnap.data ?? 0.0;
+            // Score affiché = maximum entre les deux sources
+            final score = [apiData.total, arduinoScore, fallbackScore]
+                .reduce((a, b) => a > b ? a : b);
+
+            // Détecter si le dernier événement vient de l'Arduino
+            final isArduinoEvent =
+                arduinoScore > 0 && arduinoScore >= apiData.total;
+            final hasNewPoints = apiData.lastPoints > 0 || isArduinoEvent;
+            final lastBinType =
+                isArduinoEvent ? 'general' : apiData.lastBinType;
+            final lastPoints = isArduinoEvent
+                ? (arduinoScore - apiData.total).clamp(0, double.infinity)
+                : apiData.lastPoints;
+            final isArduinoSource = isArduinoEvent && arduinoScore > apiData.total;
+
+            return _ScoreCard(
+              score: score,
+              lastPoints: lastPoints,
+              lastBinType: lastBinType,
+              hasNewPoints: hasNewPoints,
+              isArduinoSource: isArduinoSource,
+              isLoading: apiSnap.connectionState == ConnectionState.waiting &&
+                  arduinoSnap.connectionState == ConnectionState.waiting,
+            );
+          },
         );
       },
     );
@@ -69,6 +97,7 @@ class _ScoreCard extends StatelessWidget {
   final double lastPoints;
   final String lastBinType;
   final bool hasNewPoints;
+  final bool isArduinoSource;   // true si le dernier événement vient de l'Arduino
   final bool isLoading;
 
   const _ScoreCard({
@@ -76,6 +105,7 @@ class _ScoreCard extends StatelessWidget {
     required this.lastPoints,
     required this.lastBinType,
     required this.hasNewPoints,
+    this.isArduinoSource = false,
     required this.isLoading,
   });
 
@@ -214,32 +244,48 @@ class _ScoreCard extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                 decoration: BoxDecoration(
-                  color: accentColor.withOpacity(0.12),
+                  color: isArduinoSource
+                      ? const Color(0xFFF59E0B).withOpacity(0.12)
+                      : accentColor.withOpacity(0.12),
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: accentColor.withOpacity(0.25)),
+                  border: Border.all(
+                    color: isArduinoSource
+                        ? const Color(0xFFF59E0B).withOpacity(0.35)
+                        : accentColor.withOpacity(0.25),
+                  ),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Icon(
-                      _wasteIcons[lastBinType] ?? Icons.delete_outline,
-                      color: accentColor,
+                      isArduinoSource
+                          ? Icons.sensors_rounded
+                          : (_wasteIcons[lastBinType] ?? Icons.delete_outline),
+                      color: isArduinoSource
+                          ? const Color(0xFFF59E0B)
+                          : accentColor,
                       size: 16,
                     ),
                     const SizedBox(width: 8),
                     Text(
                       '+${lastPoints.toStringAsFixed(0)} pts',
                       style: TextStyle(
-                        color: accentColor,
+                        color: isArduinoSource
+                            ? const Color(0xFFF59E0B)
+                            : accentColor,
                         fontSize: 14,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
                     const SizedBox(width: 6),
                     Text(
-                      '· ${lastBinType[0].toUpperCase()}${lastBinType.substring(1)}',
+                      isArduinoSource
+                          ? '· Capteur IoT'
+                          : '· ${lastBinType[0].toUpperCase()}${lastBinType.substring(1)}',
                       style: TextStyle(
-                        color: accentColor.withOpacity(0.7),
+                        color: isArduinoSource
+                            ? const Color(0xFFF59E0B).withOpacity(0.75)
+                            : accentColor.withOpacity(0.7),
                         fontSize: 13,
                       ),
                     ),

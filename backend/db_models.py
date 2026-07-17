@@ -57,3 +57,6 @@ from app.collector_routes.models import CollectionRoute  # noqa: F401
 
 # ── Messagerie inter-rôles ────────────────────────────────────────────────────
 from app.messaging.models import Message, MessageGroupRecipient  # noqa: F401
+
+# ── Niveaux & Récompenses ─────────────────────────────────────────────────────
+from app.levels.models import UserReward  # noqa: F401
