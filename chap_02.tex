@@ -4,9 +4,9 @@
 \section{Introduction}
 \label{sec:introduction}
 
-Dans ce chapitre, nous allons commencer à élaborer la première phase de la méthodologie Scrum, appelée également \og planification et architecture \fg{} ou \og sprint zéro \fg{}. L'objectif de ce chapitre est d'établir une vision globale de notre produit, de dégager les besoins et les fonctionnalités, d'identifier les acteurs qui vont interagir avec notre système, d'élaborer la planification des releases, d'établir le backlog de produit et, finalement, de préparer la planification initiale des sprints et le planning de réalisation du projet.
+Dans ce chapitre, nous allons élaborer la première phase de la méthodologie Scrum, appelée également \og planification et architecture \fg{} ou \og sprint zéro \fg{}. L'objectif est d'établir une vision globale du produit, de dégager les besoins et les fonctionnalités, d'identifier les acteurs qui interagissent avec le système, d'élaborer la planification des releases, d'établir le backlog de produit et, finalement, de préparer la planification initiale des sprints et le planning de réalisation du projet.
 
-Cette phase constitue un cadre de référence pour le projet \textit{EcoRewind}. Elle permet d'aligner les attentes des utilisateurs, les objectifs environnementaux et les choix techniques avant la réalisation des incréments. La plateforme vise à encourager le tri sélectif, à améliorer l'accès à l'information locale, à valoriser les comportements écoresponsables et à outiller les acteurs territoriaux chargés de la gestion des déchets. Elle associe ainsi une dimension citoyenne, éducative, opérationnelle et territoriale.
+Cette phase constitue un cadre de référence pour le projet \textit{EcoRewind}. Elle permet d'aligner les attentes des utilisateurs, les objectifs environnementaux et les choix fonctionnels avant la réalisation des incréments. La plateforme vise à encourager le tri sélectif, à faciliter l'accès à l'information locale, à valoriser les comportements écoresponsables et à outiller les acteurs territoriaux chargés de la gestion des déchets. Elle associe ainsi une dimension citoyenne, éducative, opérationnelle et territoriale.
 
 \section{Spécification des besoins}
 \label{sec:specification_besoins}
@@ -16,11 +16,11 @@ La spécification des besoins permet de déterminer les services attendus du sys
 \subsection{Identification des acteurs}
 \label{subsec:identification_acteurs}
 
-EcoRewind met en relation des utilisateurs ayant des responsabilités complémentaires :
+L'application EcoRewind met en relation des utilisateurs ayant des responsabilités complémentaires :
 \begin{itemize}
     \item \textbf{Visiteur :} personne non authentifiée qui accède aux informations publiques de la plateforme, notamment le fil d'actualité, les contenus de sensibilisation et la carte des points de collecte.
-    \item \textbf{Citoyen :} utilisateur inscrit qui consulte les consignes locales, localise les points de collecte, partage ses actions, participe aux activités éducatives et cumule des récompenses grâce aux scans associés aux équipements intelligents.
-    \item \textbf{Éducateur :} acteur chargé de la sensibilisation environnementale. Il crée des contenus pédagogiques, des vidéos et des quiz, anime des groupes citoyens et favorise la diffusion des bonnes pratiques de tri.
+    \item \textbf{Citoyen :} utilisateur inscrit qui consulte les consignes locales, localise les points de collecte, partage ses actions, participe aux activités éducatives et cumule des récompenses grâce aux scans associés aux équipements intelligents. Il obtient également des points supplémentaires en participant aux quiz.
+    \item \textbf{Éducateur :} acteur chargé de la sensibilisation environnementale. Il crée des contenus pédagogiques, des vidéos et des quiz, anime des groupes de citoyens, organise des réunions et contribue à la diffusion des bonnes pratiques de tri.
     \item \textbf{Collecteur :} acteur opérationnel chargé des activités de collecte. Il consulte les missions qui lui sont affectées, suit l'état des zones et des équipements, puis met à jour l'avancement des interventions.
     \item \textbf{Gestionnaire de point :} acteur responsable du suivi local d'un ou de plusieurs points de collecte. Il surveille leur disponibilité, leur saturation ou leur état de maintenance et participe à la remontée des informations de terrain.
     \item \textbf{Intercommunalité :} acteur institutionnel qui pilote la politique territoriale de tri. Il définit les consignes locales, centralise les données des points de collecte, organise les zones géographiques, coordonne les acteurs locaux et affecte les collecteurs aux missions.
@@ -30,7 +30,7 @@ EcoRewind met en relation des utilisateurs ayant des responsabilités complémen
 \end{itemize}
 
 \subsection{Spécification des besoins fonctionnels par acteur}
-\label{subsec:besoins_fonctionnels_par_acteur}
+\label{subsec:besoins_fonctionnels}
 
 \subsubsection{Le Visiteur}
 
@@ -100,23 +100,37 @@ Les besoins non fonctionnels définissent les exigences de qualité du système 
 
 Le diagramme de cas d'utilisation global présente les interactions entre les acteurs et le système EcoRewind. Il distingue les services publics accessibles au visiteur, les parcours citoyens, les fonctions éducatives, les opérations de collecte, le pilotage territorial et les fonctions d'administration.
 
-Les fonctionnalités personnalisées, telles que la publication, le scan QR, la gestion des missions, la coordination territoriale ou l'administration, nécessitent une authentification et sont filtrées selon le rôle de l'utilisateur. La poubelle intelligente est représentée comme un acteur externe qui alimente le système en données de scan ou de remplissage.
+Les services publics, tels que la consultation du fil d'actualité, de la carte des points de collecte et des contenus de sensibilisation, sont accessibles au visiteur. Les autres fonctionnalités nécessitent une authentification et sont attribuées selon le rôle de l'utilisateur. La poubelle intelligente est représentée comme un acteur externe qui transmet au système des données de scan, de type de déchet, de poids ou de niveau de remplissage.
 
-La figure correspondante doit être générée à partir du fichier source éditable \texttt{usecase-ecorewind.drawio}. Cette source contient les acteurs \textit{Visiteur}, \textit{Citoyen}, \textit{Éducateur}, \textit{Collecteur}, \textit{Gestionnaire de point}, \textit{Intercommunalité}, \textit{Administrateur} et \textit{Poubelle intelligente}.
+La figure \ref{fig:diagramme_cas_utilisation_global} illustre le diagramme de cas d'utilisation global de la plateforme EcoRewind.
 
-\section{Structure et découpage de projet}
-\label{sec:structure_decoupage_projet}
-
-Cette section présente l'organisation du produit selon la démarche Scrum, le backlog priorisé, les releases, l'architecture et l'environnement technique du projet.
+\begin{figure}[H]
+    \centering
+    \frame{\includegraphics[width=0.95\columnwidth]{image/UseCaseGlobale.png}}
+    \caption{Diagramme de cas d'utilisation global d'EcoRewind}
+    \label{fig:diagramme_cas_utilisation_global}
+\end{figure}
 
 \subsection{Diagramme de classes global}
 \label{subsec:diagramme_classes_global}
 
 Le diagramme de classes global présente les principales entités manipulées par le système. La classe \texttt{User} représente les utilisateurs et leurs rôles. Les classes \texttt{Post}, \texttt{Comment} et \texttt{Notification} modélisent l'espace communautaire. Les classes \texttt{CollectionPoint}, \texttt{SmartBin} et \texttt{BinScan} structurent le suivi des infrastructures de collecte et les actions de tri.
 
-Le pilotage territorial est représenté par les classes \texttt{LocalInstruction}, \texttt{CollectorZone}, \texttt{CollectorZoneAssignment} et \texttt{CustomActorGroup}. Elles permettent de gérer les consignes locales, les zones, les affectations de collecte et la coordination des acteurs. Le diagramme met en évidence qu'un utilisateur peut créer des contenus ou des consignes, qu'un citoyen peut effectuer plusieurs scans, qu'une poubelle est associée à un point de collecte et qu'un collecteur peut recevoir plusieurs affectations.
+Le pilotage territorial est représenté par les classes \texttt{LocalInstruction}, \texttt{CollectorZone}, \texttt{CollectorZoneAssignment} et \texttt{CustomActorGroup}. Elles permettent de gérer les consignes locales, les zones, les affectations de collecte et la coordination des acteurs. Le diagramme met notamment en évidence qu'un citoyen peut effectuer plusieurs scans, qu'une poubelle est associée à un point de collecte et qu'un collecteur peut recevoir plusieurs affectations.
 
-La figure correspondante doit être exportée depuis \texttt{diagramme\_classe\_global.drawio} afin de préserver une version Draw.io modifiable du diagramme.
+La figure \ref{fig:diagramme_classes_global} présente le diagramme de classes global de la plateforme.
+
+\begin{figure}[H]
+    \centering
+    \frame{\includegraphics[width=0.95\columnwidth]{image/DiagrammeClasseGlobale.png}}
+    \caption{Diagramme de classes global d'EcoRewind}
+    \label{fig:diagramme_classes_global}
+\end{figure}
+
+\section{Structure et découpage de projet}
+\label{sec:structure_decoupage_projet}
+
+Cette section présente l'organisation du produit selon la démarche Scrum, le backlog priorisé, les releases, les patrons de conception et l'environnement technique du projet.
 
 \subsection{Identification de l'équipe Scrum}
 \label{subsec:equipe_scrum}
@@ -131,91 +145,114 @@ Dans un projet Scrum, l'équipe joue un rôle central dans la production continu
 \subsection{Le Backlog du Produit global}
 \label{subsec:backlog_produit_global}
 
-Le backlog produit regroupe les fonctionnalités attendues d'EcoRewind. Il est organisé en épopées et user stories afin de faciliter la priorisation et la planification des sprints.
+Le backlog produit regroupe l'ensemble des fonctionnalités attendues de la plateforme EcoRewind. Il est organisé en épopées (\textit{Epics}) et en \textit{User Stories}, afin de faciliter la priorisation et la planification des sprints.
 
-\begin{center}
+\setlength{\tabcolsep}{4pt}
+\renewcommand{\arraystretch}{1.35}
 \scriptsize
-\begin{longtable}{|p{0.7cm}|p{3.2cm}|p{0.9cm}|p{6.7cm}|p{1.4cm}|p{1.2cm}|}
+\begin{longtable}{|>{\centering\arraybackslash}p{0.8cm}|p{3.3cm}|>{\centering\arraybackslash}p{0.8cm}|p{6.7cm}|>{\centering\arraybackslash}p{1.5cm}|}
+\caption{Backlog du produit EcoRewind}\label{tab:product_backlog_ecorewind}\\
 \hline
-\textbf{ID} & \textbf{Fonctionnalité} & \textbf{US} & \textbf{User Story} & \textbf{Priorité} & \textbf{Complexité} \\
+\rowcolor{gray!35}
+\textbf{ID} & \textbf{Fonctionnalité} \newline \textbf{(Epic)} & \textbf{ID} & \textbf{User Story} & \textbf{Priorité} \\
 \hline
 \endfirsthead
+\multicolumn{5}{c}{\tablename\ \thetable{} -- \textit{Suite de la page précédente}} \\
 \hline
-\textbf{ID} & \textbf{Fonctionnalité} & \textbf{US} & \textbf{User Story} & \textbf{Priorité} & \textbf{Complexité} \\
+\rowcolor{gray!35}
+\textbf{ID} & \textbf{Fonctionnalité} \newline \textbf{(Epic)} & \textbf{ID} & \textbf{User Story} & \textbf{Priorité} \\
 \hline
 \endhead
-\multicolumn{6}{r}{\textit{Suite à la page suivante}} \\
+\hline
+\multicolumn{5}{r}{\textit{Suite à la page suivante}} \\
 \endfoot
 \hline
 \endlastfoot
-1 & Gestion des accès et profils & US1.1 & En tant que visiteur, je veux créer un compte afin d'accéder aux services personnalisés. & Très haute & 5 \\
+
+1 & Gestion des accès et des comptes utilisateurs & 1.1 & En tant que visiteur, je veux créer un compte afin d'accéder aux services personnalisés de la plateforme. & Élevée \\
+\cline{3-5}
+& & 1.2 & En tant qu'utilisateur, je veux m'authentifier et me déconnecter de manière sécurisée afin de protéger mon espace personnel. & Élevée \\
+\cline{3-5}
+& & 1.3 & En tant qu'utilisateur, je veux gérer les informations de mon profil et mon code QR afin d'être identifié par les services de tri. & Élevée \\
+\cline{3-5}
+& & 1.4 & En tant qu'administrateur, je veux gérer les utilisateurs et leurs rôles afin de contrôler les accès à la plateforme. & Élevée \\
+\cline{3-5}
+& & 1.5 & En tant que super-administrateur, je veux gérer les comptes administrateurs afin de protéger les privilèges sensibles. & Élevée \\
 \hline
- &  & US1.2 & En tant qu'utilisateur, je veux m'authentifier, me déconnecter et renouveler ma session de manière sécurisée. & Très haute & 5 \\
+
+2 & Information citoyenne et communauté & 2.1 & En tant que visiteur, je veux consulter le fil d'actualité afin de découvrir les initiatives écologiques de la communauté. & Moyenne \\
+\cline{3-5}
+& & 2.2 & En tant que citoyen, je veux publier une action de tri accompagnée d'un média afin de la partager avec la communauté. & Élevée \\
+\cline{3-5}
+& & 2.3 & En tant que citoyen, je veux aimer, commenter et enregistrer les publications afin d'interagir avec les autres membres. & Moyenne \\
+\cline{3-5}
+& & 2.4 & En tant que citoyen, je veux soumettre un témoignage ou proposer un point de collecte afin de contribuer à l'amélioration du service. & Moyenne \\
+\cline{3-5}
+& & 2.5 & En tant qu'administrateur, je veux modérer les contenus soumis afin de garantir leur pertinence et leur sécurité. & Élevée \\
 \hline
- &  & US1.3 & En tant qu'utilisateur, je veux gérer mon profil et mon QR code afin d'être identifié par les services de tri. & Haute & 4 \\
+
+3 & Gestion des points de collecte et des consignes de tri & 3.1 & En tant que citoyen, je veux consulter les points de collecte sur une carte afin de localiser une solution adaptée à mes déchets. & Élevée \\
+\cline{3-5}
+& & 3.2 & En tant que citoyen, je veux filtrer les points de collecte selon le type de déchet, la localisation et la disponibilité afin de préparer mon dépôt. & Élevée \\
+\cline{3-5}
+& & 3.3 & En tant qu'administrateur, je veux créer, modifier et supprimer les points de collecte afin de maintenir une base d'information fiable. & Élevée \\
+\cline{3-5}
+& & 3.4 & En tant qu'intercommunalité, je veux gérer les consignes locales de tri selon le territoire, la ville et le type de déchet. & Élevée \\
 \hline
- &  & US1.4 & En tant qu'administrateur, je veux gérer les utilisateurs et leurs rôles afin de contrôler les accès. & Très haute & 6 \\
+
+4 & Sensibilisation environnementale & 4.1 & En tant que citoyen, je veux consulter des contenus pédagogiques afin d'améliorer mes pratiques de tri. & Moyenne \\
+\cline{3-5}
+& & 4.2 & En tant qu'éducateur, je veux créer et gérer des vidéos ainsi que des quiz afin de sensibiliser les citoyens. & Élevée \\
+\cline{3-5}
+& & 4.3 & En tant que citoyen, je veux participer à des quiz afin de renforcer mes connaissances sur le tri des déchets. & Moyenne \\
+\cline{3-5}
+& & 4.4 & En tant qu'éducateur, je veux organiser des groupes et des réunions afin de coordonner les activités de sensibilisation. & Moyenne \\
 \hline
-2 & Information citoyenne et communauté & US2.1 & En tant que visiteur, je veux consulter le fil d'actualité afin de découvrir les initiatives écologiques. & Moyenne & 3 \\
+
+5 & Gestion des poubelles intelligentes et des récompenses & 5.1 & En tant que citoyen, je veux scanner le QR code d'une poubelle intelligente afin d'enregistrer mon action de tri. & Élevée \\
+\cline{3-5}
+& & 5.2 & En tant que système, je veux calculer automatiquement les points selon le type de déchet et, lorsque disponible, son poids. & Élevée \\
+\cline{3-5}
+& & 5.3 & En tant que citoyen, je veux consulter mon score, mes badges et mon impact environnemental afin de suivre mon engagement écologique. & Élevée \\
+\cline{3-5}
+& & 5.4 & En tant que collecteur, je veux consulter les données disponibles des poubelles intelligentes afin de mieux planifier les interventions. & Élevée \\
+\cline{3-5}
+& & 5.5 & En tant qu'administrateur, je veux superviser les équipements intelligents associés aux points de collecte afin d'en assurer la traçabilité. & Moyenne \\
 \hline
- &  & US2.2 & En tant que citoyen, je veux publier une action de tri accompagnée d'un média afin de la partager avec la communauté. & Haute & 5 \\
+
+6 & Gestion opérationnelle de la collecte & 6.1 & En tant que collecteur, je veux consulter mes zones et mes missions afin d'organiser mes tournées de collecte. & Élevée \\
+\cline{3-5}
+& & 6.2 & En tant que collecteur, je veux mettre à jour le statut d'une mission et ajouter une note afin de tracer son exécution. & Élevée \\
+\cline{3-5}
+& & 6.3 & En tant que gestionnaire de point, je veux suivre l'état des points dont j'ai la charge afin d'anticiper les besoins de collecte ou de maintenance. & Élevée \\
 \hline
- &  & US2.3 & En tant que citoyen, je veux aimer, commenter et enregistrer les publications afin d'interagir avec la communauté. & Moyenne & 4 \\
+
+7 & Pilotage territorial et coordination & 7.1 & En tant qu'intercommunalité, je veux visualiser les acteurs locaux afin de coordonner les gestionnaires, les collecteurs et les éducateurs. & Élevée \\
+\cline{3-5}
+& & 7.2 & En tant qu'intercommunalité, je veux créer des groupes d'acteurs et leur transmettre des notifications afin de diffuser les consignes territoriales. & Moyenne \\
+\cline{3-5}
+& & 7.3 & En tant qu'intercommunalité, je veux créer des zones et affecter les collecteurs afin de piloter les missions de collecte sur le territoire. & Élevée \\
+\cline{3-5}
+& & 7.4 & En tant qu'acteur autorisé, je veux échanger par messagerie avec les profils pertinents afin de coordonner les actions. & Moyenne \\
 \hline
- &  & US2.4 & En tant qu'administrateur, je veux modérer les contenus afin de garantir leur pertinence et leur sécurité. & Très haute & 7 \\
+
+8 & Notifications, statistiques et tableaux de bord & 8.1 & En tant qu'utilisateur, je veux recevoir des notifications liées à mes interactions, mes missions ou mes activités afin de rester informé. & Élevée \\
+\cline{3-5}
+& & 8.2 & En tant qu'administrateur, je veux consulter les statistiques relatives aux utilisateurs, aux scans, aux points de collecte et aux contenus afin de superviser la plateforme. & Élevée \\
+\cline{3-5}
+& & 8.3 & En tant qu'intercommunalité, je veux consulter les informations de pilotage territorial afin d'améliorer l'organisation de la collecte. & Élevée \\
 \hline
-3 & Points de collecte et consignes & US3.1 & En tant que citoyen, je veux visualiser les points de collecte sur une carte afin de localiser la solution adaptée à mes déchets. & Très haute & 6 \\
-\hline
- &  & US3.2 & En tant qu'administrateur, je veux gérer les points de collecte afin de maintenir une base d'information fiable. & Haute & 5 \\
-\hline
- &  & US3.3 & En tant qu'intercommunalité, je veux gérer les consignes locales de tri afin d'adapter l'information aux règles territoriales. & Haute & 5 \\
-\hline
-4 & Sensibilisation environnementale & US4.1 & En tant qu'éducateur, je veux créer des vidéos et des quiz afin de sensibiliser les citoyens. & Haute & 5 \\
-\hline
- &  & US4.2 & En tant que citoyen, je veux répondre à des quiz afin de renforcer mes connaissances. & Moyenne & 4 \\
-\hline
- &  & US4.3 & En tant qu'éducateur, je veux organiser des groupes et des réunions afin de coordonner les activités de sensibilisation. & Moyenne & 5 \\
-\hline
-5 & Poubelles intelligentes et récompenses & US5.1 & En tant que citoyen, je veux scanner le QR code d'une poubelle intelligente afin d'enregistrer mon action de tri. & Très haute & 6 \\
-\hline
- &  & US5.2 & En tant que système, je veux calculer automatiquement les points selon le type et, lorsque disponible, le poids du déchet. & Très haute & 6 \\
-\hline
- &  & US5.3 & En tant que citoyen, je veux consulter mon score, mes badges et mon impact afin de suivre mon engagement écologique. & Haute & 5 \\
-\hline
- &  & US5.4 & En tant que collecteur, je veux consulter les données disponibles des poubelles afin de mieux planifier les interventions. & Haute & 6 \\
-\hline
-6 & Gestion opérationnelle de la collecte & US6.1 & En tant que collecteur, je veux consulter mes zones et missions afin d'organiser mes tournées. & Très haute & 6 \\
-\hline
- &  & US6.2 & En tant que collecteur, je veux mettre à jour le statut d'une mission et ajouter une note afin de tracer son exécution. & Haute & 4 \\
-\hline
- &  & US6.3 & En tant que gestionnaire de point, je veux suivre l'état des points dont j'ai la charge afin d'anticiper les besoins de collecte ou de maintenance. & Haute & 5 \\
-\hline
-7 & Pilotage territorial et coordination & US7.1 & En tant qu'intercommunalité, je veux visualiser les acteurs locaux afin de coordonner les gestionnaires, collecteurs et éducateurs. & Haute & 5 \\
-\hline
- &  & US7.2 & En tant qu'intercommunalité, je veux créer des groupes et transmettre des notifications afin de diffuser les consignes. & Moyenne & 5 \\
-\hline
- &  & US7.3 & En tant qu'intercommunalité, je veux créer des zones et affecter les collecteurs afin de piloter les missions. & Très haute & 7 \\
-\hline
- &  & US7.4 & En tant qu'acteur autorisé, je veux échanger par messagerie avec les profils pertinents afin de coordonner les actions. & Moyenne & 5 \\
-\hline
-8 & Notifications et tableaux de bord & US8.1 & En tant qu'utilisateur, je veux recevoir des notifications liées à mes interactions, mes missions ou mes activités afin de rester informé. & Haute & 5 \\
-\hline
- &  & US8.2 & En tant qu'administrateur, je veux consulter les statistiques des utilisateurs, scans, points et contenus afin de superviser la plateforme. & Haute & 6 \\
-\hline
-\caption{Product Backlog global du projet EcoRewind}
-\label{tab:product_backlog_ecorewind}
 \end{longtable}
-\end{center}
+\normalsize
 
 \subsection{Répartition des releases}
 \label{subsec:repartition_releases}
 
 Afin de livrer progressivement de la valeur, le projet est réparti en trois releases fonctionnelles.
 
-\begin{center}
-\small
-\begin{tabular}{|p{2.4cm}|p{11.2cm}|}
+\begin{longtable}{|p{2.5cm}|p{11cm}|}
 \hline
+\rowcolor{gray!35}
 \textbf{Release ID} & \textbf{Contenu de la release} \\
 \hline
 Release 1 : Socle citoyen & Authentification, gestion des profils et des rôles, carte des points de collecte, consignes de tri, fil communautaire, interactions et notifications initiales. \\
@@ -224,25 +261,11 @@ Release 2 : Sensibilisation, récompenses et IoT & Contenus éducatifs, quiz, gr
 \hline
 Release 3 : Pilotage territorial et exploitation & Espaces collecteur, gestionnaire de point et intercommunalité, zones, affectations, coordination, messagerie, tableaux de bord, statistiques et stabilisation. \\
 \hline
-\end{tabular}
-\end{center}
+\caption{Répartition des releases du projet EcoRewind}
+\label{tab:repartition_releases}
+\end{longtable}
 
 La poubelle intelligente est intégrée à la deuxième release. Ce choix permet de présenter le prototype comme une composante IoT complète, reliée au parcours citoyen, à la valorisation par les points et au suivi opérationnel de la collecte.
-
-\subsection{Architecture de l'application}
-\label{subsec:architecture_application}
-
-\subsubsection{Architecture logique}
-
-EcoRewind adopte une architecture client--serveur modulaire. La couche de présentation est développée avec \textbf{Flutter} et \textbf{Dart}. Elle fournit les interfaces mobiles et Web, les écrans adaptés aux rôles, l'affichage de la carte, les formulaires et les interactions communautaires.
-
-La couche applicative est assurée par une API REST développée avec \textbf{FastAPI} et \textbf{Python}. Elle contient des routeurs spécialisés pour l'authentification, les utilisateurs, les publications, les notifications, les points de collecte, les quiz, les contenus éducatifs, les équipements QR, la modération, les messages, les zones et l'intercommunalité. Les schémas Pydantic valident les échanges entre le client et le serveur.
-
-La couche de persistance repose sur \textbf{SQLAlchemy} et les migrations \textbf{Alembic}. Elle modélise les utilisateurs, publications, commentaires, notifications, points de collecte, poubelles intelligentes, scans, contenus éducatifs, zones et affectations. Les services \textbf{Firebase} complètent l'architecture pour les données temps réel, les notifications et l'authentification configurée. Le module de modération exploite des règles métier et des modèles d'intelligence artificielle afin d'analyser les textes et les images avant la décision humaine finale.
-
-\subsubsection{Architecture physique}
-
-L'architecture physique comprend des terminaux mobiles ou navigateurs Web exécutant Flutter, un serveur FastAPI exposant l'API REST, une base de données relationnelle gérée via SQLAlchemy et Alembic, les services Firebase, les services de traitement des médias et de modération, ainsi qu'un prototype Arduino intégré à la poubelle intelligente. Les points de collecte et les équipements sont géolocalisés et exploités par les acteurs de terrain et les services territoriaux.
 
 \subsection{Patrons de conception utilisés}
 \label{subsec:patrons_conception}
@@ -287,47 +310,50 @@ La cartographie utilise \textbf{OpenStreetMap} via \texttt{flutter\_map}. Le pip
 
 La planification suivante constitue une feuille de route indicative. Elle doit être ajustée selon la capacité réelle de l'équipe, les retours des utilisateurs et les contraintes liées au prototype matériel.
 
-\begin{center}
 \scriptsize
-\begin{longtable}{|p{2.8cm}|p{1.8cm}|p{8.2cm}|p{1.7cm}|}
+\begin{longtable}{|p{2.7cm}|p{1.7cm}|p{8.1cm}|p{1.7cm}|}
 \hline
-\textbf{Phase / Release} & \textbf{Sprint} & \textbf{Fonctionnalités du sprint} & \textbf{Durée indicative} \\
+\rowcolor{gray!35}
+\textbf{Phase / Release} & \textbf{Sprint} & \textbf{Fonctionnalités du sprint} & \textbf{Estimation} \\
 \hline
 \endfirsthead
+\multicolumn{4}{c}{\tablename\ \thetable{} -- \textit{Suite de la page précédente}} \\
 \hline
-\textbf{Phase / Release} & \textbf{Sprint} & \textbf{Fonctionnalités du sprint} & \textbf{Durée indicative} \\
+\rowcolor{gray!35}
+\textbf{Phase / Release} & \textbf{Sprint} & \textbf{Fonctionnalités du sprint} & \textbf{Estimation} \\
 \hline
 \endhead
 \hline
+\multicolumn{4}{r}{\textit{Suite à la page suivante}} \\
 \endfoot
 \hline
 \endlastfoot
-Préparation & Sprint 0 & Analyse des besoins, identification des acteurs, rédaction du backlog, préparation des environnements Flutter, FastAPI, base de données, Firebase et prototype Arduino. & 2 semaines \\
+Préparation & Sprint 0 & \begin{itemize}\item Analyse des besoins et identification des acteurs.\item Élaboration du backlog produit.\item Préparation des environnements Flutter, FastAPI, base de données, Firebase et prototype Arduino.\end{itemize} & 2 semaines \\
 \hline
-Release 1 & Sprint 1 & Mise en place de l'authentification, gestion des profils, gestion des rôles, sécurité des accès et structure de navigation Flutter. & 3 semaines \\
+Release 1 : Socle citoyen & Sprint 1 & \begin{itemize}\item Authentification, profils et gestion des rôles.\item Sécurité des accès et structure de navigation Flutter.\end{itemize} & 3 semaines \\
 \hline
-Release 1 & Sprint 2 & Développement de la carte des points de collecte, recherche, filtrage, consignes de tri et gestion administrative initiale des points. & 3 semaines \\
+Release 1 : Socle citoyen & Sprint 2 & \begin{itemize}\item Carte des points de collecte.\item Recherche, filtrage, consignes de tri et gestion initiale des points.\end{itemize} & 3 semaines \\
 \hline
-Release 1 & Sprint 3 & Réalisation du fil communautaire, téléversement de médias, interactions, témoignages et notifications. & 3 semaines \\
+Release 1 : Socle citoyen & Sprint 3 & \begin{itemize}\item Fil communautaire, téléversement de médias et interactions.\item Témoignages et notifications.\end{itemize} & 3 semaines \\
 \hline
-Release 2 & Sprint 4 & Développement des contenus éducatifs, vidéos, quiz, groupes citoyens et réunions. & 3 semaines \\
+Release 2 : Sensibilisation, récompenses et IoT & Sprint 4 & \begin{itemize}\item Contenus éducatifs, vidéos et quiz.\item Groupes citoyens et réunions.\end{itemize} & 3 semaines \\
 \hline
-Release 2 & Sprint 5 & Conception et intégration de la poubelle intelligente : QR code, lecture des données disponibles, communication avec Firebase ou l'API, scans et calcul des points. & 3 semaines \\
+Release 2 : Sensibilisation, récompenses et IoT & Sprint 5 & \begin{itemize}\item Conception et intégration de la poubelle intelligente.\item QR code, lecture des données, communication avec Firebase ou l'API, scans et calcul des points.\end{itemize} & 3 semaines \\
 \hline
-Release 2 & Sprint 6 & Mise en place des scores, badges, impact environnemental, modération automatique multicouche et validation humaine. & 3 semaines \\
+Release 2 : Sensibilisation, récompenses et IoT & Sprint 6 & \begin{itemize}\item Scores, badges et impact environnemental.\item Modération automatique multicouche et validation humaine.\end{itemize} & 3 semaines \\
 \hline
-Release 3 & Sprint 7 & Développement des espaces collecteur et gestionnaire de point : missions, suivi d'état, alertes et notes d'intervention. & 3 semaines \\
+Release 3 : Pilotage territorial et exploitation & Sprint 7 & \begin{itemize}\item Espaces collecteur et gestionnaire de point.\item Missions, suivi d'état, alertes et notes d'intervention.\end{itemize} & 3 semaines \\
 \hline
-Release 3 & Sprint 8 & Développement de l'espace intercommunalité : consignes locales, groupes, zones, affectations, coordination et messagerie. & 3 semaines \\
+Release 3 : Pilotage territorial et exploitation & Sprint 8 & \begin{itemize}\item Espace intercommunalité : consignes locales, groupes et zones.\item Affectations, coordination et messagerie.\end{itemize} & 3 semaines \\
 \hline
-Release 3 & Sprint 9 & Tableaux de bord, statistiques, tests fonctionnels, tests de sécurité, optimisation, corrections et préparation du déploiement. & 3 semaines \\
+Release 3 : Pilotage territorial et exploitation & Sprint 9 & \begin{itemize}\item Tableaux de bord et statistiques.\item Tests fonctionnels, sécurité, optimisation et préparation du déploiement.\end{itemize} & 3 semaines \\
 \hline
-Clôture & -- & Recette finale, démonstration, documentation, préparation de la livraison et rédaction du rapport de PFE. & 2 semaines \\
+Clôture & -- & \begin{itemize}\item Recette finale, démonstration et documentation.\item Préparation de la livraison et rédaction du rapport de PFE.\end{itemize} & 2 semaines \\
 \hline
 \caption{Planification indicative des sprints du projet EcoRewind}
 \label{tab:planification_sprints_ecorewind}
 \end{longtable}
-\end{center}
+\normalsize
 
 \section{Conclusion}
 \label{sec:conclusion}
