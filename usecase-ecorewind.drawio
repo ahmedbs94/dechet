@@ -1,0 +1,60 @@
+<mxfile host="app.diagrams.net" modified="2026-07-19T10:35:00.000Z" agent="GitHub Copilot" version="24.7.17" type="device">
+  <diagram id="ecorewind-usecase-global" name="Cas d'utilisation global">
+    <mxGraphModel dx="1800" dy="1400" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1900" pageHeight="1500" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="system" value="&lt;b&gt;Système EcoRewind&lt;/b&gt;" style="rounded=0;whiteSpace=wrap;html=1;strokeWidth=2;strokeColor=#1b5e20;fillColor=none;fontSize=16;verticalAlign=top;align=center;fontStyle=1;spacingTop=10;" vertex="1" parent="1"><mxGeometry x="250" y="40" width="1420" height="1320" as="geometry"/></mxCell>
+        <mxCell id="visitor" value="Visiteur" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;fontSize=12;" vertex="1" parent="1"><mxGeometry x="80" y="110" width="55" height="90" as="geometry"/></mxCell>
+        <mxCell id="citizen" value="Citoyen" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;fontSize=12;" vertex="1" parent="1"><mxGeometry x="80" y="315" width="55" height="90" as="geometry"/></mxCell>
+        <mxCell id="educator" value="Éducateur" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;fontSize=12;" vertex="1" parent="1"><mxGeometry x="80" y="590" width="55" height="90" as="geometry"/></mxCell>
+        <mxCell id="collector" value="Collecteur" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;fontSize=12;" vertex="1" parent="1"><mxGeometry x="80" y="805" width="55" height="90" as="geometry"/></mxCell>
+        <mxCell id="pointManager" value="Gestionnaire&lt;br&gt;de point" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;fontSize=12;" vertex="1" parent="1"><mxGeometry x="65" y="1000" width="90" height="90" as="geometry"/></mxCell>
+        <mxCell id="interco" value="Intercommunalité" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;fontSize=12;" vertex="1" parent="1"><mxGeometry x="65" y="1170" width="100" height="90" as="geometry"/></mxCell>
+        <mxCell id="admin" value="Administrateur" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;fontSize=12;" vertex="1" parent="1"><mxGeometry x="1750" y="640" width="70" height="90" as="geometry"/></mxCell>
+        <mxCell id="smartBin" value="Poubelle&lt;br&gt;intelligente" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;fontSize=12;" vertex="1" parent="1"><mxGeometry x="1735" y="1080" width="100" height="90" as="geometry"/></mxCell>
+        <mxCell id="ucPublic" value="Consulter les informations publiques&lt;br&gt;(fil, carte, sensibilisation)" style="ellipse;whiteSpace=wrap;html=1;fillColor=#e8f5e9;strokeColor=#2e7d32;fontSize=12;" vertex="1" parent="1"><mxGeometry x="340" y="95" width="320" height="60" as="geometry"/></mxCell>
+        <mxCell id="ucAuth" value="S'inscrire / S'authentifier" style="ellipse;whiteSpace=wrap;html=1;fillColor=#e3f2fd;strokeColor=#1565c0;fontSize=12;" vertex="1" parent="1"><mxGeometry x="350" y="185" width="280" height="55" as="geometry"/></mxCell>
+        <mxCell id="ucProfile" value="Gérer son profil et son QR code" style="ellipse;whiteSpace=wrap;html=1;fillColor=#e8f5e9;strokeColor=#2e7d32;fontSize=12;" vertex="1" parent="1"><mxGeometry x="340" y="285" width="320" height="55" as="geometry"/></mxCell>
+        <mxCell id="ucCommunity" value="Publier et interagir avec&lt;br&gt;la communauté" style="ellipse;whiteSpace=wrap;html=1;fillColor=#e8f5e9;strokeColor=#2e7d32;fontSize=12;" vertex="1" parent="1"><mxGeometry x="340" y="370" width="320" height="60" as="geometry"/></mxCell>
+        <mxCell id="ucMap" value="Consulter consignes et&lt;br&gt;points de collecte" style="ellipse;whiteSpace=wrap;html=1;fillColor=#e8f5e9;strokeColor=#2e7d32;fontSize=12;" vertex="1" parent="1"><mxGeometry x="340" y="465" width="320" height="60" as="geometry"/></mxCell>
+        <mxCell id="ucScan" value="Scanner une poubelle et&lt;br&gt;consulter score / récompenses" style="ellipse;whiteSpace=wrap;html=1;fillColor=#e8f5e9;strokeColor=#2e7d32;fontSize=12;" vertex="1" parent="1"><mxGeometry x="340" y="550" width="340" height="60" as="geometry"/></mxCell>
+        <mxCell id="ucEducation" value="Gérer contenus éducatifs,&lt;br&gt;quiz, groupes et réunions" style="ellipse;whiteSpace=wrap;html=1;fillColor=#fff3e0;strokeColor=#ef6c00;fontSize=12;" vertex="1" parent="1"><mxGeometry x="760" y="570" width="330" height="60" as="geometry"/></mxCell>
+        <mxCell id="ucMissions" value="Consulter et mettre à jour&lt;br&gt;les missions de collecte" style="ellipse;whiteSpace=wrap;html=1;fillColor=#fff3e0;strokeColor=#ef6c00;fontSize=12;" vertex="1" parent="1"><mxGeometry x="760" y="765" width="330" height="60" as="geometry"/></mxCell>
+        <mxCell id="ucPoints" value="Suivre l'état des points&lt;br&gt;et équipements de collecte" style="ellipse;whiteSpace=wrap;html=1;fillColor=#fff3e0;strokeColor=#ef6c00;fontSize=12;" vertex="1" parent="1"><mxGeometry x="760" y="855" width="330" height="60" as="geometry"/></mxCell>
+        <mxCell id="ucInstructions" value="Gérer les consignes locales de tri" style="ellipse;whiteSpace=wrap;html=1;fillColor=#f3e5f5;strokeColor=#6a1b9a;fontSize=12;" vertex="1" parent="1"><mxGeometry x="760" y="1000" width="330" height="55" as="geometry"/></mxCell>
+        <mxCell id="ucZones" value="Créer zones et affecter&lt;br&gt;les collecteurs" style="ellipse;whiteSpace=wrap;html=1;fillColor=#f3e5f5;strokeColor=#6a1b9a;fontSize=12;" vertex="1" parent="1"><mxGeometry x="760" y="1090" width="330" height="60" as="geometry"/></mxCell>
+        <mxCell id="ucCoordination" value="Coordonner les acteurs locaux&lt;br&gt;et envoyer des notifications" style="ellipse;whiteSpace=wrap;html=1;fillColor=#f3e5f5;strokeColor=#6a1b9a;fontSize=12;" vertex="1" parent="1"><mxGeometry x="760" y="1180" width="330" height="60" as="geometry"/></mxCell>
+        <mxCell id="ucMessaging" value="Échanger par messagerie" style="ellipse;whiteSpace=wrap;html=1;fillColor=#fff3e0;strokeColor=#ef6c00;fontSize=12;" vertex="1" parent="1"><mxGeometry x="1190" y="930" width="260" height="55" as="geometry"/></mxCell>
+        <mxCell id="ucUsers" value="Gérer les utilisateurs et les rôles" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ffebee;strokeColor=#c62828;fontSize=12;" vertex="1" parent="1"><mxGeometry x="1190" y="575" width="290" height="55" as="geometry"/></mxCell>
+        <mxCell id="ucAdminPoints" value="Gérer les points de collecte" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ffebee;strokeColor=#c62828;fontSize=12;" vertex="1" parent="1"><mxGeometry x="1190" y="660" width="290" height="55" as="geometry"/></mxCell>
+        <mxCell id="ucModeration" value="Modérer publications, témoignages&lt;br&gt;et propositions de points" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ffebee;strokeColor=#c62828;fontSize=12;" vertex="1" parent="1"><mxGeometry x="1175" y="745" width="320" height="60" as="geometry"/></mxCell>
+        <mxCell id="ucDashboard" value="Consulter tableaux de bord&lt;br&gt;et statistiques" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ffebee;strokeColor=#c62828;fontSize=12;" vertex="1" parent="1"><mxGeometry x="1190" y="1030" width="290" height="60" as="geometry"/></mxCell>
+        <mxCell id="ucBinData" value="Transmettre données de&lt;br&gt;scan / poids / remplissage" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ede7f6;strokeColor=#4527a0;fontSize=12;" vertex="1" parent="1"><mxGeometry x="1175" y="1135" width="320" height="60" as="geometry"/></mxCell>
+        <mxCell id="e1" style="endArrow=none;html=1;" edge="1" parent="1" source="visitor" target="ucPublic"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e2" style="endArrow=none;html=1;" edge="1" parent="1" source="visitor" target="ucAuth"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e3" style="endArrow=none;html=1;" edge="1" parent="1" source="citizen" target="ucProfile"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e4" style="endArrow=none;html=1;" edge="1" parent="1" source="citizen" target="ucCommunity"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e5" style="endArrow=none;html=1;" edge="1" parent="1" source="citizen" target="ucMap"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e6" style="endArrow=none;html=1;" edge="1" parent="1" source="citizen" target="ucScan"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e7" style="endArrow=none;html=1;" edge="1" parent="1" source="educator" target="ucEducation"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e8" style="endArrow=none;html=1;" edge="1" parent="1" source="educator" target="ucMessaging"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e9" style="endArrow=none;html=1;" edge="1" parent="1" source="collector" target="ucMissions"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e10" style="endArrow=none;html=1;" edge="1" parent="1" source="collector" target="ucMessaging"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e11" style="endArrow=none;html=1;" edge="1" parent="1" source="pointManager" target="ucPoints"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e12" style="endArrow=none;html=1;" edge="1" parent="1" source="pointManager" target="ucMessaging"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e13" style="endArrow=none;html=1;" edge="1" parent="1" source="interco" target="ucInstructions"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e14" style="endArrow=none;html=1;" edge="1" parent="1" source="interco" target="ucZones"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e15" style="endArrow=none;html=1;" edge="1" parent="1" source="interco" target="ucCoordination"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e16" style="endArrow=none;html=1;" edge="1" parent="1" source="interco" target="ucMessaging"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e17" style="endArrow=none;html=1;" edge="1" parent="1" source="admin" target="ucUsers"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e18" style="endArrow=none;html=1;" edge="1" parent="1" source="admin" target="ucAdminPoints"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e19" style="endArrow=none;html=1;" edge="1" parent="1" source="admin" target="ucModeration"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e20" style="endArrow=none;html=1;" edge="1" parent="1" source="admin" target="ucDashboard"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e21" style="endArrow=none;html=1;" edge="1" parent="1" source="smartBin" target="ucBinData"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e22" value="&amp;lt;&amp;lt;include&amp;gt;&amp;gt;" style="dashed=1;endArrow=open;html=1;" edge="1" parent="1" source="ucScan" target="ucBinData"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="note" value="&lt;b&gt;Note :&lt;/b&gt; les fonctionnalités non publiques nécessitent une authentification. Les autorisations sont contrôlées en fonction du rôle attribué à l'utilisateur." style="shape=note;whiteSpace=wrap;html=1;fillColor=#fff9c4;strokeColor=#f9a825;fontSize=12;" vertex="1" parent="1"><mxGeometry x="1200" y="155" width="330" height="100" as="geometry"/></mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
