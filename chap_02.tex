@@ -1,0 +1,230 @@
+\chapter{Analyse et spécification des besoins}
+\label{chap:analyse-besoins}
+
+\section*{Introduction}
+EcoRewind est une application mobile et web dédiée à la gestion citoyenne du tri des déchets en Tunisie. Elle vise à rapprocher les citoyens des points de collecte, à valoriser les pratiques de tri et à faciliter le suivi des équipements de collecte. Le projet associe une interface Flutter, une API REST développée avec FastAPI et des services de données, de notification et de modération.
+
+Ce chapitre présente les besoins identifiés à partir des fonctionnalités implémentées dans le dépôt, les acteurs du système, l'organisation fonctionnelle du projet ainsi qu'une planification indicative de son évolution. Il constitue une base de référence pour la conception et l'implémentation de la plateforme.
+
+\section{Spécification des besoins}
+\label{sec:specification-besoins}
+
+\subsection{Identification des acteurs}
+
+Le système met en relation les acteurs suivants :
+\begin{itemize}
+    \item \textbf{Visiteur :} utilisateur non authentifié qui découvre la plateforme et ses informations publiques.
+    \item \textbf{Citoyen :} utilisateur inscrit qui consulte les points de collecte, publie des actions liées au tri, interagit avec la communauté et suit son impact personnel.
+    \item \textbf{Administrateur :} utilisateur chargé de gérer les points de collecte, les utilisateurs et la modération des contenus soumis par la communauté.
+    \item \textbf{Éducateur :} rôle prévu par le modèle de rôles de l'application pour la gestion de contenus éducatifs.
+    \item \textbf{Collecteur :} rôle prévu pour les opérations liées à la collecte et au suivi des équipements de collecte.
+    \item \textbf{Poubelle intelligente :} équipement externe qui peut transmettre des informations de remplissage ou être associé à un scan et à des opérations de collecte.
+\end{itemize}
+
+Les rôles \texttt{user}, \texttt{admin}, \texttt{educator} et \texttt{collector} sont définis dans le périmètre applicatif. Les fonctionnalités associées aux rôles d'éducateur et de collecteur doivent être activées selon les autorisations configurées côté serveur.
+
+\subsection{Spécification des besoins fonctionnels par acteur}
+
+\subsubsection{Visiteur}
+Le visiteur peut :
+\begin{itemize}
+    \item consulter la présentation de la plateforme ;
+    \item s'inscrire pour créer un compte citoyen ;
+    \item s'authentifier afin d'accéder aux services personnalisés.
+\end{itemize}
+
+\subsubsection{Citoyen}
+Le citoyen authentifié peut :
+\begin{itemize}
+    \item gérer les informations de son profil ;
+    \item consulter un fil d'actualité consacré aux initiatives environnementales ;
+    \item publier un contenu textuel ou multimédia relatif au tri et interagir avec les publications ;
+    \item consulter une carte des points de collecte et rechercher un point adapté à un type de déchet ;
+    \item consulter ses notifications, notamment celles liées aux interactions et à la modération ;
+    \item consulter les témoignages validés par la modération ;
+    \item consulter les indicateurs d'impact personnel, les récompenses et les badges ;
+    \item utiliser le code QR associé à son compte ou scanner un code QR lorsque cette fonctionnalité est disponible sur le terminal.
+\end{itemize}
+
+\subsubsection{Administrateur}
+L'administrateur peut :
+\begin{itemize}
+    \item consulter le tableau de bord et les statistiques globales de la plateforme ;
+    \item créer, modifier et supprimer les points de collecte ;
+    \item consulter la file de modération des publications en attente ;
+    \item approuver ou rejeter une publication après examen humain ;
+    \item approuver ou rejeter les témoignages soumis ;
+    \item gérer les comptes et les rôles des utilisateurs, conformément aux autorisations exposées par l'API.
+\end{itemize}
+
+\subsubsection{Éducateur et collecteur}
+Les rôles d'éducateur et de collecteur appartiennent au modèle de sécurité de la plateforme. Selon les droits accordés, ils peuvent respectivement contribuer aux contenus de sensibilisation et intervenir dans le suivi opérationnel des collectes et des équipements intelligents. Leur périmètre détaillé doit être aligné sur les routes et les écrans effectivement activés lors du déploiement.
+
+\subsection{Spécification des besoins non fonctionnels}
+
+Les exigences non fonctionnelles principales sont les suivantes :
+\begin{itemize}
+    \item \textbf{Ergonomie et accessibilité :} les interfaces Flutter doivent offrir une navigation claire sur mobile et sur le Web, avec une présentation cohérente des cartes, formulaires, listes et indicateurs.
+    \item \textbf{Performance :} le fil d'actualité est paginé, les images téléversées sont compressées côté serveur et les réponses HTTP peuvent exploiter des mécanismes de cache afin de limiter les temps de chargement.
+    \item \textbf{Sécurité :} l'accès aux ressources protégées repose sur des jetons JWT d'accès et de rafraîchissement. Les mots de passe sont hachés et les secrets sont isolés dans les variables d'environnement du backend.
+    \item \textbf{Contrôle d'accès :} les capacités d'administration et les opérations métier sensibles sont restreintes par rôle.
+    \item \textbf{Fiabilité de la modération :} la décision finale de rejet d'un contenu est humaine ; les résultats de la modération automatique orientent les contenus vers une publication directe ou une file de validation.
+    \item \textbf{Maintenabilité :} la séparation entre l'interface Flutter, l'API FastAPI, les modèles, les services et les migrations favorise l'évolution indépendante des composants.
+    \item \textbf{Évolutivité :} l'API REST, les schémas de validation et les migrations Alembic permettent de faire évoluer les données et les fonctionnalités. La base de données de développement peut être remplacée par une solution de production adaptée.
+\end{itemize}
+
+\section{Diagramme de cas d'utilisation global}
+\label{sec:cas-utilisation-global}
+
+Le diagramme de cas d'utilisation global présente les interactions entre les visiteurs, les citoyens, les administrateurs, les rôles métier et la poubelle intelligente. Il met en évidence les services principaux : authentification, consultation des points de collecte, publication communautaire, notifications, suivi d'impact, modération et gestion administrative.
+
+Le diagramme source éditable est fourni dans le fichier \texttt{usecase-ecorewind.drawio}. Afin de conserver la compilation du rapport indépendamment de l'export des diagrammes, son insertion graphique est volontairement laissée à la version finale du document après export au format PDF ou PNG.
+
+\section{Diagramme de classes global}
+\label{sec:classes-global}
+
+Le diagramme de classes global décrit les entités qui structurent les données de la plateforme : utilisateurs et rôles, publications et commentaires, notifications, points de collecte, équipements intelligents, opérations de scan et données de score. Les relations représentent notamment l'auteur d'une publication, les interactions communautaires, l'association d'une opération de scan à un utilisateur et à une poubelle, ainsi que l'agrégation des scores pour le classement.
+
+Le fichier \texttt{diagramme\_classe\_global.drawio} est la source éditable du diagramme. Les attributs et associations représentés doivent être synchronisés avec les modèles de persistance et les schémas de l'API lors de toute évolution du domaine.
+
+\section{Structure et découpage de projet}
+\label{sec:structure-projet}
+
+Le projet est organisé en composants distincts afin de séparer l'interface utilisateur, les services métier et les intégrations matérielles :
+\begin{itemize}
+    \item \texttt{lib/} contient l'application Flutter, organisée autour des fonctionnalités, écrans, modèles, services, widgets, thèmes et layouts ;
+    \item \texttt{backend/} contient l'API FastAPI, les routeurs, services, schémas, modèles de données, migrations Alembic et le module de modération par intelligence artificielle ;
+    \item \texttt{arduino/} regroupe les éléments liés au prototype matériel ;
+    \item \texttt{assets/} contient les ressources visuelles et les animations utilisées par l'interface ;
+    \item \texttt{test/} et \texttt{backend/tests/} accueillent les tests automatisés lorsqu'ils sont disponibles.
+\end{itemize}
+
+Cette organisation permet d'isoler les préoccupations de présentation, de logique métier, de persistance et d'intégration avec les équipements de collecte.
+
+\subsection{Product Backlog}
+
+Le tableau suivant présente un backlog synthétique fondé sur les fonctionnalités identifiées dans l'application. Les priorités indiquent l'ordre recommandé de réalisation ou de consolidation.
+
+\begin{center}
+\small
+\begin{tabular}{|p{0.8cm}|p{3.8cm}|p{7.2cm}|p{1.6cm}|}
+\hline
+\textbf{ID} & \textbf{Fonctionnalité} & \textbf{User story} & \textbf{Priorité} \\
+\hline
+US1 & Accès sécurisé & En tant que visiteur, je veux m'inscrire et me connecter afin d'accéder à mon espace citoyen. & Haute \\
+\hline
+US2 & Profil et QR code & En tant que citoyen, je veux gérer mon profil et disposer d'un identifiant QR afin d'être reconnu par les services de la plateforme. & Haute \\
+\hline
+US3 & Carte des points & En tant que citoyen, je veux consulter les points de collecte sur une carte afin de déposer chaque déchet au bon endroit. & Haute \\
+\hline
+US4 & Fil communautaire & En tant que citoyen, je veux publier et consulter des actions de tri afin de partager les initiatives écologiques. & Haute \\
+\hline
+US5 & Modération & En tant qu'administrateur, je veux examiner les contenus signalés par la modération automatique afin de garantir la qualité du fil. & Haute \\
+\hline
+US6 & Notifications & En tant que citoyen, je veux recevoir des notifications relatives à mes interactions et à mes publications afin de suivre mon activité. & Moyenne \\
+\hline
+US7 & Impact et récompenses & En tant que citoyen, je veux consulter mes points, badges et indicateurs d'impact afin de mesurer et renforcer mon engagement. & Moyenne \\
+\hline
+US8 & Administration des points & En tant qu'administrateur, je veux gérer les points de collecte afin de maintenir des informations fiables. & Haute \\
+\hline
+US9 & Équipements intelligents & En tant qu'opérateur autorisé, je veux suivre les données disponibles des poubelles intelligentes afin de faciliter les opérations de collecte. & Moyenne \\
+\hline
+US10 & Analyse de plateforme & En tant qu'administrateur, je veux consulter les statistiques globales afin d'évaluer l'utilisation de la plateforme. & Moyenne \\
+\hline
+\end{tabular}
+\end{center}
+
+\section{Planification des sprints}
+\label{sec:planification-sprints}
+
+La planification ci-dessous est une proposition de découpage fondée sur le backlog et ne remplace pas une planification d'équipe validée. Chaque sprint doit se conclure par une démonstration des fonctionnalités terminées et une révision des priorités.
+
+\begin{center}
+\small
+\begin{tabular}{|p{2.2cm}|p{5cm}|p{6.2cm}|}
+\hline
+\textbf{Phase} & \textbf{Objectif} & \textbf{Fonctionnalités principales} \\
+\hline
+Sprint 0 & Cadrage et préparation & Analyse des besoins, configuration Flutter et FastAPI, définition des modèles, préparation des environnements et des migrations. \\
+\hline
+Sprint 1 & Socle d'accès & Inscription, authentification JWT, gestion du profil et gestion initiale des rôles. \\
+\hline
+Sprint 2 & Services citoyens & Carte des points de collecte, consultation des informations environnementales et expérience de navigation. \\
+\hline
+Sprint 3 & Communauté & Fil d'actualité, téléversement de médias, interactions, notifications et témoignages. \\
+\hline
+Sprint 4 & Administration et modération & File de validation humaine, gestion des contenus et administration des points de collecte. \\
+\hline
+Sprint 5 & Impact et équipements & Scores, badges, suivi des données des poubelles intelligentes et analyse des statistiques. \\
+\hline
+Sprint 6 & Qualité et livraison & Tests, corrections, optimisation, vérification de la sécurité et préparation du déploiement. \\
+\hline
+\end{tabular}
+\end{center}
+
+\section{Architecture de l'application}
+\label{sec:architecture-application}
+
+\subsection{Architecture logique}
+
+L'architecture repose sur une séparation client--serveur. Le client Flutter fournit les interfaces mobile et web, gère la navigation, les formulaires, l'affichage de la carte et les interactions avec les services distants. Il communique avec une API REST développée avec FastAPI.
+
+Le backend assure l'authentification, la validation des requêtes, l'application des règles d'accès, la gestion des publications, des points de collecte, des notifications et des statistiques. Les données sont structurées par des modèles et des schémas de validation ; les évolutions du schéma sont gérées par Alembic. Le module de modération analyse les textes et les images grâce à plusieurs modèles afin d'orienter les contenus vers une publication immédiate ou une validation humaine.
+
+Les services Firebase intégrés au client prennent en charge des usages temps réel, les notifications push et les scénarios liés aux codes QR. Le prototype Arduino représente la couche d'acquisition matérielle susceptible de fournir des données aux services de collecte.
+
+\subsection{Architecture physique}
+
+L'architecture physique comporte les éléments suivants :
+\begin{itemize}
+    \item un terminal mobile ou un navigateur exécutant l'application Flutter ;
+    \item un serveur applicatif FastAPI exposant l'API REST ;
+    \item une base de données relationnelle accessible au backend, avec SQLite utilisée pour le développement selon la configuration documentée ;
+    \item les services Firebase pour les fonctionnalités configurées de temps réel, d'authentification et de notifications ;
+    \item un prototype de poubelle intelligente ou un dispositif Arduino pouvant alimenter les données opérationnelles ;
+    \item des services de stockage et de traitement de médias utilisés par le backend pour les images publiées et leur modération.
+\end{itemize}
+
+\section{Patrons de conception utilisés}
+\label{sec:patrons-conception}
+
+Les choix d'organisation observables dans le projet correspondent aux principes suivants :
+\begin{itemize}
+    \item \textbf{Architecture en couches :} l'interface Flutter, les routeurs FastAPI, les services, les schémas et la persistance sont séparés afin de limiter le couplage ;
+    \item \textbf{Repository et accès aux données :} le backend dispose d'un espace dédié aux repositories, ce qui permet d'isoler l'accès aux données de la logique exposée par les routes ;
+    \item \textbf{DTO et validation :} les schémas de l'API encadrent les données échangées entre le client et le serveur ;
+    \item \textbf{Modèle--vue--service côté client :} les écrans, widgets, modèles et services Flutter sont organisés pour séparer la présentation, les données et les appels réseau.
+\end{itemize}
+
+\section{Maquettes du projet}
+\label{sec:maquettes-projet}
+
+Les interfaces de l'application sont conçues autour des parcours de consultation de la carte, du fil communautaire, du profil, des notifications et de l'administration. Les ressources graphiques versionnées dans \texttt{assets/images/} et \texttt{assets/lottie/} sont utilisées par l'interface Flutter. Les captures et exports de maquettes peuvent être ajoutés au rapport final lorsqu'ils sont disponibles, sans référencer de fichier absent du dépôt.
+
+\section{Difficultés rencontrées}
+\label{sec:difficultes}
+
+Le projet réunit plusieurs domaines techniques : développement multiplateforme, API sécurisée, cartographie, médias, notifications, modération par intelligence artificielle et intégration éventuelle d'un prototype matériel. Les principaux points d'attention sont la cohérence des rôles entre le client et le serveur, la protection des secrets, la gestion des médias, la fiabilité de la modération et la synchronisation des données issues des équipements. Ces aspects nécessitent des tests fonctionnels et de sécurité à chaque évolution.
+
+\section{Environnement de travail}
+\label{sec:environnement-travail}
+
+\subsection{Environnement logiciel}
+
+L'environnement logiciel du projet comprend :
+\begin{itemize}
+    \item \textbf{Flutter et Dart} pour l'application cliente mobile et web ;
+    \item \textbf{Python et FastAPI} pour l'API REST ;
+    \item \textbf{SQLAlchemy} et \textbf{Alembic} pour la persistance et les migrations ;
+    \item \textbf{SQLite} pour la configuration de développement documentée ;
+    \item \textbf{Firebase} pour les services configurés de base de données temps réel, authentification et notifications ;
+    \item \textbf{OpenStreetMap} via \texttt{flutter\_map} pour l'affichage cartographique ;
+    \item \textbf{PyTorch}, un modèle Text CNN, ResNet18 et NudeNet pour le pipeline de modération ;
+    \item \textbf{Arduino} pour les éléments du prototype matériel.
+\end{itemize}
+
+\section*{Conclusion}
+
+Ce chapitre a présenté les besoins de la plateforme EcoRewind, les acteurs qui interagissent avec elle et les fonctionnalités essentielles permettant de promouvoir le tri des déchets. La séparation entre l'application Flutter, l'API FastAPI, les services de données, la modération et les équipements connectés fournit une base évolutive pour la suite du développement.
+
+Le backlog et la planification proposés permettent d'ordonner les travaux autour du socle de sécurité, des services citoyens, de la modération et du suivi des équipements. Le chapitre suivant pourra détailler la conception et la réalisation des fonctionnalités prioritaires.
