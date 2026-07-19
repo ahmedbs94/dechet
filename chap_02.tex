@@ -1,7 +1,8 @@
 \chapter{Analyse et spécification des besoins}
 \label{chap:analyse_specification_besoins}
 
-\section*{Introduction}
+\section{Introduction}
+\label{sec:introduction}
 
 Dans ce chapitre, nous allons commencer à élaborer la première phase de la méthodologie Scrum, appelée également \og planification et architecture \fg{} ou \og sprint zéro \fg{}. L'objectif de ce chapitre est d'établir une vision globale de notre produit, de dégager les besoins et les fonctionnalités, d'identifier les acteurs qui vont interagir avec notre système, d'élaborer la planification des releases, d'établir le backlog de produit et, finalement, de préparer la planification initiale des sprints et le planning de réalisation du projet.
 
@@ -15,56 +16,35 @@ La spécification des besoins permet de déterminer les services attendus du sys
 \subsection{Identification des acteurs}
 \label{subsec:identification_acteurs}
 
-EcoRewind met en relation des utilisateurs ayant des responsabilités complémentaires. Les acteurs retenus sont les suivants :
-
+EcoRewind met en relation des utilisateurs ayant des responsabilités complémentaires :
 \begin{itemize}
     \item \textbf{Visiteur :} personne non authentifiée qui accède aux informations publiques de la plateforme, notamment le fil d'actualité, les contenus de sensibilisation et la carte des points de collecte.
-
-    \item \textbf{Citoyen :} utilisateur inscrit qui adopte une démarche de tri responsable. Il consulte les consignes locales, localise les points de collecte, partage ses actions, participe aux activités éducatives et cumule des récompenses grâce aux scans associés aux équipements intelligents.
-
+    \item \textbf{Citoyen :} utilisateur inscrit qui consulte les consignes locales, localise les points de collecte, partage ses actions, participe aux activités éducatives et cumule des récompenses grâce aux scans associés aux équipements intelligents.
     \item \textbf{Éducateur :} acteur chargé de la sensibilisation environnementale. Il crée des contenus pédagogiques, des vidéos et des quiz, anime des groupes citoyens et favorise la diffusion des bonnes pratiques de tri.
-
-    \item \textbf{Collecteur :} acteur opérationnel chargé des activités de collecte. Il consulte les missions qui lui sont affectées, suit l'état des zones et des équipements, met à jour l'avancement des interventions et communique avec les responsables concernés.
-
-    \item \textbf{Gestionnaire de point :} acteur responsable du suivi local d'un ou de plusieurs points de collecte. Il surveille leur disponibilité, leur saturation ou leur état de maintenance, et participe à la remontée des informations de terrain.
-
+    \item \textbf{Collecteur :} acteur opérationnel chargé des activités de collecte. Il consulte les missions qui lui sont affectées, suit l'état des zones et des équipements, puis met à jour l'avancement des interventions.
+    \item \textbf{Gestionnaire de point :} acteur responsable du suivi local d'un ou de plusieurs points de collecte. Il surveille leur disponibilité, leur saturation ou leur état de maintenance et participe à la remontée des informations de terrain.
     \item \textbf{Intercommunalité :} acteur institutionnel qui pilote la politique territoriale de tri. Il définit les consignes locales, centralise les données des points de collecte, organise les zones géographiques, coordonne les acteurs locaux et affecte les collecteurs aux missions.
-
     \item \textbf{Administrateur :} acteur chargé de la supervision globale de la plateforme. Il gère les utilisateurs, les rôles, les points de collecte, les contenus soumis par la communauté, la modération et les statistiques globales.
-
-    \item \textbf{Super-administrateur :} administrateur disposant de privilèges renforcés. Il assure la gestion des comptes administrateurs et la protection des rôles sensibles.
-
+    \item \textbf{Super-administrateur :} administrateur disposant de privilèges renforcés pour la gestion des comptes administrateurs et la protection des rôles sensibles.
     \item \textbf{Poubelle intelligente :} équipement connecté associé à un point de collecte. Il participe à la traçabilité des opérations de tri en fournissant, selon sa configuration, des données de scan, de type de déchet, de poids ou de niveau de remplissage.
 \end{itemize}
 
 \subsection{Spécification des besoins fonctionnels par acteur}
 \label{subsec:besoins_fonctionnels_par_acteur}
 
-Cette section décrit les fonctionnalités offertes par la plateforme en fonction du profil de l'utilisateur. Cette approche garantit une séparation claire des responsabilités et facilite la mise en place d'un contrôle d'accès fondé sur les rôles.
-
 \subsubsection{Le Visiteur}
 
-Le visiteur peut accéder aux services publics de la plateforme. Il peut notamment :
-\begin{itemize}
-    \item consulter le fil d'actualité et découvrir les initiatives environnementales publiées ;
-    \item consulter la carte des points de collecte disponibles ;
-    \item consulter les contenus de sensibilisation accessibles publiquement ;
-    \item créer un compte citoyen ;
-    \item s'authentifier afin d'accéder aux services personnalisés.
-\end{itemize}
+Le visiteur peut consulter le fil d'actualité, la carte des points de collecte et les contenus de sensibilisation accessibles publiquement. Il peut également créer un compte ou s'authentifier afin d'accéder aux fonctionnalités personnalisées.
 
 \subsubsection{Le Citoyen}
 
-Le citoyen constitue l'acteur principal de la plateforme. Ses fonctionnalités sont organisées autour de l'information, de la participation et de la valorisation du tri :
+Le citoyen constitue l'acteur principal de la plateforme. Il peut :
 \begin{itemize}
-    \item créer un compte, s'authentifier et se déconnecter de manière sécurisée ;
-    \item gérer les informations de son profil et son identifiant QR personnel ;
+    \item créer un compte, s'authentifier, se déconnecter et gérer les informations de son profil ;
     \item consulter les consignes locales de tri selon son territoire, sa ville ou le type de déchet ;
-    \item localiser les points de collecte sur une carte, les rechercher et les filtrer selon les déchets acceptés ou leur disponibilité ;
-    \item consulter le fil communautaire ;
-    \item publier une action citoyenne, avec texte et média, afin de partager une initiative écologique ;
-    \item interagir avec les publications par des mentions d'appréciation, des commentaires ou des enregistrements ;
-    \item soumettre un témoignage et proposer un nouveau point de collecte ;
+    \item localiser, rechercher et filtrer les points de collecte selon les déchets acceptés ou leur disponibilité ;
+    \item consulter le fil communautaire, publier une action citoyenne avec texte et média, puis interagir avec les publications par des mentions d'appréciation, des commentaires ou des enregistrements ;
+    \item soumettre un témoignage ou proposer un nouveau point de collecte ;
     \item recevoir les notifications relatives aux interactions, aux décisions de modération et aux activités de la plateforme ;
     \item consulter les contenus éducatifs et participer aux quiz proposés ;
     \item scanner le QR code d'une poubelle intelligente afin d'enregistrer une action de tri ;
@@ -74,135 +54,84 @@ Le citoyen constitue l'acteur principal de la plateforme. Ses fonctionnalités s
 
 \subsubsection{L'Éducateur}
 
-L'éducateur intervient dans la sensibilisation et l'accompagnement des citoyens. Il peut :
-\begin{itemize}
-    \item s'authentifier et gérer son profil ;
-    \item publier et administrer des contenus éducatifs, notamment des vidéos de sensibilisation ;
-    \item créer et gérer des quiz relatifs au tri et à la protection de l'environnement ;
-    \item consulter les participations aux quiz afin d'évaluer l'engagement des citoyens ;
-    \item créer des groupes citoyens et organiser des réunions ou des activités de sensibilisation ;
-    \item échanger avec les citoyens par messagerie ;
-    \item participer aux actions territoriales coordonnées par l'intercommunalité.
-\end{itemize}
+L'éducateur intervient dans la sensibilisation environnementale. Il peut créer et gérer des contenus pédagogiques, des vidéos et des quiz ; consulter les participations aux quiz ; organiser des groupes et des réunions citoyennes ; échanger avec les citoyens et participer aux actions territoriales coordonnées par l'intercommunalité.
 
 \subsubsection{Le Collecteur}
 
-Le collecteur exploite les informations opérationnelles liées à la collecte. Il peut :
-\begin{itemize}
-    \item s'authentifier et accéder à son espace métier ;
-    \item consulter les zones, les points de collecte et les missions qui lui sont affectés ;
-    \item visualiser les données disponibles sur les poubelles intelligentes et les alertes associées ;
-    \item mettre à jour l'état d'une affectation : en attente, en cours, terminée ou annulée ;
-    \item renseigner des notes d'intervention ;
-    \item consulter les messages transmis par l'intercommunalité, les gestionnaires de point ou les administrateurs ;
-    \item communiquer avec les acteurs habilités afin de coordonner les opérations de terrain.
-\end{itemize}
+Le collecteur peut consulter ses zones et missions, visualiser les données disponibles sur les poubelles intelligentes, mettre à jour l'état de ses affectations, renseigner des notes d'intervention et communiquer avec les acteurs habilités afin de coordonner les opérations de terrain.
 
 \subsubsection{Le Gestionnaire de point}
 
-Le gestionnaire de point assure le suivi de proximité des infrastructures de collecte. Il peut :
-\begin{itemize}
-    \item s'authentifier et consulter son espace métier ;
-    \item visualiser les informations des points de collecte placés sous sa responsabilité ;
-    \item suivre leur état opérationnel : disponible, saturé ou en maintenance ;
-    \item consulter les alertes liées aux équipements et aux besoins de collecte ;
-    \item contribuer à l'actualisation des informations de terrain, conformément à ses droits ;
-    \item communiquer avec les collecteurs, l'intercommunalité et les administrateurs.
-\end{itemize}
+Le gestionnaire de point peut visualiser les informations relatives aux points de collecte placés sous sa responsabilité, suivre leur état opérationnel -- disponible, saturé ou en maintenance --, consulter les alertes et communiquer avec les collecteurs, l'intercommunalité et les administrateurs.
 
 \subsubsection{L'Intercommunalité}
 
 L'intercommunalité dispose d'un espace de pilotage territorial. Elle peut :
 \begin{itemize}
-    \item s'authentifier et accéder à son espace de gestion territoriale ;
     \item créer, modifier, activer ou désactiver les consignes locales de tri selon le territoire, la ville et le type de déchet ;
     \item centraliser les informations relatives aux points de collecte ;
     \item consulter et coordonner les gestionnaires de point, collecteurs et éducateurs ;
-    \item créer des groupes d'acteurs locaux pour faciliter la communication ciblée ;
-    \item transmettre des notifications ou des consignes aux acteurs sélectionnés ;
+    \item créer des groupes d'acteurs, leur transmettre des notifications et échanger avec eux ;
     \item créer des zones territoriales regroupant des points de collecte et des équipements ;
     \item affecter un collecteur ou un groupe de collecteurs à une zone ou à un ensemble de points ;
-    \item suivre le statut des missions, leur priorité et leur avancement ;
-    \item consulter les éléments de pilotage nécessaires à l'amélioration de la politique locale de tri.
+    \item suivre le statut, la priorité et l'avancement des missions de collecte.
 \end{itemize}
 
 \subsubsection{L'Administrateur et le Super-administrateur}
 
-L'administrateur garantit la cohérence, la sécurité et la qualité des données de la plateforme. Il peut :
-\begin{itemize}
-    \item consulter le tableau de bord et les statistiques globales ;
-    \item créer, modifier, désactiver ou supprimer les comptes utilisateurs dans le respect de ses autorisations ;
-    \item attribuer les rôles fonctionnels aux utilisateurs ;
-    \item créer, modifier et supprimer les points de collecte ;
-    \item consulter les publications, témoignages et propositions de points en attente de validation ;
-    \item approuver ou rejeter les contenus après contrôle humain ;
-    \item superviser les scans, les scores, les équipements intelligents et les données de collecte ;
-    \item consulter les statistiques relatives aux utilisateurs, aux scans QR, aux points de collecte, aux quiz et à la modération.
-\end{itemize}
-
-Le super-administrateur possède, en complément, les privilèges permettant de créer, modifier ou supprimer les comptes administrateurs et super-administrateurs.
+L'administrateur peut consulter le tableau de bord, gérer les comptes et les rôles selon ses autorisations, gérer les points de collecte, modérer les publications et témoignages, superviser les scans et les équipements intelligents, et consulter les statistiques de la plateforme. Le super-administrateur possède, en complément, les privilèges permettant de créer, modifier ou supprimer les comptes administrateurs et super-administrateurs.
 
 \subsection{Spécification des besoins non fonctionnels}
 \label{subsec:besoins_non_fonctionnels}
 
-Les besoins non fonctionnels définissent les exigences de qualité nécessaires à la réussite du projet.
-
+Les besoins non fonctionnels définissent les exigences de qualité du système :
 \begin{itemize}
-    \item \textbf{Ergonomie et accessibilité :} l'application doit fournir une navigation simple, cohérente et adaptée aux interfaces mobiles et Web. Les écrans affichés doivent être pertinents selon le rôle connecté afin de réduire la complexité de l'interface.
-
-    \item \textbf{Performance :} les temps de réponse doivent rester acceptables pour la consultation du fil, de la carte et des tableaux de bord. La pagination des publications, la compression des images et la mise en cache des réponses contribuent à cette exigence.
-
-    \item \textbf{Sécurité :} l'accès aux ressources sensibles doit reposer sur l'authentification, les jetons JWT et le contrôle d'accès basé sur les rôles. Les mots de passe doivent être stockés sous forme hachée et les données sensibles doivent être isolées dans des variables d'environnement. L'authentification multifacteur peut être activée afin de renforcer la sécurité des comptes.
-
-    \item \textbf{Confidentialité :} chaque utilisateur ne doit consulter ou modifier que les données auxquelles son rôle lui donne accès. Les échanges de données doivent respecter le principe de minimisation des informations exposées.
-
-    \item \textbf{Fiabilité :} les opérations de scan, l'attribution des points et la mise à jour des missions doivent être traçables. Les décisions de modération définitives restent sous le contrôle d'un administrateur afin de limiter les erreurs de classification automatique.
-
-    \item \textbf{Maintenabilité :} le code doit être structuré en modules distincts : interface Flutter, routeurs, services, schémas, modèles, repositories et migrations. Cette organisation facilite les corrections, les tests et l'ajout de nouvelles fonctionnalités.
-
-    \item \textbf{Évolutivité :} la solution doit pouvoir intégrer de nouveaux territoires, types de déchets, points de collecte, équipements intelligents, rôles et règles de gestion sans remettre en cause l'architecture existante.
-
-    \item \textbf{Interopérabilité :} l'API REST doit permettre la communication entre le client Flutter, le backend, Firebase et les prototypes matériels. Les données issues de la poubelle intelligente doivent pouvoir être exploitées par les services de suivi et de récompense.
+    \item \textbf{Ergonomie et accessibilité :} l'application doit proposer une navigation intuitive, cohérente et adaptée aux environnements mobiles et Web. Les écrans sont adaptés au rôle connecté afin de présenter uniquement les fonctionnalités pertinentes.
+    \item \textbf{Performance :} les temps de réponse doivent rester acceptables pour la consultation du fil, de la carte et des tableaux de bord. La pagination, la compression des images et la mise en cache contribuent à cette exigence.
+    \item \textbf{Sécurité :} l'accès aux ressources sensibles repose sur l'authentification, les jetons JWT et un contrôle d'accès basé sur les rôles. Les mots de passe sont hachés, les secrets sont isolés dans des variables d'environnement et l'authentification multifacteur peut être activée.
+    \item \textbf{Confidentialité :} chaque utilisateur ne consulte ou ne modifie que les données auxquelles son rôle lui donne accès.
+    \item \textbf{Fiabilité :} les opérations de scan, l'attribution des points et les missions de collecte doivent être traçables. Les décisions finales de modération restent sous contrôle humain.
+    \item \textbf{Maintenabilité et évolutivité :} la séparation entre Flutter, routeurs API, services, schémas, repositories, modèles et migrations permet de faire évoluer la solution et d'intégrer de nouveaux territoires, rôles, déchets ou équipements.
+    \item \textbf{Interopérabilité :} l'API REST assure la communication entre l'application Flutter, le backend, Firebase et le prototype matériel de poubelle intelligente.
 \end{itemize}
 
 \section{Diagramme de cas d'utilisation global}
 \label{sec:diagramme_cas_utilisation_global}
 
-Le diagramme de cas d'utilisation global offre une vue synthétique des interactions entre les acteurs et le système EcoRewind. Il met en évidence les fonctionnalités publiques, citoyennes, éducatives, opérationnelles, territoriales et administratives.
+Le diagramme de cas d'utilisation global présente les interactions entre les acteurs et le système EcoRewind. Il distingue les services publics accessibles au visiteur, les parcours citoyens, les fonctions éducatives, les opérations de collecte, le pilotage territorial et les fonctions d'administration.
 
-Le visiteur accède aux services publics. Les fonctionnalités personnalisées, telles que la publication, le scan QR, la gestion des missions, la coordination territoriale ou l'administration, nécessitent une authentification et sont filtrées en fonction du rôle de l'utilisateur. La poubelle intelligente est représentée comme un acteur externe qui alimente le système en données de scan ou de remplissage.
+Les fonctionnalités personnalisées, telles que la publication, le scan QR, la gestion des missions, la coordination territoriale ou l'administration, nécessitent une authentification et sont filtrées selon le rôle de l'utilisateur. La poubelle intelligente est représentée comme un acteur externe qui alimente le système en données de scan ou de remplissage.
 
-La figure du diagramme doit être obtenue à partir du fichier source éditable \texttt{usecase-ecorewind.drawio}. Cette source doit contenir les acteurs \textit{Visiteur}, \textit{Citoyen}, \textit{Éducateur}, \textit{Collecteur}, \textit{Gestionnaire de point}, \textit{Intercommunalité}, \textit{Administrateur} et \textit{Poubelle intelligente}.
-
-\section{Diagramme de classes global}
-\label{sec:diagramme_classes_global}
-
-Le diagramme de classes global présente les principales entités manipulées par le système. La classe \texttt{User} représente les utilisateurs et leurs rôles. Les classes \texttt{Post}, \texttt{Comment} et \texttt{Notification} modélisent l'espace communautaire. Les classes \texttt{CollectionPoint}, \texttt{SmartBin} et \texttt{BinScan} structurent le suivi des infrastructures de collecte et les actions de tri.
-
-Le pilotage territorial est représenté par les classes \texttt{LocalInstruction}, \texttt{CollectorZone}, \texttt{CollectorZoneAssignment} et \texttt{CustomActorGroup}. Elles permettent de gérer les consignes locales, les zones, les affectations de collecte et la coordination des acteurs. Les associations doivent mettre en évidence qu'un utilisateur peut créer des contenus ou des consignes, qu'un citoyen peut effectuer plusieurs scans, qu'une poubelle est associée à un point de collecte et qu'un collecteur peut recevoir plusieurs affectations.
-
-La figure correspondante doit être exportée depuis le fichier \texttt{diagramme\_classe\_global.drawio} afin de préserver une version Draw.io modifiable du diagramme.
+La figure correspondante doit être générée à partir du fichier source éditable \texttt{usecase-ecorewind.drawio}. Cette source contient les acteurs \textit{Visiteur}, \textit{Citoyen}, \textit{Éducateur}, \textit{Collecteur}, \textit{Gestionnaire de point}, \textit{Intercommunalité}, \textit{Administrateur} et \textit{Poubelle intelligente}.
 
 \section{Structure et découpage de projet}
 \label{sec:structure_decoupage_projet}
 
-Cette section présente l'organisation du produit selon la démarche Scrum, le backlog priorisé, les releases et la planification des sprints.
+Cette section présente l'organisation du produit selon la démarche Scrum, le backlog priorisé, les releases, l'architecture et l'environnement technique du projet.
+
+\subsection{Diagramme de classes global}
+\label{subsec:diagramme_classes_global}
+
+Le diagramme de classes global présente les principales entités manipulées par le système. La classe \texttt{User} représente les utilisateurs et leurs rôles. Les classes \texttt{Post}, \texttt{Comment} et \texttt{Notification} modélisent l'espace communautaire. Les classes \texttt{CollectionPoint}, \texttt{SmartBin} et \texttt{BinScan} structurent le suivi des infrastructures de collecte et les actions de tri.
+
+Le pilotage territorial est représenté par les classes \texttt{LocalInstruction}, \texttt{CollectorZone}, \texttt{CollectorZoneAssignment} et \texttt{CustomActorGroup}. Elles permettent de gérer les consignes locales, les zones, les affectations de collecte et la coordination des acteurs. Le diagramme met en évidence qu'un utilisateur peut créer des contenus ou des consignes, qu'un citoyen peut effectuer plusieurs scans, qu'une poubelle est associée à un point de collecte et qu'un collecteur peut recevoir plusieurs affectations.
+
+La figure correspondante doit être exportée depuis \texttt{diagramme\_classe\_global.drawio} afin de préserver une version Draw.io modifiable du diagramme.
 
 \subsection{Identification de l'équipe Scrum}
 \label{subsec:equipe_scrum}
 
-Dans un projet Scrum, l'équipe joue un rôle central dans la production continue de valeur. Les noms des membres de l'équipe n'étant pas définis dans le dépôt, cette section présente les responsabilités attendues :
-
+Dans un projet Scrum, l'équipe joue un rôle central dans la production continue de valeur. Les noms des membres n'étant pas définis dans le dépôt, les responsabilités attendues sont les suivantes :
 \begin{itemize}
-    \item \textbf{Product Owner :} il porte la vision du produit, recueille les besoins des citoyens et des acteurs territoriaux, priorise le backlog et valide les incréments livrés.
-    \item \textbf{Scrum Master :} il accompagne l'équipe dans l'application de Scrum, facilite les cérémonies, aide à lever les obstacles et veille à l'amélioration continue.
-    \item \textbf{Équipe de développement :} elle conçoit et réalise l'application Flutter, l'API FastAPI, les modèles de données, les services Firebase, les modules de modération, les tests et les composants liés à la poubelle intelligente.
+    \item \textbf{Product Owner :} porte la vision du produit, recueille les besoins des citoyens et des acteurs territoriaux, priorise le backlog et valide les incréments livrés.
+    \item \textbf{Scrum Master :} accompagne l'équipe dans l'application de Scrum, facilite les cérémonies, aide à lever les obstacles et veille à l'amélioration continue.
+    \item \textbf{Équipe de développement :} réalise l'application Flutter, l'API FastAPI, les modèles de données, les services Firebase, les modules de modération, les tests et les composants liés à la poubelle intelligente.
 \end{itemize}
 
 \subsection{Le Backlog du Produit global}
 \label{subsec:backlog_produit_global}
 
-Le backlog produit regroupe les fonctionnalités attendues d'EcoRewind. Il est organisé en épopées et en user stories afin de faciliter la priorisation et la planification des sprints.
+Le backlog produit regroupe les fonctionnalités attendues d'EcoRewind. Il est organisé en épopées et user stories afin de faciliter la priorisation et la planification des sprints.
 
 \begin{center}
 \scriptsize
@@ -219,15 +148,13 @@ Le backlog produit regroupe les fonctionnalités attendues d'EcoRewind. Il est o
 \endfoot
 \hline
 \endlastfoot
-1 & Gestion des accès et des profils & US1.1 & En tant que visiteur, je veux créer un compte afin d'accéder aux services personnalisés de la plateforme. & Très haute & 5 \\
+1 & Gestion des accès et profils & US1.1 & En tant que visiteur, je veux créer un compte afin d'accéder aux services personnalisés. & Très haute & 5 \\
 \hline
  &  & US1.2 & En tant qu'utilisateur, je veux m'authentifier, me déconnecter et renouveler ma session de manière sécurisée. & Très haute & 5 \\
 \hline
- &  & US1.3 & En tant qu'utilisateur, je veux gérer mon profil et mon code QR afin d'être identifié par les services de tri. & Haute & 4 \\
+ &  & US1.3 & En tant qu'utilisateur, je veux gérer mon profil et mon QR code afin d'être identifié par les services de tri. & Haute & 4 \\
 \hline
  &  & US1.4 & En tant qu'administrateur, je veux gérer les utilisateurs et leurs rôles afin de contrôler les accès. & Très haute & 6 \\
-\hline
- &  & US1.5 & En tant que super-administrateur, je veux gérer les comptes à privilèges afin de sécuriser l'administration. & Haute & 5 \\
 \hline
 2 & Information citoyenne et communauté & US2.1 & En tant que visiteur, je veux consulter le fil d'actualité afin de découvrir les initiatives écologiques. & Moyenne & 3 \\
 \hline
@@ -235,25 +162,19 @@ Le backlog produit regroupe les fonctionnalités attendues d'EcoRewind. Il est o
 \hline
  &  & US2.3 & En tant que citoyen, je veux aimer, commenter et enregistrer les publications afin d'interagir avec la communauté. & Moyenne & 4 \\
 \hline
- &  & US2.4 & En tant que citoyen, je veux soumettre un témoignage ou proposer un point de collecte afin de contribuer à l'amélioration du service. & Moyenne & 4 \\
-\hline
- &  & US2.5 & En tant qu'administrateur, je veux examiner et modérer les contenus afin de garantir leur pertinence et leur sécurité. & Très haute & 7 \\
+ &  & US2.4 & En tant qu'administrateur, je veux modérer les contenus afin de garantir leur pertinence et leur sécurité. & Très haute & 7 \\
 \hline
 3 & Points de collecte et consignes & US3.1 & En tant que citoyen, je veux visualiser les points de collecte sur une carte afin de localiser la solution adaptée à mes déchets. & Très haute & 6 \\
 \hline
- &  & US3.2 & En tant que citoyen, je veux filtrer les points par type de déchet, disponibilité et localisation afin de préparer mon dépôt. & Haute & 4 \\
+ &  & US3.2 & En tant qu'administrateur, je veux gérer les points de collecte afin de maintenir une base d'information fiable. & Haute & 5 \\
 \hline
- &  & US3.3 & En tant qu'administrateur, je veux gérer les points de collecte afin de maintenir une base d'information fiable. & Haute & 5 \\
+ &  & US3.3 & En tant qu'intercommunalité, je veux gérer les consignes locales de tri afin d'adapter l'information aux règles territoriales. & Haute & 5 \\
 \hline
- &  & US3.4 & En tant qu'intercommunalité, je veux gérer les consignes locales de tri afin d'adapter l'information aux règles territoriales. & Haute & 5 \\
+4 & Sensibilisation environnementale & US4.1 & En tant qu'éducateur, je veux créer des vidéos et des quiz afin de sensibiliser les citoyens. & Haute & 5 \\
 \hline
-4 & Sensibilisation environnementale & US4.1 & En tant que citoyen, je veux consulter des contenus pédagogiques afin d'améliorer mes pratiques de tri. & Moyenne & 3 \\
+ &  & US4.2 & En tant que citoyen, je veux répondre à des quiz afin de renforcer mes connaissances. & Moyenne & 4 \\
 \hline
- &  & US4.2 & En tant qu'éducateur, je veux créer des vidéos et des quiz afin de sensibiliser les citoyens. & Haute & 5 \\
-\hline
- &  & US4.3 & En tant que citoyen, je veux répondre à des quiz afin d'évaluer et renforcer mes connaissances. & Moyenne & 4 \\
-\hline
- &  & US4.4 & En tant qu'éducateur, je veux organiser des groupes et des réunions afin de coordonner les activités de sensibilisation. & Moyenne & 5 \\
+ &  & US4.3 & En tant qu'éducateur, je veux organiser des groupes et des réunions afin de coordonner les activités de sensibilisation. & Moyenne & 5 \\
 \hline
 5 & Poubelles intelligentes et récompenses & US5.1 & En tant que citoyen, je veux scanner le QR code d'une poubelle intelligente afin d'enregistrer mon action de tri. & Très haute & 6 \\
 \hline
@@ -263,8 +184,6 @@ Le backlog produit regroupe les fonctionnalités attendues d'EcoRewind. Il est o
 \hline
  &  & US5.4 & En tant que collecteur, je veux consulter les données disponibles des poubelles afin de mieux planifier les interventions. & Haute & 6 \\
 \hline
- &  & US5.5 & En tant qu'administrateur, je veux superviser les équipements intelligents associés aux points de collecte afin d'en assurer la traçabilité. & Moyenne & 5 \\
-\hline
 6 & Gestion opérationnelle de la collecte & US6.1 & En tant que collecteur, je veux consulter mes zones et missions afin d'organiser mes tournées. & Très haute & 6 \\
 \hline
  &  & US6.2 & En tant que collecteur, je veux mettre à jour le statut d'une mission et ajouter une note afin de tracer son exécution. & Haute & 4 \\
@@ -273,17 +192,15 @@ Le backlog produit regroupe les fonctionnalités attendues d'EcoRewind. Il est o
 \hline
 7 & Pilotage territorial et coordination & US7.1 & En tant qu'intercommunalité, je veux visualiser les acteurs locaux afin de coordonner les gestionnaires, collecteurs et éducateurs. & Haute & 5 \\
 \hline
- &  & US7.2 & En tant qu'intercommunalité, je veux créer des groupes d'acteurs et leur transmettre des notifications afin de diffuser les consignes. & Moyenne & 5 \\
+ &  & US7.2 & En tant qu'intercommunalité, je veux créer des groupes et transmettre des notifications afin de diffuser les consignes. & Moyenne & 5 \\
 \hline
- &  & US7.3 & En tant qu'intercommunalité, je veux créer des zones et affecter les collecteurs afin de piloter les missions sur le territoire. & Très haute & 7 \\
+ &  & US7.3 & En tant qu'intercommunalité, je veux créer des zones et affecter les collecteurs afin de piloter les missions. & Très haute & 7 \\
 \hline
  &  & US7.4 & En tant qu'acteur autorisé, je veux échanger par messagerie avec les profils pertinents afin de coordonner les actions. & Moyenne & 5 \\
 \hline
 8 & Notifications et tableaux de bord & US8.1 & En tant qu'utilisateur, je veux recevoir des notifications liées à mes interactions, mes missions ou mes activités afin de rester informé. & Haute & 5 \\
 \hline
  &  & US8.2 & En tant qu'administrateur, je veux consulter les statistiques des utilisateurs, scans, points et contenus afin de superviser la plateforme. & Haute & 6 \\
-\hline
- &  & US8.3 & En tant qu'intercommunalité, je veux consulter les informations de pilotage territorial afin d'améliorer l'organisation de la collecte. & Haute & 6 \\
 \hline
 \caption{Product Backlog global du projet EcoRewind}
 \label{tab:product_backlog_ecorewind}
@@ -305,12 +222,65 @@ Release 1 : Socle citoyen & Authentification, gestion des profils et des rôles,
 \hline
 Release 2 : Sensibilisation, récompenses et IoT & Contenus éducatifs, quiz, groupes, témoignages, modération, poubelle intelligente, scan QR, calcul des points, badges, impact environnemental et synchronisation des données en temps réel. \\
 \hline
-Release 3 : Pilotage territorial et exploitation & Espaces collecteur, gestionnaire de point et intercommunalité, zones, affectations, coordination des acteurs, messagerie, tableaux de bord, statistiques et stabilisation de la plateforme. \\
+Release 3 : Pilotage territorial et exploitation & Espaces collecteur, gestionnaire de point et intercommunalité, zones, affectations, coordination, messagerie, tableaux de bord, statistiques et stabilisation. \\
 \hline
 \end{tabular}
 \end{center}
 
-La poubelle intelligente est intégrée à la deuxième release. Ce choix permet de présenter le prototype non pas comme un élément isolé, mais comme une composante IoT intégrée au parcours citoyen, à la valorisation par les points et au suivi opérationnel de la collecte.
+La poubelle intelligente est intégrée à la deuxième release. Ce choix permet de présenter le prototype comme une composante IoT complète, reliée au parcours citoyen, à la valorisation par les points et au suivi opérationnel de la collecte.
+
+\subsection{Architecture de l'application}
+\label{subsec:architecture_application}
+
+\subsubsection{Architecture logique}
+
+EcoRewind adopte une architecture client--serveur modulaire. La couche de présentation est développée avec \textbf{Flutter} et \textbf{Dart}. Elle fournit les interfaces mobiles et Web, les écrans adaptés aux rôles, l'affichage de la carte, les formulaires et les interactions communautaires.
+
+La couche applicative est assurée par une API REST développée avec \textbf{FastAPI} et \textbf{Python}. Elle contient des routeurs spécialisés pour l'authentification, les utilisateurs, les publications, les notifications, les points de collecte, les quiz, les contenus éducatifs, les équipements QR, la modération, les messages, les zones et l'intercommunalité. Les schémas Pydantic valident les échanges entre le client et le serveur.
+
+La couche de persistance repose sur \textbf{SQLAlchemy} et les migrations \textbf{Alembic}. Elle modélise les utilisateurs, publications, commentaires, notifications, points de collecte, poubelles intelligentes, scans, contenus éducatifs, zones et affectations. Les services \textbf{Firebase} complètent l'architecture pour les données temps réel, les notifications et l'authentification configurée. Le module de modération exploite des règles métier et des modèles d'intelligence artificielle afin d'analyser les textes et les images avant la décision humaine finale.
+
+\subsubsection{Architecture physique}
+
+L'architecture physique comprend des terminaux mobiles ou navigateurs Web exécutant Flutter, un serveur FastAPI exposant l'API REST, une base de données relationnelle gérée via SQLAlchemy et Alembic, les services Firebase, les services de traitement des médias et de modération, ainsi qu'un prototype Arduino intégré à la poubelle intelligente. Les points de collecte et les équipements sont géolocalisés et exploités par les acteurs de terrain et les services territoriaux.
+
+\subsection{Patrons de conception utilisés}
+\label{subsec:patrons_conception}
+
+\subsubsection{Architecture en couches}
+
+Le projet sépare l'interface Flutter, les routeurs API, les services métier, les schémas, les repositories et la persistance. Cette organisation limite le couplage, améliore la lisibilité du code et facilite les tests.
+
+\subsubsection{Data Transfer Object et validation}
+
+Les schémas Pydantic jouent le rôle d'objets de transfert de données entre le client et l'API. Ils contrôlent la structure des requêtes et des réponses et évitent l'exposition directe des modèles de persistance.
+
+\subsubsection{Repository}
+
+La couche \texttt{repositories} centralise des requêtes et agrégations de données, notamment pour les statistiques. Elle isole l'accès aux données de la logique des routeurs et facilite l'évolution de la persistance.
+
+\subsubsection{Patron État}
+
+Les affectations de collecte suivent un cycle de vie explicite : \texttt{pending}, \texttt{in\_progress}, \texttt{done} ou \texttt{cancelled}. Les publications suivent également un cycle de modération comprenant les états de publication, d'attente de validation ou de rejet. Cette modélisation garantit la traçabilité des opérations et limite les transitions incohérentes.
+
+\subsection{Maquette du projet}
+\label{subsec:maquette_projet}
+
+La maquette fonctionnelle d'EcoRewind se traduit par les interfaces Flutter organisées autour des principaux parcours : fil communautaire, carte des points de collecte, contenus éducatifs, récompenses, scans QR, profil, notifications, messagerie, administration et espaces métier. Les ressources visuelles et animations sont regroupées dans les répertoires \texttt{assets/images/} et \texttt{assets/lottie/}. Les captures d'écran des interfaces finales peuvent être ajoutées au rapport après leur export au format PNG ou PDF.
+
+\subsection{Difficultés rencontrées}
+\label{subsec:difficultes_rencontrees}
+
+La réalisation d'EcoRewind réunit plusieurs domaines : développement multiplateforme, cartographie, gestion communautaire, intelligence artificielle, notification, IoT et pilotage territorial. Les principaux défis concernent la clarté des interfaces malgré la diversité des rôles, la cohérence des données entre l'API, Firebase et les équipements connectés, ainsi que la traçabilité des scans et des missions.
+
+L'intégration de la poubelle intelligente impose de synchroniser les données issues du prototype Arduino avec les services applicatifs et de fiabiliser l'attribution des points. La modération automatique nécessite également une approche prudente : l'intelligence artificielle facilite le tri initial, tandis que la décision finale reste confiée à un administrateur.
+
+\subsection{Environnement de travail}
+\label{subsec:environnement_travail}
+
+Le projet s'appuie sur \textbf{Flutter} et \textbf{Dart} pour l'application mobile et Web, \textbf{Python} et \textbf{FastAPI} pour l'API REST, \textbf{SQLAlchemy} et \textbf{Alembic} pour la persistance et les migrations, ainsi que \textbf{Firebase} pour les fonctions configurées de données temps réel, d'authentification et de notifications.
+
+La cartographie utilise \textbf{OpenStreetMap} via \texttt{flutter\_map}. Le pipeline de modération exploite \textbf{PyTorch}, Text CNN, ResNet18 et NudeNet. Le prototype de poubelle intelligente s'appuie sur \textbf{Arduino} et C++. Enfin, \textbf{Git} et \textbf{GitHub} assurent le versionnement et la traçabilité des modifications.
 
 \section{Planification des Sprints}
 \label{sec:planification_sprints}
@@ -359,90 +329,9 @@ Clôture & -- & Recette finale, démonstration, documentation, préparation de l
 \end{longtable}
 \end{center}
 
-\section{Architecture de l'application}
-\label{sec:architecture_application}
+\section{Conclusion}
+\label{sec:conclusion}
 
-\subsection{Architecture logique}
-
-EcoRewind adopte une architecture client--serveur modulaire permettant de séparer l'expérience utilisateur, la logique métier, la persistance des données et les intégrations externes.
-
-La couche de présentation est développée avec \textbf{Flutter} et \textbf{Dart}. Elle fournit une application compatible avec les environnements mobiles et Web. Elle contient les écrans dédiés aux citoyens, aux administrateurs et aux espaces métier, ainsi que les widgets, services, modèles et thèmes nécessaires à la cohérence de l'interface.
-
-La couche applicative est assurée par une API REST développée avec \textbf{FastAPI} et \textbf{Python}. Elle expose des routeurs spécialisés pour l'authentification, les utilisateurs, les publications, les notifications, les points de collecte, les quiz, les contenus éducatifs, les équipements QR, la modération, les messages, les zones et l'intercommunalité. Les schémas Pydantic valident les données échangées entre le client et le serveur.
-
-La couche de persistance repose sur \textbf{SQLAlchemy} et les migrations \textbf{Alembic}. Elle modélise les utilisateurs, publications, commentaires, notifications, points de collecte, poubelles intelligentes, scans, contenus éducatifs, zones, affectations et informations territoriales.
-
-Enfin, les services \textbf{Firebase} participent aux besoins de données temps réel, de notifications et d'authentification configurée. Le module de modération exploite des règles métier et des modèles d'intelligence artificielle afin d'analyser les textes et les images avant une éventuelle validation humaine.
-
-\subsection{Architecture physique}
-
-L'architecture physique de la solution comprend les éléments suivants :
-\begin{itemize}
-    \item des terminaux mobiles et navigateurs Web exécutant l'application Flutter ;
-    \item un serveur applicatif FastAPI exposant l'API REST sécurisée ;
-    \item une base de données relationnelle gérée via SQLAlchemy et Alembic ;
-    \item les services Firebase pour les fonctions configurées de synchronisation temps réel, de notification et d'authentification ;
-    \item un service de traitement des médias et de modération exécuté côté backend ;
-    \item un prototype Arduino intégré à la poubelle intelligente, susceptible de transmettre des informations de scan, de poids ou de remplissage ;
-    \item des points de collecte géolocalisés, représentés sur la carte de l'application.
-\end{itemize}
-
-\section{Les patrons de conception utilisés}
-\label{sec:patrons_conception_utilises}
-
-\subsection{Patrons d'architecture}
-
-\subsubsection{Architecture en couches}
-
-Le projet applique une séparation en couches : présentation Flutter, routeurs API, services métier, schémas de validation, repositories et persistance. Cette organisation améliore la lisibilité du code, réduit le couplage et facilite les tests.
-
-\subsubsection{Data Transfer Object et validation}
-
-Les schémas Pydantic agissent comme des objets de transfert de données entre l'application cliente et l'API. Ils contrôlent la structure des requêtes et des réponses, limitent l'exposition des données internes et renforcent la cohérence des échanges.
-
-\subsubsection{Repository}
-
-La couche \texttt{repositories} centralise des requêtes et agrégations de données, notamment dans le domaine des statistiques. Elle isole l'accès aux données de la logique de présentation des routeurs et facilite l'évolution de la persistance.
-
-\subsection{Patrons comportementaux}
-
-\subsubsection{Patron État}
-
-Le comportement de plusieurs entités dépend de leur état. Une affectation de collecte évolue, par exemple, entre les états \texttt{pending}, \texttt{in\_progress}, \texttt{done} et \texttt{cancelled}. Les publications suivent également un cycle de modération comprenant les états de publication, d'attente de validation ou de rejet. Cette modélisation garantit la traçabilité des opérations et limite les transitions incohérentes.
-
-\section{Maquette du projet}
-\label{sec:maquette_projet}
-
-La maquette fonctionnelle d'EcoRewind se traduit par les interfaces Flutter organisées autour des principaux parcours utilisateurs : fil communautaire, carte des points de collecte, contenus éducatifs, récompenses, scans QR, profil, notifications, messagerie, administration et espaces métier.
-
-Les ressources visuelles et animations utilisées par l'application sont regroupées dans les répertoires \texttt{assets/images/} et \texttt{assets/lottie/}. Les captures d'écran des interfaces finales peuvent être ajoutées dans le rapport après leur export au format PNG ou PDF. Cette approche permet de documenter les parcours réels sans introduire de références vers des fichiers inexistants.
-
-\section{Difficultés rencontrées}
-\label{sec:difficultes_rencontrees}
-
-La réalisation d'EcoRewind réunit plusieurs domaines : développement multiplateforme, cartographie, gestion communautaire, intelligence artificielle, notification, IoT et pilotage territorial. La première difficulté consiste à proposer une interface claire malgré la diversité des rôles et des parcours métier. Le contrôle d'accès doit rester strict tout en préservant une expérience fluide pour chaque utilisateur.
-
-L'intégration de la poubelle intelligente représente également un enjeu important. Elle impose de synchroniser les données issues du prototype Arduino avec les services applicatifs, d'assurer la traçabilité des scans et de fiabiliser l'attribution des points. Enfin, la modération automatique des contenus nécessite une approche prudente : l'intelligence artificielle facilite le tri initial, tandis que la décision finale reste confiée à un administrateur.
-
-\section{Environnement de travail}
-\label{sec:environnement_travail}
-
-\subsection{Environnement logiciel}
-
-Le projet s'appuie sur les technologies suivantes :
-\begin{itemize}
-    \item \textbf{Flutter et Dart} pour le développement de l'application mobile et Web ;
-    \item \textbf{Python et FastAPI} pour le développement de l'API REST ;
-    \item \textbf{SQLAlchemy} et \textbf{Alembic} pour la persistance et l'évolution du schéma de données ;
-    \item \textbf{Firebase} pour les services configurés de base de données temps réel, d'authentification et de notifications ;
-    \item \textbf{OpenStreetMap} et \texttt{flutter\_map} pour la cartographie des points de collecte ;
-    \item \textbf{PyTorch}, Text CNN, ResNet18 et NudeNet pour la modération des contenus ;
-    \item \textbf{Arduino} et C++ pour le prototype de poubelle intelligente ;
-    \item \textbf{Git et GitHub} pour le versionnement, la traçabilité des modifications et la collaboration.
-\end{itemize}
-
-\section*{Conclusion}
-
-Ce chapitre a permis d'établir les fondations fonctionnelles et organisationnelles du projet EcoRewind. L'analyse des acteurs a mis en évidence la complémentarité entre les citoyens, les éducateurs, les collecteurs, les gestionnaires de point, l'intercommunalité et les administrateurs. Les besoins identifiés couvrent à la fois la sensibilisation environnementale, la participation citoyenne, la gestion opérationnelle de la collecte et le pilotage territorial.
+Ce chapitre a permis d'établir les fondations fonctionnelles et organisationnelles du projet EcoRewind. L'analyse des acteurs a mis en évidence la complémentarité entre les citoyens, les éducateurs, les collecteurs, les gestionnaires de point, l'intercommunalité et les administrateurs. Les besoins identifiés couvrent la sensibilisation environnementale, la participation citoyenne, la gestion opérationnelle de la collecte et le pilotage territorial.
 
 Le backlog produit, les releases et la planification des sprints fournissent une feuille de route structurée pour la réalisation progressive de la plateforme. L'intégration de la poubelle intelligente dans la deuxième release consolide la dimension innovante du projet en reliant l'IoT, la valorisation des gestes de tri et l'organisation des opérations de collecte. Le chapitre suivant présentera la conception détaillée et la mise en œuvre des fonctionnalités prioritaires.
