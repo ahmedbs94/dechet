@@ -1,0 +1,113 @@
+\chapter{Cadre général du projet}
+\label{chap:cadre-projet}
+
+\section*{Introduction}
+
+Dans ce chapitre, nous présentons le contexte général de notre projet. Nous commençons par décrire l'entreprise d'accueil et son environnement, puis nous exposons la problématique à traiter. Nous poursuivons par une analyse de l'existant afin d'identifier ses limites et les besoins auxquels la solution doit répondre. Enfin, nous présentons la démarche de conception retenue ainsi que les méthodes de modélisation employées tout au long du projet.
+
+\section{Contexte général}
+
+Dans le cadre de l'obtention du diplôme d'ingénieur en informatique, spécialité Génie Logiciel, à TEK-UP, ce stage de fin d'études a été réalisé au sein d'\textbf{ASSURANCES MAGHREBIA} sur une période de six mois.
+
+Ce projet s'inscrit dans une démarche de transformation numérique et de responsabilité environnementale. Il consiste à concevoir et à réaliser \textit{EcoRewind}, une plateforme mobile et web destinée à encourager le tri sélectif des déchets en Tunisie. La solution met à la disposition des citoyens des outils simples pour localiser les points de collecte, partager leurs actions écologiques et suivre leur impact environnemental.
+
+\section{Organisme d'accueil}
+
+\textbf{ASSURANCES MAGHREBIA} est l'un des acteurs majeurs de l'assurance et de la réassurance en Tunisie. Fondée en 1973, l'entreprise a progressivement structuré ses activités et élargi son offre afin de proposer une gamme complète de produits et de services destinée aux particuliers et aux entreprises. Elle ambitionne de se positionner comme un partenaire de référence en s'appuyant sur l'innovation, la qualité de service et l'intégration des technologies modernes.
+
+Dans une logique d'amélioration continue, ASSURANCES MAGHREBIA met l'accent sur la transparence et l'optimisation des processus, notamment à travers la réduction des délais d'indemnisation, afin de renforcer une relation de confiance durable avec ses assurés. Reconnue pour son expertise et son dynamisme, elle affiche une croissance régulière, témoignant de sa solidité et de son orientation vers l'avenir. Enfin, grâce à un réseau d'agences implanté dans les principaux pôles économiques du pays, l'entreprise assure une proximité avec sa clientèle et un accompagnement personnalisé sur l'ensemble du territoire tunisien.
+
+\section{Présentation du projet}
+
+\subsection{Cadre général}
+
+La gestion des déchets constitue un enjeu environnemental et sociétal majeur. Malgré la présence d'initiatives de recyclage et de points de collecte, les citoyens ne disposent pas toujours d'informations accessibles et centralisées sur les possibilités de tri à proximité. De plus, l'adoption durable de gestes écologiques nécessite une sensibilisation continue, un accompagnement adapté et une valorisation des efforts individuels.
+
+C'est dans ce contexte que s'inscrit \textit{EcoRewind}. La plateforme vise à rapprocher les citoyens des dispositifs de collecte et à favoriser leur engagement dans une communauté sensible aux enjeux environnementaux. Elle associe information, interaction sociale, suivi d'impact et mécanismes de motivation afin de rendre le tri plus simple, visible et stimulant.
+
+\subsection{Description du projet}
+
+\textit{EcoRewind} est une application mobile et web de gestion et de valorisation du tri des déchets. Elle permet aux utilisateurs de consulter une carte interactive des points de collecte vérifiés, notamment pour le plastique, le verre, les piles et le compost. Les utilisateurs peuvent également publier et partager leurs actions de tri au sein d'un fil d'actualité communautaire.
+
+Les principales fonctionnalités de la plateforme sont les suivantes :
+
+\begin{itemize}
+    \item localiser les points de collecte grâce à une carte interactive ;
+    \item consulter et partager des publications liées aux actions écologiques ;
+    \item signaler ou proposer des contenus et des témoignages citoyens ;
+    \item suivre son impact personnel, notamment les déchets triés et le CO\textsubscript{2} évité ;
+    \item obtenir des récompenses et des badges afin d'encourager l'engagement ;
+    \item recevoir des notifications relatives aux interactions et aux activités de la plateforme ;
+    \item bénéficier d'une authentification sécurisée par courriel, OTP ou fournisseur social ;
+    \item modérer automatiquement les contenus publiés à l'aide de mécanismes d'intelligence artificielle ;
+    \item administrer les utilisateurs, les publications, les témoignages et les points de collecte depuis une interface dédiée.
+\end{itemize}
+
+La plateforme distingue plusieurs profils d'utilisateurs : le citoyen, qui accède au fil d'actualité, à la carte, à son profil et aux témoignages ; l'administrateur, chargé de la modération et de la gestion globale ; l'éducateur, responsable du contenu de sensibilisation ; et le collecteur, qui intervient dans la gestion des collectes.
+
+\subsection{Étude de l'existant}
+
+Avant la conception de \textit{EcoRewind}, une analyse des solutions existantes de sensibilisation environnementale, de géolocalisation des points de collecte et de gestion communautaire a été menée. Cette étude montre que de nombreuses solutions répondent à un besoin précis, mais qu'elles proposent rarement une expérience unifiée combinant la localisation des points de collecte, la participation communautaire, le suivi d'impact et la modération des contenus.
+
+Les principales limites observées sont les suivantes :
+
+\begin{itemize}
+    \item les informations sur les points de collecte sont souvent dispersées, incomplètes ou difficiles à mettre à jour ;
+    \item les applications se limitent fréquemment à l'information et n'encouragent pas suffisamment l'engagement régulier des citoyens ;
+    \item le suivi individuel des actions et de l'impact environnemental est rarement intégré de manière claire ;
+    \item les mécanismes de récompense et de gamification sont insuffisants ou absents ;
+    \item les espaces communautaires, lorsqu'ils existent, nécessitent une modération efficace pour garantir la pertinence et la sécurité des contenus ;
+    \item les interfaces d'administration ne permettent pas toujours une gestion centralisée des utilisateurs, des signalements et des points de collecte.
+\end{itemize}
+
+Cette analyse met en évidence le besoin d'une plateforme centralisée, accessible et évolutive, capable d'accompagner les citoyens dans leurs gestes de tri tout en facilitant le travail des administrateurs et des acteurs de la collecte.
+
+\subsection{Problématique}
+
+Comment concevoir une plateforme numérique qui facilite l'accès des citoyens aux informations de tri et aux points de collecte, tout en favorisant leur engagement durable et en assurant une gestion fiable des contenus communautaires ?
+
+La problématique consiste donc à proposer une solution intuitive et sécurisée qui réunit la géolocalisation des points de collecte, l'interaction entre les utilisateurs, la mesure de l'impact écologique et la modération des publications. La solution doit répondre aux besoins des citoyens tout en offrant aux administrateurs les outils nécessaires au contrôle et à la gestion de la plateforme.
+
+\subsection{Solution proposée}
+
+Pour répondre à cette problématique, nous proposons \textit{EcoRewind}, une plateforme citoyenne dédiée au tri sélectif des déchets. Elle centralise les informations sur les points de collecte et offre une carte interactive permettant aux utilisateurs d'identifier les solutions de tri adaptées à leur localisation.
+
+La plateforme intègre également un fil d'actualité communautaire dans lequel les citoyens peuvent partager leurs initiatives. Afin de préserver la qualité des échanges, les contenus sont soumis à une modération multicouche associant des règles métier et des modèles d'intelligence artificielle pour l'analyse des textes et des images. Des notifications, des badges et un tableau de bord d'impact personnel renforcent la motivation des utilisateurs et rendent leurs efforts environnementaux plus concrets.
+
+Enfin, une interface d'administration permet de gérer les utilisateurs, les publications signalées, les témoignages et les points de collecte. Cette approche offre une solution cohérente, participative et évolutive pour promouvoir les pratiques de tri en Tunisie.
+
+\section{Démarche de conception et méthodologie adoptée}
+
+\subsection{Formalisme de modélisation}
+
+Pour la conception de notre système, nous adoptons le langage \textbf{UML} (\textit{Unified Modeling Language}). Ce formalisme standard permet de représenter les besoins, la structure et le comportement du système de manière graphique et compréhensible par les différentes parties prenantes.
+
+Les principaux diagrammes utilisés dans le cadre de ce projet sont :
+
+\begin{itemize}
+    \item le diagramme de cas d'utilisation, qui décrit les interactions entre les acteurs et les fonctionnalités de la plateforme ;
+    \item le diagramme de classes, qui présente les entités métier, leurs attributs et leurs relations ;
+    \item les diagrammes de séquence, qui détaillent l'enchaînement des interactions lors de scénarios importants, tels que l'authentification, la publication d'un contenu ou la consultation d'un point de collecte.
+\end{itemize}
+
+Ces diagrammes constituent un support essentiel pour analyser les besoins, valider les choix de conception et faciliter la communication entre les intervenants du projet.
+
+\subsection{Méthodologie adoptée}
+
+Compte tenu du caractère évolutif des besoins fonctionnels et de l'importance des retours utilisateurs, nous adoptons une démarche agile inspirée de \textbf{Scrum}. Cette méthodologie itérative et incrémentale permet de découper le projet en cycles courts appelés \textit{sprints}. À l'issue de chaque sprint, une version fonctionnelle de la solution peut être évaluée et améliorée.
+
+La démarche retenue s'appuie sur les principes suivants :
+
+\begin{itemize}
+    \item la priorisation des fonctionnalités dans un \textit{Product Backlog} ;
+    \item la planification des tâches à réaliser durant chaque sprint ;
+    \item le suivi régulier de l'avancement et l'identification rapide des obstacles ;
+    \item la validation progressive des fonctionnalités développées ;
+    \item l'amélioration continue à travers les retours et les rétrospectives.
+\end{itemize}
+
+Cette approche assure une meilleure visibilité sur l'avancement du projet, facilite l'adaptation aux changements et permet de livrer progressivement les fonctionnalités prioritaires d'\textit{EcoRewind}.
+
+\section*{Conclusion}
+
+Dans ce chapitre, nous avons présenté le cadre général du projet \textit{EcoRewind}, ainsi que l'organisme d'accueil. Nous avons ensuite défini le contexte, la problématique et la solution proposée, puis mis en évidence les besoins issus de l'étude de l'existant. Enfin, nous avons présenté le formalisme UML et la démarche agile adoptés pour la conception et la réalisation de la plateforme. Le chapitre suivant sera consacré à l'analyse et à la spécification des besoins du système.
