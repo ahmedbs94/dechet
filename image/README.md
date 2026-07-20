@@ -1,23 +1,20 @@
-# Ressources visuelles du chapitre 3
+# Ressources visuelles -- chapitre 3
 
-## Diagrammes créés dans le dépôt
+Les diagrammes d'architecture ont été redessinés sous forme de **composants reliés par des flux**, conformément au modèle fourni. Ils ne contiennent pas de tableaux.
 
-Les deux diagrammes d'architecture ont été créés au format vectoriel SVG :
+## Diagrammes créés
 
-| Fichier | Rôle |
+| Fichier SVG | Description |
 | --- | --- |
-| `architecture_ecorewind.svg` | Architecture logicielle générale : utilisateurs, Flutter, FastAPI, PostgreSQL, Firebase et équipements intelligents. |
-| `architecture_technique_ecorewind.svg` | Architecture technique : flux API REST, persistance, Firebase, notifications et objets connectés. |
+| `architecture_ecorewind.svg` | Vue logique : utilisateurs, application Flutter mobile, API FastAPI, PostgreSQL, Firebase et équipements connectés. |
+| `architecture_technique_ecorewind.svg` | Vue technique : composants mobiles, routeurs et services FastAPI, persistance PostgreSQL, Firebase et objets IoT. |
 
-Les SVG sont modifiables avec Draw.io, Inkscape ou un navigateur. Pour les intégrer à un rapport LaTeX compilé avec PDFLaTeX, exportez-les en PNG sous les noms déjà référencés par le chapitre :
+Pour la compilation LaTeX actuelle (`\includegraphics`), exportez ces deux SVG en PNG et ajoutez-les avec les noms suivants :
 
 - `architecture_ecorewind.png`
 - `architecture_technique_ecorewind.png`
 
-## Image restant à téléverser
+## Captures à ajouter par l'étudiant
 
-Téléversez seulement une capture ou un montage des logiciels et outils utilisés sous ce nom :
-
-- `environnement_developpement_ecorewind.png` : Visual Studio Code, Android Studio/émulateur, Postman, Firebase Console, GitHub, Flutter/Dart et FastAPI/Python.
-
-Le fichier `chap_03.tex` référence ces trois noms au format PNG.
+- `frontend_flutter_dart.png` : capture du projet mobile Flutter/Dart ou de son exécution sur Android.
+- `backend_fastapi_python.png` : capture du code FastAPI/Python ou de la documentation Swagger de l'API.

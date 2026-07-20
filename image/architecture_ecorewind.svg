@@ -1,66 +1,42 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900">
   <defs>
-    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto"><path d="M0,0 L12,6 L0,12 Z" fill="#2563eb"/></marker>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto"><path d="M0 0 L12 6 L0 12 Z" fill="#23354d"/></marker>
     <style>
-      .title{font:700 34px Arial,sans-serif;fill:#123047}.subtitle{font:18px Arial,sans-serif;fill:#52616b}.box{stroke-width:3;rx:20;ry:20}.heading{font:700 24px Arial,sans-serif;fill:#fff}.text{font:18px Arial,sans-serif;fill:#173042}.small{font:16px Arial,sans-serif;fill:#173042}.line{stroke:#2563eb;stroke-width:4;fill:none;marker-end:url(#arrow)}
+      .title{font:700 32px Arial,sans-serif;fill:#172554}.label{font:700 20px Arial,sans-serif;fill:#fff}.text{font:18px Arial,sans-serif;fill:#172554}.small{font:16px Arial,sans-serif;fill:#172554}.line{stroke:#23354d;stroke-width:3;fill:none;marker-end:url(#arrow)}.dash{stroke:#64748b;stroke-width:3;stroke-dasharray:10 7;fill:none}.box{stroke-width:3;rx:12;ry:12}
     </style>
   </defs>
-  <rect width="1600" height="900" fill="#f8fafc"/>
-  <text x="800" y="60" class="title" text-anchor="middle">Architecture logicielle de la plateforme EcoRewind</text>
-  <text x="800" y="92" class="subtitle" text-anchor="middle">Architecture client--serveur avec services temps réel et équipements intelligents</text>
+  <rect width="1600" height="900" fill="#fff"/>
+  <text x="800" y="52" text-anchor="middle" class="title">Architecture de la plateforme mobile EcoRewind</text>
 
-  <rect x="65" y="290" width="300" height="245" class="box" fill="#dcfce7" stroke="#16a34a"/>
-  <rect x="65" y="290" width="300" height="58" rx="18" fill="#16a34a"/>
-  <text x="215" y="328" class="heading" text-anchor="middle">Utilisateurs et terrain</text>
-  <text x="215" y="387" class="text" text-anchor="middle">Citoyen • Éducateur</text>
-  <text x="215" y="419" class="text" text-anchor="middle">Collecteur • Gestionnaire</text>
-  <text x="215" y="451" class="text" text-anchor="middle">Administrateur</text>
-  <text x="215" y="498" class="small" text-anchor="middle">Mobile, navigateur et QR code</text>
+  <rect x="605" y="85" width="390" height="85" class="box" fill="#5c3f8c" stroke="#3d2465"/>
+  <text x="800" y="120" text-anchor="middle" class="label">Utilisateurs</text>
+  <text x="800" y="148" text-anchor="middle" class="small" fill="#fff">Citoyen • Éducateur • Collecteur • Gestionnaire • Administrateur</text>
 
-  <rect x="490" y="220" width="330" height="385" class="box" fill="#dbeafe" stroke="#2563eb"/>
-  <rect x="490" y="220" width="330" height="58" rx="18" fill="#2563eb"/>
-  <text x="655" y="258" class="heading" text-anchor="middle">Application Flutter</text>
-  <text x="655" y="327" class="text" text-anchor="middle">Interface multiplateforme</text>
-  <text x="655" y="365" class="text" text-anchor="middle">Dart • Flutter</text>
-  <text x="655" y="414" class="small" text-anchor="middle">Carte des points de collecte</text>
-  <text x="655" y="445" class="small" text-anchor="middle">Scan QR et éco-points</text>
-  <text x="655" y="476" class="small" text-anchor="middle">Quiz, communauté, messagerie</text>
-  <text x="655" y="507" class="small" text-anchor="middle">Tableaux de bord par rôle</text>
-  <text x="655" y="558" class="small" text-anchor="middle">HTTP / JSON sécurisé</text>
+  <rect x="555" y="245" width="490" height="135" class="box" fill="#f9d7be" stroke="#d8782f"/>
+  <text x="800" y="280" text-anchor="middle" class="text" font-weight="bold">Application mobile Flutter</text>
+  <rect x="590" y="300" width="120" height="52" class="box" fill="#cce8f4" stroke="#1488b8"/><text x="650" y="333" text-anchor="middle" class="small">Interfaces</text>
+  <rect x="740" y="300" width="120" height="52" class="box" fill="#cce8f4" stroke="#1488b8"/><text x="800" y="333" text-anchor="middle" class="small">Scan QR</text>
+  <rect x="890" y="300" width="120" height="52" class="box" fill="#cce8f4" stroke="#1488b8"/><text x="950" y="333" text-anchor="middle" class="small">Notifications</text>
 
-  <rect x="945" y="180" width="355" height="465" class="box" fill="#ffedd5" stroke="#ea580c"/>
-  <rect x="945" y="180" width="355" height="58" rx="18" fill="#ea580c"/>
-  <text x="1122" y="218" class="heading" text-anchor="middle">API REST FastAPI</text>
-  <text x="1122" y="283" class="text" text-anchor="middle">Python • logique métier</text>
-  <text x="1122" y="329" class="small" text-anchor="middle">JWT, OTP et contrôle RBAC</text>
-  <text x="1122" y="360" class="small" text-anchor="middle">Utilisateurs et authentification</text>
-  <text x="1122" y="391" class="small" text-anchor="middle">Points de collecte et tournées</text>
-  <text x="1122" y="422" class="small" text-anchor="middle">Publications, quiz et groupes</text>
-  <text x="1122" y="453" class="small" text-anchor="middle">Notifications et analytique</text>
-  <text x="1122" y="484" class="small" text-anchor="middle">Modération assistée par IA</text>
-  <text x="1122" y="550" class="small" text-anchor="middle">SQLAlchemy • Alembic</text>
-  <text x="1122" y="583" class="small" text-anchor="middle">Firebase Admin SDK</text>
+  <rect x="555" y="455" width="490" height="165" class="box" fill="#f8b76c" stroke="#d97706"/>
+  <text x="800" y="492" text-anchor="middle" class="text" font-weight="bold">Backend : API REST FastAPI</text>
+  <rect x="585" y="515" width="125" height="70" class="box" fill="#fff" stroke="#d97706"/><text x="647" y="544" text-anchor="middle" class="small">Authentification</text><text x="647" y="568" text-anchor="middle" class="small">JWT / RBAC</text>
+  <rect x="737" y="515" width="125" height="70" class="box" fill="#fff" stroke="#d97706"/><text x="800" y="544" text-anchor="middle" class="small">Services métier</text><text x="800" y="568" text-anchor="middle" class="small">API REST</text>
+  <rect x="890" y="515" width="125" height="70" class="box" fill="#fff" stroke="#d97706"/><text x="952" y="544" text-anchor="middle" class="small">QR, scores et</text><text x="952" y="568" text-anchor="middle" class="small">notifications</text>
 
-  <rect x="1370" y="155" width="185" height="220" class="box" fill="#ede9fe" stroke="#7c3aed"/>
-  <rect x="1370" y="155" width="185" height="58" rx="18" fill="#7c3aed"/>
-  <text x="1462" y="193" class="heading" text-anchor="middle">PostgreSQL</text>
-  <text x="1462" y="260" class="small" text-anchor="middle">Données</text>
-  <text x="1462" y="290" class="small" text-anchor="middle">transactionnelles</text>
-  <text x="1462" y="329" class="small" text-anchor="middle">Production</text>
+  <rect x="105" y="455" width="285" height="165" class="box" fill="#d9eef8" stroke="#167aa8"/>
+  <text x="247" y="493" text-anchor="middle" class="text" font-weight="bold">Équipements connectés</text>
+  <rect x="145" y="518" width="205" height="65" class="box" fill="#fff" stroke="#167aa8"/><text x="247" y="547" text-anchor="middle" class="small">Bacs intelligents</text><text x="247" y="571" text-anchor="middle" class="small">Capteurs et QR codes</text>
 
-  <rect x="1370" y="460" width="185" height="250" class="box" fill="#fef3c7" stroke="#d97706"/>
-  <rect x="1370" y="460" width="185" height="58" rx="18" fill="#d97706"/>
-  <text x="1462" y="498" class="heading" text-anchor="middle">Firebase</text>
-  <text x="1462" y="560" class="small" text-anchor="middle">Authentification</text>
-  <text x="1462" y="592" class="small" text-anchor="middle">Données temps réel</text>
-  <text x="1462" y="624" class="small" text-anchor="middle">Notifications push</text>
-  <text x="1462" y="670" class="small" text-anchor="middle">Scores et bacs</text>
+  <rect x="1210" y="455" width="285" height="165" class="box" fill="#e5d9f8" stroke="#7452a8"/>
+  <text x="1352" y="493" text-anchor="middle" class="text" font-weight="bold">Firebase</text>
+  <rect x="1240" y="518" width="225" height="65" class="box" fill="#fff" stroke="#7452a8"/><text x="1352" y="547" text-anchor="middle" class="small">Authentication • RTDB</text><text x="1352" y="571" text-anchor="middle" class="small">Cloud Messaging</text>
 
-  <rect x="520" y="700" width="660" height="120" class="box" fill="#e0f2fe" stroke="#0284c7"/>
-  <text x="850" y="748" class="text" text-anchor="middle">Équipements intelligents</text>
-  <text x="850" y="785" class="small" text-anchor="middle">Poubelles connectées, capteurs et codes QR : suivi de l'état, des scans et des collectes</text>
+  <rect x="555" y="700" width="490" height="100" class="box" fill="#d9e9fb" stroke="#2563eb"/>
+  <text x="800" y="740" text-anchor="middle" class="text" font-weight="bold">PostgreSQL</text>
+  <text x="800" y="770" text-anchor="middle" class="small">Données métier, utilisateurs, publications, collectes et historique</text>
 
-  <path d="M365 412 H478" class="line"/><path d="M820 412 H933" class="line"/>
-  <path d="M1300 292 H1358" class="line"/><path d="M1300 550 H1358" class="line"/>
-  <path d="M1122 645 V688" class="line"/><path d="M655 605 V688" class="line"/>
+  <path d="M800 170 V232" class="line"/><path d="M800 380 V442" class="line"/><path d="M555 535 H404" class="line"/><path d="M1045 535 H1196" class="line"/><path d="M800 620 V687" class="line"/>
+  <path d="M390 475 C450 390 520 355 555 340" class="dash"/><text x="420" y="408" class="small">scan / état</text>
+  <path d="M1210 480 C1145 390 1075 355 1045 340" class="dash"/><text x="1120" y="408" class="small">temps réel</text>
 </svg>
