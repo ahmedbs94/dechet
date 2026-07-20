@@ -2,15 +2,15 @@
   <defs>
     <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto"><path d="M0 0 L12 6 L0 12 Z" fill="#23354d"/></marker>
     <style>
-      .title{font:700 32px Arial,sans-serif;fill:#172554}.label{font:700 20px Arial,sans-serif;fill:#fff}.text{font:18px Arial,sans-serif;fill:#172554}.small{font:16px Arial,sans-serif;fill:#172554}.line{stroke:#23354d;stroke-width:3;fill:none;marker-end:url(#arrow)}.dash{stroke:#64748b;stroke-width:3;stroke-dasharray:10 7;fill:none}.box{stroke-width:3;rx:12;ry:12}
+      .title{font:700 32px Arial,sans-serif;fill:#172554}.label{font:700 20px Arial,sans-serif;fill:#fff}.text{font:18px Arial,sans-serif;fill:#172554}.small{font:16px Arial,sans-serif;fill:#172554}.inside{font:16px Arial,sans-serif;fill:#fff}.line{stroke:#23354d;stroke-width:3;fill:none;marker-end:url(#arrow)}.dash{stroke:#64748b;stroke-width:3;stroke-dasharray:10 7;fill:none}.box{stroke-width:3;rx:12;ry:12}
     </style>
   </defs>
   <rect width="1600" height="900" fill="#fff"/>
   <text x="800" y="52" text-anchor="middle" class="title">Architecture de la plateforme mobile EcoRewind</text>
 
-  <rect x="605" y="85" width="390" height="85" class="box" fill="#5c3f8c" stroke="#3d2465"/>
-  <text x="800" y="120" text-anchor="middle" class="label">Utilisateurs</text>
-  <text x="800" y="148" text-anchor="middle" class="small" fill="#fff">Citoyen • Éducateur • Collecteur • Gestionnaire • Administrateur</text>
+  <rect x="500" y="85" width="600" height="100" class="box" fill="#5c3f8c" stroke="#3d2465"/>
+  <text x="800" y="123" text-anchor="middle" class="label">Utilisateurs</text>
+  <text x="800" y="158" text-anchor="middle" class="inside">Citoyen • Éducateur • Collecteur • Gestionnaire • Administrateur</text>
 
   <rect x="555" y="245" width="490" height="135" class="box" fill="#f9d7be" stroke="#d8782f"/>
   <text x="800" y="280" text-anchor="middle" class="text" font-weight="bold">Application mobile Flutter</text>
@@ -36,7 +36,7 @@
   <text x="800" y="740" text-anchor="middle" class="text" font-weight="bold">PostgreSQL</text>
   <text x="800" y="770" text-anchor="middle" class="small">Données métier, utilisateurs, publications, collectes et historique</text>
 
-  <path d="M800 170 V232" class="line"/><path d="M800 380 V442" class="line"/><path d="M555 535 H404" class="line"/><path d="M1045 535 H1196" class="line"/><path d="M800 620 V687" class="line"/>
+  <path d="M800 185 V232" class="line"/><path d="M800 380 V442" class="line"/><path d="M555 535 H404" class="line"/><path d="M1045 535 H1196" class="line"/><path d="M800 620 V687" class="line"/>
   <path d="M390 475 C450 390 520 355 555 340" class="dash"/><text x="420" y="408" class="small">scan / état</text>
   <path d="M1210 480 C1145 390 1075 355 1045 340" class="dash"/><text x="1120" y="408" class="small">temps réel</text>
 </svg>
