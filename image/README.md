@@ -1,11 +1,23 @@
-# Images à ajouter pour le chapitre 3
+# Ressources visuelles du chapitre 3
 
-Déposez dans ce dossier les images suivantes, avec **exactement** ces noms et extensions :
+## Diagrammes créés dans le dépôt
 
-| Fichier | Contenu attendu |
+Les deux diagrammes d'architecture ont été créés au format vectoriel SVG :
+
+| Fichier | Rôle |
 | --- | --- |
-| `architecture_ecorewind.png` | Schéma général : application Flutter, API FastAPI, PostgreSQL, Firebase et équipements intelligents. |
-| `architecture_technique_ecorewind.png` | Schéma détaillé des flux techniques : Flutter → API REST FastAPI → PostgreSQL/Firebase, ainsi que Firebase Authentication, Realtime Database et Cloud Messaging. |
-| `environnement_developpement_ecorewind.png` | Illustration de l'environnement de développement : VS Code, Flutter/Dart, Python/FastAPI, PostgreSQL, Firebase, Postman et GitHub. |
+| `architecture_ecorewind.svg` | Architecture logicielle générale : utilisateurs, Flutter, FastAPI, PostgreSQL, Firebase et équipements intelligents. |
+| `architecture_technique_ecorewind.svg` | Architecture technique : flux API REST, persistance, Firebase, notifications et objets connectés. |
 
-Les références LaTeX correspondantes sont déjà présentes dans `chap_03.tex` sous la forme `image/<nom-du-fichier>.png`.
+Les SVG sont modifiables avec Draw.io, Inkscape ou un navigateur. Pour les intégrer à un rapport LaTeX compilé avec PDFLaTeX, exportez-les en PNG sous les noms déjà référencés par le chapitre :
+
+- `architecture_ecorewind.png`
+- `architecture_technique_ecorewind.png`
+
+## Image restant à téléverser
+
+Téléversez seulement une capture ou un montage des logiciels et outils utilisés sous ce nom :
+
+- `environnement_developpement_ecorewind.png` : Visual Studio Code, Android Studio/émulateur, Postman, Firebase Console, GitHub, Flutter/Dart et FastAPI/Python.
+
+Le fichier `chap_03.tex` référence ces trois noms au format PNG.
