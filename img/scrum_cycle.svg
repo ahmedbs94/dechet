@@ -6,13 +6,9 @@
       .title { font-family: Arial, sans-serif; font-size: 27px; font-weight: 700; fill: #1E293B; text-anchor: middle; }
       .label { font-family: Arial, sans-serif; font-size: 22px; font-weight: 700; fill: #1E293B; text-anchor: middle; }
       .circleText { font-family: Arial, sans-serif; font-size: 22px; font-weight: 700; fill: #FFFFFF; text-anchor: middle; }
-      .small { font-family: Arial, sans-serif; font-size: 16px; fill: #FFFFFF; text-anchor: middle; }
       .side { font-family: Arial, sans-serif; font-size: 20px; font-weight: 700; fill: #7C3AED; }
       .stroke { stroke: #FFFFFF; stroke-width: 5; stroke-linecap: round; stroke-linejoin: round; fill: none; }
     </style>
-    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse">
-      <path d="M 0 0 L 10 5 L 0 10 z" fill="#14B8A6"/>
-    </marker>
   </defs>
 
   <rect width="1600" height="620" fill="#FFFFFF"/>
@@ -44,7 +40,7 @@
   </g>
   <text class="label" x="805" y="150">Scrum Master</text>
 
-  <!-- Cercle 1 -->
+  <!-- Carnet de produit -->
   <g transform="translate(155 360)">
     <circle r="100" fill="#14B8A6"/>
     <text class="circleText" y="-22">Carnet</text><text class="circleText" y="5">de produit</text>
@@ -52,7 +48,7 @@
     <path d="M-8 30 V18 H8 V30 M-9 47 H9 M-9 61 H9 M-9 75 H4" class="stroke"/>
   </g>
 
-  <!-- Cercle 2 -->
+  <!-- Réunion de planification -->
   <g transform="translate(405 360)">
     <circle r="100" fill="#F97316"/>
     <text class="circleText" y="-36">Réunion de</text><text class="circleText" y="-9">planification</text><text class="circleText" y="18">de sprint</text>
@@ -60,23 +56,20 @@
     <path d="M-8 26 V43 H8 V26 M-8 54 H9 M-8 68 H2" class="stroke"/>
   </g>
 
-  <!-- Cercle 3 -->
+  <!-- Carnet de sprint -->
   <g transform="translate(655 360)">
     <circle r="100" fill="#F97316"/>
     <text class="circleText" y="-22">Carnet</text><text class="circleText" y="5">de sprint</text>
     <path d="M-29 30 H2 V70 H-29 Z M-12 19 H19 V59 H-12 Z M5 8 H36 V48 H5 Z" class="stroke"/>
   </g>
 
-  <!-- Boucle sprint -->
-  <path d="M695 355 C650 190,720 125,838 150 C960 175,1000 315,915 385" fill="none" stroke="#14B8A6" stroke-width="42" stroke-linecap="round" marker-end="url(#arrow)"/>
-  <path d="M918 385 C970 280,1007 212,957 169" fill="none" stroke="#14B8A6" stroke-width="36" stroke-linecap="round" marker-end="url(#arrow)"/>
-  <circle cx="816" cy="260" r="100" fill="#F8FAFC"/>
-  <text class="label" x="816" y="230">Sprint de</text><text class="label" x="816" y="257">1 à 4 semaines</text>
-  <text x="816" y="286" font-family="Arial, sans-serif" font-size="15" fill="#334155" text-anchor="middle">Immutabilité de</text>
-  <text x="816" y="306" font-family="Arial, sans-serif" font-size="15" fill="#334155" text-anchor="middle">date de fin de</text>
-  <text x="816" y="326" font-family="Arial, sans-serif" font-size="15" fill="#334155" text-anchor="middle">sprint et des biens</text>
-  <text x="816" y="346" font-family="Arial, sans-serif" font-size="15" fill="#334155" text-anchor="middle">livrables de l'équipe</text>
-  <text class="side" x="1025" y="185">Mêlée</text><text class="side" x="1025" y="210">quotidienne</text>
+  <!-- Sprint, sans boucle bleue -->
+  <circle cx="816" cy="260" r="112" fill="#F3E8FF" stroke="#7C3AED" stroke-width="8"/>
+  <text class="label" x="816" y="220">Sprint de</text><text class="label" x="816" y="247">1 à 4 semaines</text>
+  <text x="816" y="278" font-family="Arial, sans-serif" font-size="15" fill="#334155" text-anchor="middle">Durée fixe et objectif</text>
+  <text x="816" y="298" font-family="Arial, sans-serif" font-size="15" fill="#334155" text-anchor="middle">de sprint défini par</text>
+  <text x="816" y="318" font-family="Arial, sans-serif" font-size="15" fill="#334155" text-anchor="middle">l'équipe Scrum</text>
+  <text class="side" x="990" y="215">Mêlée</text><text class="side" x="990" y="240">quotidienne</text>
 
   <!-- Travail terminé -->
   <g transform="translate(1150 360)">
@@ -86,7 +79,7 @@
     <path d="M-8 30 V19 H8 V30 M-8 49 H8 M-8 63 L-1 72 L11 54" class="stroke"/>
   </g>
 
-  <!-- Revue -->
+  <!-- Revue et rétrospective -->
   <g transform="translate(1350 280)" stroke="#7C3AED" stroke-width="4" fill="none">
     <circle cx="-12" cy="-12" r="11"/><circle cx="14" cy="-12" r="11"/>
     <path d="M-34 30 C-31 5,5 5,8 30 M-5 30 C-2 5,34 5,38 30"/>
