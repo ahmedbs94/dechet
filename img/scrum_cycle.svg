@@ -7,6 +7,7 @@
       .label { font-family: Arial, sans-serif; font-size: 22px; font-weight: 700; fill: #1E293B; text-anchor: middle; }
       .circleText { font-family: Arial, sans-serif; font-size: 22px; font-weight: 700; fill: #FFFFFF; text-anchor: middle; }
       .side { font-family: Arial, sans-serif; font-size: 20px; font-weight: 700; fill: #7C3AED; }
+      .scrumBadge { font-family: Arial, sans-serif; font-size: 25px; font-weight: 700; fill: #1E293B; text-anchor: middle; }
       .stroke { stroke: #FFFFFF; stroke-width: 5; stroke-linecap: round; stroke-linejoin: round; fill: none; }
     </style>
   </defs>
@@ -33,12 +34,13 @@
   </g>
   <text class="label" x="405" y="245">L'équipe</text>
 
-  <!-- Scrum master -->
-  <g transform="translate(805 92)">
+  <!-- Scrum Master : rôle clairement séparé du sprint -->
+  <g transform="translate(816 80)">
     <circle cx="0" cy="0" r="15" fill="none" stroke="#14B8A6" stroke-width="4"/>
     <path d="M-25 50 C-20 20,20 20,25 50 M0 15 V35 M-17 35 H17" fill="none" stroke="#14B8A6" stroke-width="4" stroke-linecap="round"/>
   </g>
-  <text class="label" x="805" y="150">Scrum Master</text>
+  <rect x="683" y="132" width="266" height="44" rx="22" fill="#FFFFFF" stroke="#14B8A6" stroke-width="3"/>
+  <text class="scrumBadge" x="816" y="162">Scrum Master</text>
 
   <!-- Carnet de produit -->
   <g transform="translate(155 360)">
@@ -63,13 +65,13 @@
     <path d="M-29 30 H2 V70 H-29 Z M-12 19 H19 V59 H-12 Z M5 8 H36 V48 H5 Z" class="stroke"/>
   </g>
 
-  <!-- Sprint, sans boucle bleue -->
-  <circle cx="816" cy="260" r="112" fill="#F3E8FF" stroke="#7C3AED" stroke-width="8"/>
-  <text class="label" x="816" y="220">Sprint de</text><text class="label" x="816" y="247">1 à 4 semaines</text>
-  <text x="816" y="278" font-family="Arial, sans-serif" font-size="15" fill="#334155" text-anchor="middle">Durée fixe et objectif</text>
-  <text x="816" y="298" font-family="Arial, sans-serif" font-size="15" fill="#334155" text-anchor="middle">de sprint défini par</text>
-  <text x="816" y="318" font-family="Arial, sans-serif" font-size="15" fill="#334155" text-anchor="middle">l'équipe Scrum</text>
-  <text class="side" x="990" y="215">Mêlée</text><text class="side" x="990" y="240">quotidienne</text>
+  <!-- Sprint : abaissé pour dégager le rôle du Scrum Master -->
+  <circle cx="816" cy="292" r="105" fill="#F3E8FF" stroke="#7C3AED" stroke-width="8"/>
+  <text class="label" x="816" y="255">Sprint de</text><text class="label" x="816" y="282">1 à 4 semaines</text>
+  <text x="816" y="312" font-family="Arial, sans-serif" font-size="15" fill="#334155" text-anchor="middle">Durée fixe et objectif</text>
+  <text x="816" y="332" font-family="Arial, sans-serif" font-size="15" fill="#334155" text-anchor="middle">de sprint défini par</text>
+  <text x="816" y="352" font-family="Arial, sans-serif" font-size="15" fill="#334155" text-anchor="middle">l'équipe Scrum</text>
+  <text class="side" x="975" y="238">Mêlée</text><text class="side" x="975" y="263">quotidienne</text>
 
   <!-- Travail terminé -->
   <g transform="translate(1150 360)">
