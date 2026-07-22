@@ -1,20 +1,31 @@
-# Ressources visuelles -- chapitre 3
+# Ressources visuelles du rapport
 
-Les diagrammes d'architecture ont été redessinés sous forme de **composants reliés par des flux**, conformément au modèle fourni. Ils ne contiennent pas de tableaux.
+Ce dossier contient les exports utilisés par les chapitres LaTeX. Les fichiers `.drawio` restent les sources modifiables et doivent être exportés depuis **diagrams.net** avec une échelle suffisante (200 % recommandé), un fond blanc et l'option de rognage activée.
 
-## Diagrammes créés
+## Chapitre 3
 
-| Fichier SVG | Description |
+| Source | Export attendu |
 | --- | --- |
-| `architecture_ecorewind.svg` | Vue logique : utilisateurs, application Flutter mobile, API FastAPI, PostgreSQL, Firebase et équipements connectés. |
-| `architecture_technique_ecorewind.svg` | Vue technique : composants mobiles, routeurs et services FastAPI, persistance PostgreSQL, Firebase et objets IoT. |
+| `image/architecture_ecorewind.svg` | `image/architecture_ecorewind.png` |
+| `image/architecture_technique_ecorewind.svg` | `image/architecture_technique_ecorewind.png` |
 
-Pour la compilation LaTeX actuelle (`\includegraphics`), exportez ces deux SVG en PNG et ajoutez-les avec les noms suivants :
+## Chapitre 4 — Release 1
 
-- `architecture_ecorewind.png`
-- `architecture_technique_ecorewind.png`
+| Source Draw.io à la racine | Export PNG attendu dans `image/` |
+| --- | --- |
+| `usecase_sprint1_access.drawio` | `image/usecase_sprint1_access.png` |
+| `sequence_sprint1_authentication.drawio` | `image/sequence_sprint1_authentication.png` |
+| `sequence_sprint1_signup.drawio` | `image/sequence_sprint1_signup.png` |
+| `class_sprint1_access.drawio` | `image/class_sprint1_access.png` |
+| `usecase_sprint2_collection_points.drawio` | `image/usecase_sprint2_collection_points.png` |
+| `class_sprint2_collection_points.drawio` | `image/class_sprint2_collection_points.png` |
+| `sequence_sprint2_collection_points.drawio` | `image/sequence_sprint2_collection_points.png` |
+| `usecase_sprint3_community.drawio` | `image/usecase_sprint3_community.png` |
+| `class_sprint3_community.drawio` | `image/class_sprint3_community.png` |
+| `sequence_sprint3_publish_post.drawio` | `image/sequence_sprint3_publish_post.png` |
 
-## Captures à ajouter par l'étudiant
+`chap_04.tex` utilise `\IfFileExists`. Le document reste donc compilable si un export manque : un encadré indique alors le fichier Draw.io à exporter.
 
-- `frontend_flutter_dart.png` : capture du projet mobile Flutter/Dart ou de son exécution sur Android.
-- `backend_fastapi_python.png` : capture du code FastAPI/Python ou de la documentation Swagger de l'API.
+## Captures d'interface à fournir
+
+Les captures doivent provenir d'une exécution réelle de l'application. Éviter les maquettes présentées comme des écrans implémentés. Les captures recommandées pour la Release 1 sont : connexion/MFA, profil et QR, carte et détails d'un point, fil communautaire, création d'une publication, notifications et écran de modération.

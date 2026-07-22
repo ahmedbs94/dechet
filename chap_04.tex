@@ -1,180 +1,205 @@
 \chapter{Release 1 : Socle citoyen}
-\label{chap:release_1_socle_citoyen}
+\label{chap:release1}
+
+% Affichage robuste : le rapport reste compilable avant l'export PNG depuis Draw.io.
+\providecommand{\releasefigure}[4]{%
+\begin{figure}[H]
+    \centering
+    \IfFileExists{#1}{%
+        \includegraphics[width=#2\textwidth]{#1}%
+    }{%
+        \fbox{\parbox[c][4.2cm][c]{0.88\textwidth}{\centering
+        \textbf{Diagramme à exporter depuis Draw.io}\\[0.3cm]
+        \texttt{\detokenize{#4}}\\
+        vers\\
+        \texttt{\detokenize{#1}}}}
+    }%
+    \caption{#3}
+\end{figure}}
 
 \section{Introduction de la Release}
-\label{sec:introduction_release_1}
+\label{sec:r1_introduction}
 
-La première release d'EcoRewind établit le socle citoyen de la plateforme. Son objectif est de livrer une première version cohérente permettant aux utilisateurs de s'authentifier, de consulter l'information environnementale locale et de participer à une communauté dédiée au tri des déchets.
+La Release 1 constitue le socle citoyen d'EcoRewind. Conformément à la planification établie au chapitre~\ref{chap:analyse_specification_besoins}, elle regroupe trois sprints complémentaires. Le premier sécurise l'accès à la plateforme et la gestion des profils. Le deuxième met à disposition la carte, les points de collecte et les consignes locales de tri. Le troisième introduit le fil communautaire, les interactions, les témoignages et les notifications.
 
-Les travaux de cette release se concentrent sur trois piliers complémentaires :
-\begin{enumerate}
-    \item la mise en place d'un système d'accès sécurisé, de profils et de rôles ;
-    \item la gestion et la consultation des points de collecte ainsi que des consignes locales de tri ;
-    \item la création d'un espace communautaire comprenant les publications, les interactions, les témoignages et les notifications.
-\end{enumerate}
-
-À l'issue de cette release, l'application dispose d'un parcours citoyen fonctionnel. Les releases suivantes pourront s'appuyer sur cette base pour introduire la sensibilisation approfondie, les récompenses, les poubelles intelligentes et le pilotage territorial.
+Cette organisation fournit un incrément utilisable : le citoyen peut créer son compte, accéder aux informations de tri de son territoire et participer à la communauté. Les fonctionnalités éducatives, les récompenses et l'intégration IoT sont réservées aux releases suivantes.
 
 \section{Sprint 1 : Authentification, profils et gestion des rôles}
-\label{sec:sprint_1_acces}
+\label{sec:r1_sprint1}
 
 \subsection{Objectifs et backlog du Sprint 1}
 
-Ce sprint construit le socle de sécurité de l'application. Il couvre l'inscription, l'authentification par identifiants ou fournisseurs configurés, la gestion du profil, l'identifiant QR personnel et le contrôle des accès selon les rôles.
+L'objectif du Sprint 1 est de mettre en place une gestion sécurisée des identités. Le backend fournit l'inscription, la connexion par JWT, le renouvellement de session, la récupération du mot de passe, l'authentification sociale et la vérification multifacteur. Le modèle \texttt{User} centralise le rôle, le code QR unique, l'avatar et les paramètres MFA.
 
-\begin{longtable}{|>{\centering\arraybackslash}p{1cm}|p{8.8cm}|>{\centering\arraybackslash}p{2cm}|>{\centering\arraybackslash}p{1.8cm}|}
-\caption{Backlog du Sprint 1 : Authentification, profils et rôles}\label{tab:backlog_sprint_1}\\
+\begin{longtable}{|>{\centering\arraybackslash}p{1cm}|p{9.2cm}|>{\centering\arraybackslash}p{1.8cm}|>{\centering\arraybackslash}p{1.8cm}|}
+\caption{Backlog du Sprint 1 -- Accès, profils et rôles}\label{tab:r1_s1_backlog}\\
 \hline
-\rowcolor{gray!35}\textbf{ID} & \textbf{User Story} & \textbf{Priorité} & \textbf{Statut}\\ \hline
+\rowcolor{gray!35}\textbf{ID} & \textbf{User Story} & \textbf{Priorité} & \textbf{État}\\\hline
 \endfirsthead
-\hline
-\rowcolor{gray!35}\textbf{ID} & \textbf{User Story} & \textbf{Priorité} & \textbf{Statut}\\ \hline
+\hline\rowcolor{gray!35}\textbf{ID} & \textbf{User Story} & \textbf{Priorité} & \textbf{État}\\\hline
 \endhead
-\hline\multicolumn{4}{r}{\textit{Suite à la page suivante}}\\\endfoot
-\hline\endlastfoot
-1.1 & En tant que visiteur, je veux créer un compte afin d'accéder aux services personnalisés d'EcoRewind. & Élevée & Implémenté\\\hline
-1.2 & En tant qu'utilisateur, je veux m'authentifier et me déconnecter de manière sécurisée afin de protéger mon espace personnel. & Élevée & Implémenté\\\hline
-1.3 & En tant qu'utilisateur, je veux gérer mon profil et disposer d'un code QR personnel afin d'être identifié par les services de la plateforme. & Élevée & Implémenté\\\hline
-1.4 & En tant qu'administrateur, je veux gérer les utilisateurs et les rôles afin de contrôler les droits d'accès. & Élevée & Implémenté\\\hline
-1.5 & En tant qu'utilisateur, je veux pouvoir utiliser les mécanismes d'authentification configurés, dont les fournisseurs sociaux et l'authentification renforcée lorsqu'elle est activée. & Moyenne & Implémenté\\\hline
+1.1 & En tant que visiteur, je veux créer et vérifier mon compte afin d'accéder aux services personnalisés. & Élevée & Réalisée\\\hline
+1.2 & En tant qu'utilisateur, je veux me connecter, renouveler ma session et me déconnecter de manière sécurisée. & Élevée & Réalisée\\\hline
+1.3 & En tant qu'utilisateur, je veux consulter et modifier mon profil, mon avatar et mon QR personnel. & Élevée & Réalisée\\\hline
+1.4 & En tant qu'utilisateur, je veux récupérer mon mot de passe et activer la MFA afin de renforcer la sécurité de mon compte. & Élevée & Réalisée\\\hline
+1.5 & En tant qu'administrateur, je veux gérer les comptes et leurs rôles selon mes autorisations. & Élevée & Réalisée\\\hline
 \end{longtable}
 
-\subsection{Conception et contrôle des accès}
+\subsection{Raffinement des cas d'utilisation}
 
-La gestion des accès repose sur un modèle utilisateur centralisé. Chaque compte possède notamment une adresse électronique, un mot de passe haché lorsque ce mode d'accès est utilisé, un rôle, un code QR unique et un score global. Les rôles pris en charge comprennent le citoyen, l'éducateur, le collecteur, le gestionnaire de point, l'intercommunalité, l'administrateur et le super-administrateur.
+La figure~\ref{fig:r1_s1_uc} place les acteurs à l'extérieur de la frontière d'EcoRewind. L'authentification est une précondition des opérations privées et non un sous-cas inclus artificiellement. La vérification MFA étend la connexion uniquement lorsque cette option est activée. La vérification du compte fait partie du parcours d'inscription.
 
-L'API FastAPI protège les ressources sensibles par des jetons JWT et des dépendances de contrôle d'accès. L'application Flutter adapte ensuite les espaces et les onglets affichés au rôle de l'utilisateur connecté. La source Draw.io \texttt{usecase\_sprint1\_access.drawio} présente le raffinement des cas d'utilisation de ce sprint.
+\releasefigure{image/usecase_sprint1_access.png}{0.95}{Diagramme de cas d'utilisation du Sprint 1}{usecase_sprint1_access.drawio}
+\label{fig:r1_s1_uc}
 
-\subsection{Description textuelle du cas d'utilisation « S'authentifier »}
+\subsection{Description textuelle du cas « S'authentifier »}
 
 \begin{longtable}{|p{3.2cm}|p{10.2cm}|}
-\caption{Cas d'utilisation : S'authentifier}\label{tab:uc_authentifier}\\
+\caption{Description du cas d'utilisation « S'authentifier »}\label{tab:r1_uc_auth}\\
 \hline\rowcolor{gray!20}\textbf{Élément} & \textbf{Description}\\\hline
-Cas d'utilisation & S'authentifier\\\hline
-Acteurs & Visiteur, citoyen, éducateur, collecteur, gestionnaire de point, intercommunalité et administrateur.\\\hline
-Pré-conditions & L'utilisateur possède un compte actif ou utilise un fournisseur d'authentification configuré.\\\hline
-Post-conditions & Une session authentifiée est ouverte, un jeton d'accès est disponible et l'interface adaptée au rôle est affichée.\\\hline
-Scénario nominal & 1. L'utilisateur saisit ses identifiants ou choisit un fournisseur configuré. \newline 2. Le système vérifie les informations. \newline 3. Le système génère les jetons nécessaires. \newline 4. Le système charge le profil et le rôle. \newline 5. L'utilisateur est redirigé vers son espace.\\\hline
-Exceptions & Identifiants invalides, compte inactif, erreur de communication ou étape d'authentification renforcée requise.\\\hline
+Acteur principal & Utilisateur disposant d'un compte EcoRewind.\\\hline
+Préconditions & Le compte existe et il est actif.\\\hline
+Postconditions & Un jeton d'accès et un jeton de renouvellement sont produits, sauf si une vérification MFA reste requise.\\\hline
+Scénario nominal & 1. L'utilisateur saisit son courriel et son mot de passe. \newline 2. Flutter transmet les données à \texttt{POST /token}. \newline 3. Le routeur recherche l'utilisateur et vérifie le mot de passe haché. \newline 4. Le backend synchronise les données utiles avec Firebase. \newline 5. Il retourne les jetons, le rôle, l'identifiant et le QR personnel. \newline 6. Flutter ouvre l'espace correspondant au rôle.\\\hline
+Alternatives & A1 : identifiants invalides, réponse HTTP 401. \newline A2 : MFA active, retour d'un \texttt{mfa\_token}, saisie du code TOTP puis appel de \texttt{/auth/mfa/verify}.\\\hline
 \end{longtable}
 
-\subsection{Implémentation et validation du Sprint 1}
+\subsection{Diagrammes de séquence}
 
-Le backend contient des modules dédiés aux utilisateurs et à l'authentification. Le modèle \texttt{User} conserve les informations de profil, le rôle, le code QR, le score et les paramètres d'authentification renforcée. Côté Flutter, les écrans d'authentification et l'état global de session permettent d'orienter l'utilisateur vers l'espace correspondant à son rôle.
+Le diagramme de la figure~\ref{fig:r1_s1_seq_auth} respecte le flux réel de \texttt{POST /token}. Le fragment \texttt{alt} distingue l'échec, la connexion directe et la branche MFA. Les retours sont représentés en pointillés et les appels synchrones en traits pleins.
 
-La validation fonctionnelle doit couvrir l'inscription, la connexion, la déconnexion, l'accès refusé à une ressource protégée et la redirection selon le rôle. Les tests automatisés du projet peuvent être complétés par ces scénarios de recette lors de chaque livraison.
+\releasefigure{image/sequence_sprint1_authentication.png}{0.98}{Diagramme de séquence « S'authentifier »}{sequence_sprint1_authentication.drawio}
+\label{fig:r1_s1_seq_auth}
 
-\section{Sprint 2 : Points de collecte, carte et consignes de tri}
-\label{sec:sprint_2_points_collecte}
+La création du compte vérifie l'unicité du courriel, hache le mot de passe avec bcrypt, persiste l'utilisateur et génère le QR par la valeur par défaut du modèle. La synchronisation Firebase est non bloquante.
+
+\releasefigure{image/sequence_sprint1_signup.png}{0.98}{Diagramme de séquence « Créer un compte »}{sequence_sprint1_signup.drawio}
+\label{fig:r1_s1_seq_signup}
+
+\subsection{Diagramme de classes du Sprint 1}
+
+La figure~\ref{fig:r1_s1_class} ne crée pas de sous-classes artificielles pour les rôles : ceux-ci sont stockés dans l'attribut \texttt{role} de \texttt{User}. \texttt{OTPCode} représente les codes temporaires utilisés pour l'inscription ou la réinitialisation.
+
+\releasefigure{image/class_sprint1_access.png}{0.90}{Diagramme de classes du Sprint 1}{class_sprint1_access.drawio}
+\label{fig:r1_s1_class}
+
+\subsection{Scénarios de validation}
+
+Les scénarios de recette portent sur l'inscription avec courriel unique, le refus d'identifiants invalides, la production des JWT, la branche MFA, la protection d'une ressource privée et le contrôle des rôles. Ils constituent des critères de validation ; leur présence dans ce tableau ne remplace pas l'exécution des tests automatisés.
+
+\section{Sprint 2 : Carte, points de collecte et consignes de tri}
+\label{sec:r1_sprint2}
 
 \subsection{Objectifs et backlog du Sprint 2}
 
-Le deuxième sprint est consacré à l'information locale indispensable au geste de tri. Il permet aux citoyens de localiser les points de collecte et aux acteurs autorisés d'administrer les informations liées à ces points et aux consignes territoriales.
+Ce sprint rend l'information de tri directement exploitable. Le citoyen consulte les points sur une carte OpenStreetMap, recherche un centre et filtre les résultats. L'administrateur maintient les points de collecte, tandis que l'intercommunalité gère les consignes locales de son territoire.
 
-\begin{longtable}{|>{\centering\arraybackslash}p{1cm}|p{8.8cm}|>{\centering\arraybackslash}p{2cm}|>{\centering\arraybackslash}p{1.8cm}|}
-\caption{Backlog du Sprint 2 : Points de collecte et consignes de tri}\label{tab:backlog_sprint_2}\\
-\hline
-\rowcolor{gray!35}\textbf{ID} & \textbf{User Story} & \textbf{Priorité} & \textbf{Statut}\\\hline
+\begin{longtable}{|>{\centering\arraybackslash}p{1cm}|p{9.2cm}|>{\centering\arraybackslash}p{1.8cm}|>{\centering\arraybackslash}p{1.8cm}|}
+\caption{Backlog du Sprint 2 -- Points de collecte et consignes}\label{tab:r1_s2_backlog}\\
+\hline\rowcolor{gray!35}\textbf{ID} & \textbf{User Story} & \textbf{Priorité} & \textbf{État}\\\hline
 \endfirsthead
-\hline
-\rowcolor{gray!35}\textbf{ID} & \textbf{User Story} & \textbf{Priorité} & \textbf{Statut}\\\hline
+\hline\rowcolor{gray!35}\textbf{ID} & \textbf{User Story} & \textbf{Priorité} & \textbf{État}\\\hline
 \endhead
-\hline\multicolumn{4}{r}{\textit{Suite à la page suivante}}\\\endfoot
-\hline\endlastfoot
-2.1 & En tant que citoyen, je veux consulter les points de collecte sur une carte afin de localiser une solution adaptée à mes déchets. & Élevée & Implémenté\\\hline
-2.2 & En tant que citoyen, je veux rechercher et filtrer les points selon les types de déchets, leur adresse et leur disponibilité. & Élevée & Implémenté\\\hline
-2.3 & En tant qu'administrateur, je veux créer, modifier et supprimer les points de collecte afin de maintenir des informations fiables. & Élevée & Implémenté\\\hline
-2.4 & En tant qu'intercommunalité, je veux créer et mettre à jour les consignes locales de tri afin d'adapter l'information au territoire. & Élevée & Implémenté\\\hline
-2.5 & En tant que gestionnaire de point ou collecteur habilité, je veux consulter l'état d'un point afin de contribuer au suivi opérationnel. & Moyenne & Implémenté\\\hline
+2.1 & En tant que visiteur ou citoyen, je veux consulter les points de collecte sur une carte. & Élevée & Réalisée\\\hline
+2.2 & En tant que citoyen, je veux rechercher et filtrer les points puis consulter leurs détails. & Élevée & Réalisée\\\hline
+2.3 & En tant qu'administrateur, je veux créer, modifier et supprimer un point de collecte. & Élevée & Réalisée\\\hline
+2.4 & En tant qu'intercommunalité, je veux gérer les consignes locales par territoire, ville et type de déchet. & Élevée & Réalisée\\\hline
 \end{longtable}
 
-\subsection{Conception des points de collecte}
+\subsection{Raffinement des cas d'utilisation}
 
-Un point de collecte est caractérisé par son nom, ses coordonnées géographiques, son adresse, ses horaires, les types de déchets acceptés, son niveau de remplissage et son statut opérationnel. Les statuts prévus sont notamment \texttt{disponible}, \texttt{saturé} et \texttt{maintenance}. Ces données sont exploitées par la carte Flutter et par les opérations d'administration de l'API.
+La consultation générale des points est distinguée de la vue centralisée protégée de l'intercommunalité. « Filtrer les points » et « Afficher les détails » étendent la consultation car ces comportements sont déclenchés seulement à la demande. Les opérations d'administration sont associées directement aux acteurs autorisés.
 
-Les consignes locales complètent les informations de collecte. Elles sont définies par territoire, ville et type de déchet. Elles permettent à l'intercommunalité de diffuser des instructions adaptées aux règles locales. Les diagrammes \texttt{usecase\_sprint2\_collection\_points.drawio} et \texttt{class\_sprint2\_collection\_points.drawio} décrivent respectivement les interactions et les classes de ce sprint.
+\releasefigure{image/usecase_sprint2_collection_points.png}{0.96}{Diagramme de cas d'utilisation du Sprint 2}{usecase_sprint2_collection_points.drawio}
+\label{fig:r1_s2_uc}
 
-\subsection{Description textuelle du cas d'utilisation « Consulter les points de collecte »}
+\subsection{Description textuelle du cas « Consulter les points de collecte »}
 
 \begin{longtable}{|p{3.2cm}|p{10.2cm}|}
-\caption{Cas d'utilisation : Consulter les points de collecte}\label{tab:uc_consulter_points}\\
+\caption{Description du cas d'utilisation « Consulter les points de collecte »}\label{tab:r1_uc_points}\\
 \hline\rowcolor{gray!20}\textbf{Élément} & \textbf{Description}\\\hline
-Cas d'utilisation & Consulter les points de collecte.\\\hline
-Acteurs & Visiteur, citoyen, collecteur, gestionnaire de point et intercommunalité.\\\hline
-Pré-conditions & La connexion au service de données est disponible. Une authentification est requise uniquement pour les opérations réservées.\\\hline
-Post-conditions & La carte ou la liste des points est affichée avec les informations disponibles.\\\hline
-Scénario nominal & 1. L'acteur accède à la carte. \newline 2. Le système récupère les points de collecte. \newline 3. Le système affiche les marqueurs et leurs informations. \newline 4. L'acteur applique, si besoin, des filtres. \newline 5. Le système actualise les résultats.\\\hline
-Exceptions & Aucun point ne correspond aux filtres, coordonnées indisponibles ou erreur de communication avec le service.\\\hline
+Acteurs & Visiteur et citoyen.\\\hline
+Préconditions & L'application peut joindre l'API ; aucune authentification n'est imposée pour la consultation publique.\\\hline
+Postconditions & Les marqueurs correspondant aux données disponibles sont affichés sur la carte.\\\hline
+Scénario nominal & 1. L'acteur ouvre la carte. \newline 2. Flutter demande la liste des points. \newline 3. Le routeur interroge \texttt{CollectionPoint}. \newline 4. L'API retourne les coordonnées, types, adresse, horaires, statut et niveau de remplissage. \newline 5. Flutter place les marqueurs.\\\hline
+Alternatives & A1 : liste vide, affichage d'un état vide. \newline A2 : erreur réseau, affichage d'une erreur avec possibilité de relancer. \newline A3 : filtres renseignés, mise à jour des résultats visibles.\\\hline
 \end{longtable}
 
-\subsection{Implémentation et validation du Sprint 2}
+\subsection{Diagramme de classes du Sprint 2}
 
-Le modèle \texttt{CollectionPoint} structure les données utilisées par la carte et les opérations CRUD. L'application Flutter exploite \texttt{flutter\_map} et OpenStreetMap pour la représentation géographique. Le module intercommunalité permet, quant à lui, de gérer les consignes locales ainsi que les éléments de coordination territoriale.
+\texttt{CollectionPoint} et \texttt{LocalInstruction} sont deux concepts indépendants : aucune association persistante n'est inventée entre eux. La seule association représentée relie l'auteur à ses consignes grâce à la clé étrangère \texttt{created\_by}.
 
-Les scénarios de validation concernent l'affichage de la carte, le filtrage, la consultation des détails d'un point, la création ou la mise à jour d'un point par un administrateur et la gestion des consignes par l'intercommunalité.
+\releasefigure{image/class_sprint2_collection_points.png}{0.94}{Diagramme de classes du Sprint 2}{class_sprint2_collection_points.drawio}
+\label{fig:r1_s2_class}
+
+\subsection{Diagramme de séquence}
+
+La consultation publique ne contient pas de fragment \texttt{ref S'authentifier}. Le fragment \texttt{alt} décrit les trois résultats possibles : liste disponible, liste vide ou erreur technique.
+
+\releasefigure{image/sequence_sprint2_collection_points.png}{0.98}{Diagramme de séquence « Consulter les points de collecte »}{sequence_sprint2_collection_points.drawio}
+\label{fig:r1_s2_seq}
 
 \section{Sprint 3 : Fil communautaire, témoignages et notifications}
-\label{sec:sprint_3_communaute}
+\label{sec:r1_sprint3}
 
 \subsection{Objectifs et backlog du Sprint 3}
 
-Le troisième sprint met en place le volet communautaire d'EcoRewind. Il permet aux citoyens de partager leurs initiatives écologiques, d'interagir avec les publications et de recevoir les notifications associées. Les contenus sont soumis à un processus de modération avant leur publication définitive.
+Le Sprint 3 introduit la participation citoyenne. Une publication est enregistrée immédiatement avec le statut \texttt{pending\_review}, puis analysée par une tâche de fond. Un contenu sûr peut être publié automatiquement ; un contenu signalé reste soumis à la décision humaine. L'IA ne prononce donc pas seule un rejet définitif dans le flux principal.
 
-\begin{longtable}{|>{\centering\arraybackslash}p{1cm}|p{8.8cm}|>{\centering\arraybackslash}p{2cm}|>{\centering\arraybackslash}p{1.8cm}|}
-\caption{Backlog du Sprint 3 : Communauté et notifications}\label{tab:backlog_sprint_3}\\
-\hline
-\rowcolor{gray!35}\textbf{ID} & \textbf{User Story} & \textbf{Priorité} & \textbf{Statut}\\\hline
+\begin{longtable}{|>{\centering\arraybackslash}p{1cm}|p{9.2cm}|>{\centering\arraybackslash}p{1.8cm}|>{\centering\arraybackslash}p{1.8cm}|}
+\caption{Backlog du Sprint 3 -- Communauté et notifications}\label{tab:r1_s3_backlog}\\
+\hline\rowcolor{gray!35}\textbf{ID} & \textbf{User Story} & \textbf{Priorité} & \textbf{État}\\\hline
 \endfirsthead
-\hline
-\rowcolor{gray!35}\textbf{ID} & \textbf{User Story} & \textbf{Priorité} & \textbf{Statut}\\\hline
+\hline\rowcolor{gray!35}\textbf{ID} & \textbf{User Story} & \textbf{Priorité} & \textbf{État}\\\hline
 \endhead
-\hline\multicolumn{4}{r}{\textit{Suite à la page suivante}}\\\endfoot
-\hline\endlastfoot
-3.1 & En tant que citoyen, je veux consulter un fil d'actualité afin de découvrir les initiatives de la communauté. & Élevée & Implémenté\\\hline
-3.2 & En tant que citoyen, je veux publier un message et un média afin de partager une action de tri ou de sensibilisation. & Élevée & Implémenté\\\hline
-3.3 & En tant que citoyen, je veux aimer, commenter et enregistrer une publication afin d'interagir avec la communauté. & Moyenne & Implémenté\\\hline
-3.4 & En tant que citoyen, je veux soumettre un témoignage ou proposer un point de collecte afin de contribuer à la plateforme. & Moyenne & Implémenté\\\hline
-3.5 & En tant qu'utilisateur, je veux recevoir des notifications relatives aux interactions et à la modération afin de suivre mon activité. & Élevée & Implémenté\\\hline
-3.6 & En tant qu'administrateur, je veux approuver ou rejeter les contenus en attente afin de préserver la qualité du fil communautaire. & Élevée & Implémenté\\\hline
+3.1 & En tant que citoyen, je veux consulter et créer des publications avec un média éventuel. & Élevée & Réalisée\\\hline
+3.2 & En tant que citoyen, je veux aimer, commenter, répondre et enregistrer une publication. & Élevée & Réalisée\\\hline
+3.3 & En tant que citoyen, je veux soumettre un témoignage ou proposer un point de collecte. & Moyenne & Réalisée\\\hline
+3.4 & En tant qu'utilisateur, je veux recevoir et marquer comme lues mes notifications. & Élevée & Réalisée\\\hline
+3.5 & En tant qu'administrateur, je veux examiner les contenus signalés et décider de leur publication ou rejet. & Élevée & Réalisée\\\hline
 \end{longtable}
 
-\subsection{Conception de l'espace communautaire}
+\subsection{Raffinement des cas d'utilisation}
 
-Le fil communautaire repose sur les entités \texttt{Post}, \texttt{Comment}, \texttt{Like} et \texttt{SavedPost}. Une publication possède un auteur, un texte, une image éventuelle, une date de création, un nombre de mentions d'appréciation et un statut de modération. Les statuts de publication permettent notamment de distinguer les contenus en attente de validation, publiés ou rejetés.
+L'ajout d'un média étend la création d'une publication, car il reste facultatif. Aimer, commenter et enregistrer sont des spécialisations comportementales optionnelles de l'interaction avec une publication. La modération automatique est incluse dans le traitement d'une nouvelle publication ; la décision humaine intervient seulement pour un contenu signalé.
 
-Les témoignages et les propositions de nouveaux points sont enregistrés dans des entités dédiées et peuvent être soumis à une validation administrative. Les notifications sont associées à un destinataire et, lorsqu'il existe, à un émetteur ou à une publication. Les diagrammes \texttt{usecase\_sprint3\_community.drawio} et \texttt{class\_sprint3\_community.drawio} documentent cette conception.
+\releasefigure{image/usecase_sprint3_community.png}{0.97}{Diagramme de cas d'utilisation du Sprint 3}{usecase_sprint3_community.drawio}
+\label{fig:r1_s3_uc}
 
-\subsection{Description textuelle du cas d'utilisation « Publier une action citoyenne »}
+\subsection{Description textuelle du cas « Publier une action citoyenne »}
 
 \begin{longtable}{|p{3.2cm}|p{10.2cm}|}
-\caption{Cas d'utilisation : Publier une action citoyenne}\label{tab:uc_publier_action}\\
+\caption{Description du cas d'utilisation « Publier une action citoyenne »}\label{tab:r1_uc_post}\\
 \hline\rowcolor{gray!20}\textbf{Élément} & \textbf{Description}\\\hline
-Cas d'utilisation & Publier une action citoyenne.\\\hline
-Acteurs & Citoyen authentifié.\\\hline
-Pré-conditions & Le citoyen est authentifié et dispose d'une session valide.\\\hline
-Post-conditions & La publication est enregistrée avec son statut de modération ; le citoyen est informé du résultat du traitement.\\\hline
-Scénario nominal & 1. Le citoyen ouvre l'écran de création. \newline 2. Il saisit une description et ajoute éventuellement un média. \newline 3. Il valide la publication. \newline 4. Le système enregistre le contenu et lance le traitement de modération. \newline 5. Le système publie le contenu ou le place dans la file de révision selon le résultat.\\\hline
-Exceptions & Média non valide, données manquantes, erreur de téléversement ou indisponibilité temporaire du service de modération.\\\hline
+Acteur & Citoyen authentifié.\\\hline
+Préconditions & Le jeton d'accès est valide ; la description et les informations attendues respectent le schéma \texttt{PostCreate}.\\\hline
+Postconditions & La publication est persistée en \texttt{pending\_review} et une tâche de modération est planifiée.\\\hline
+Scénario nominal & 1. Le citoyen rédige son contenu et ajoute éventuellement un média. \newline 2. Flutter téléverse le fichier si nécessaire et obtient son URL. \newline 3. Flutter appelle \texttt{POST /posts}. \newline 4. L'API persiste la publication. \newline 5. Elle répond immédiatement puis lance \texttt{\_run\_ai\_moderation} en arrière-plan. \newline 6. Le statut et les informations d'audit sont mis à jour. \newline 7. Une notification informe l'auteur.\\\hline
+Alternatives & A1 : score sûr, statut \texttt{published}. \newline A2 : contenu signalé ou erreur du pipeline, maintien en \texttt{pending\_review} pour arbitrage humain. \newline A3 : données invalides ou média non téléversé, la requête est rejetée avant création.\\\hline
 \end{longtable}
 
-\subsection{Implémentation et validation du Sprint 3}
+\subsection{Diagramme de classes du Sprint 3}
 
-Le backend expose des services pour le fil paginé, les publications, les commentaires, les mentions d'appréciation, les enregistrements, les témoignages, les propositions de points et les notifications. La modération associe des règles métier et des traitements spécialisés pour orienter le contenu vers une publication ou une révision humaine. L'application Flutter présente ces informations dans les écrans communautaires et de notifications.
+\texttt{Like} et \texttt{SavedPost} sont représentées comme des classes d'association entre \texttt{User} et \texttt{Post}. La relation réflexive de \texttt{Comment} modélise les réponses. Les liens de notification ne sont dessinés comme associations que lorsqu'ils correspondent à de véritables clés étrangères.
 
-La validation couvre la création d'une publication, les interactions, la génération de notifications, le suivi de l'état de modération, la soumission d'un témoignage et la validation administrative des contenus.
+\releasefigure{image/class_sprint3_community.png}{0.99}{Diagramme de classes du Sprint 3}{class_sprint3_community.drawio}
+\label{fig:r1_s3_class}
+
+\subsection{Diagramme de séquence}
+
+Le fragment \texttt{opt [média fourni]} précède la création. La réponse HTTP est renvoyée avant la modération asynchrone. Le fragment \texttt{alt} distingue la publication automatique et la révision humaine ; il ne présente pas un rejet automatique comme décision finale du pipeline principal.
+
+\releasefigure{image/sequence_sprint3_publish_post.png}{0.99}{Diagramme de séquence « Publier une action citoyenne »}{sequence_sprint3_publish_post.drawio}
+\label{fig:r1_s3_seq}
 
 \section{Implémentation de la Release 1}
-\label{sec:implementation_release_1}
+\label{sec:r1_implementation}
 
-L'implémentation de cette release repose sur l'application Flutter pour les interfaces mobile et Web, et sur une API REST FastAPI pour la logique métier. Les modules backend \texttt{auth}, \texttt{users}, \texttt{collection\_points}, \texttt{intercommunality}, \texttt{posts}, \texttt{community} et \texttt{notifications} correspondent directement aux fonctionnalités réalisées dans les trois sprints.
+L'application cliente est développée avec Flutter. Elle communique avec les routeurs FastAPI par HTTP et conserve les éléments de session nécessaires. Les données métier sont persistées par SQLAlchemy et les évolutions du schéma sont gérées par Alembic. Firebase complète le backend pour les usages configurés, notamment la synchronisation et les notifications mobiles.
 
-Les interfaces de la release regroupent les écrans d'authentification, le profil utilisateur, la carte des points de collecte, le fil communautaire, les formulaires de publication, les notifications et les espaces d'administration. Les captures d'écran réelles de ces interfaces peuvent être ajoutées dans le répertoire \texttt{image/} ou \texttt{img/} puis intégrées au rapport au format PNG ou PDF.
-
-La release a été conçue pour fournir une première expérience complète : un citoyen peut accéder à la plateforme, consulter les informations de tri, identifier un point de collecte, participer au fil communautaire et suivre ses interactions. Les utilisateurs à responsabilités disposent de droits adaptés pour administrer les données et les contenus.
+La Release 1 mobilise principalement les modules \texttt{auth}, \texttt{users}, \texttt{collection\_points}, \texttt{intercommunality}, \texttt{posts}, \texttt{community} et \texttt{notifications}. Les captures des interfaces finales pourront compléter cette section sans remplacer les diagrammes de conception.
 
 \section{Conclusion de la Release 1}
-\label{sec:conclusion_release_1}
+\label{sec:r1_conclusion}
 
-La Release 1 a permis de mettre en place le socle citoyen d'EcoRewind. Les fonctionnalités d'accès sécurisé, de profils et de rôles constituent la base de protection de la plateforme. La carte, les points de collecte et les consignes locales répondent au besoin d'information pratique lié au tri. Enfin, le fil communautaire, les témoignages et les notifications renforcent l'engagement des citoyens.
-
-Cette première release fournit une base fonctionnelle cohérente pour la suite du projet. La Release 2 pourra enrichir cette expérience par les contenus éducatifs, les quiz, les récompenses, les scans QR et l'intégration progressive de la poubelle intelligente.
+Cette release fournit un incrément fonctionnel cohérent : accès sécurisé, information locale de tri et participation communautaire. Les diagrammes présentés décrivent les responsabilités réellement observées dans le dépôt, les échanges entre Flutter et FastAPI ainsi que les entités persistées. Cette base prépare la Release 2 consacrée à la sensibilisation, aux récompenses et à l'intégration de la poubelle intelligente.
