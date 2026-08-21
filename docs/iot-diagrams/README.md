@@ -1,15 +1,23 @@
 # Diagrammes IoT EcoRewind
 
-Ce dossier contient les sources Draw.io des diagrammes du code embarqué ESP32-CAM EcoRewind fourni dans la conversation.
+Ce dossier contient les diagrammes Draw.io de la partie embarquée ESP32-CAM EcoRewind.
 
-## Fichiers
+## Diagrammes recommandés pour le rapport
 
-- `iot_architecture_hardware.drawio` : architecture matérielle du prototype, broches GPIO, alimentation, capteurs, actionneurs et Firebase.
-- `iot_activity_global.drawio` : activité globale depuis le réveil PIR jusqu’au retour en Deep Sleep.
-- `iot_sequence_citizen_deposit.drawio` : scénario citoyen de dépôt avec mesure du poids, calcul des points et mise à jour Firebase.
-- `iot_sequence_collector_emptying.drawio` : scénario collecteur avec ouverture du couvercle de vidage, tare du HX711 et remise à zéro du bac.
-- `iot_state_power_management.drawio` : états de gestion énergétique et transitions liées au PIR.
-- `iot_component_software.drawio` : composants logiciels embarqués et dépendances principales.
+Les fichiers suivants ont été refaits avec une forme UML plus proche des diagrammes globaux du dépôt :
+
+- `class_iot_ecorewind.drawio` : diagramme de classes de la partie IoT.
+- `sequence_iot_citizen_deposit_v2.drawio` : diagramme de séquence du dépôt citoyen.
+- `sequence_iot_collector_emptying_v2.drawio` : diagramme de séquence du vidage collecteur.
+
+Ils remplacent les versions simplifiées précédentes pour les besoins du rapport PFE.
+
+## Autres vues disponibles
+
+- `iot_architecture_hardware.drawio` : architecture matérielle et câblage.
+- `iot_activity_global.drawio` : activité globale du prototype.
+- `iot_state_power_management.drawio` : gestion énergétique et Deep Sleep.
+- `iot_component_software.drawio` : composants logiciels embarqués.
 
 ## Connexions matérielles représentées
 
@@ -45,7 +53,7 @@ Le code source partagé contient un SSID, un mot de passe Wi-Fi et un jeton Fire
 Commande possible si diagrams.net desktop ou `drawio` CLI est installé :
 
 ```bash
-drawio -x -f png -s 2 -o image/iot_architecture_hardware.png docs/iot-diagrams/iot_architecture_hardware.drawio
+drawio -x -f png -s 2 -o image/class_iot_ecorewind.png docs/iot-diagrams/class_iot_ecorewind.drawio
+drawio -x -f png -s 2 -o image/sequence_iot_citizen_deposit.png docs/iot-diagrams/sequence_iot_citizen_deposit_v2.drawio
+drawio -x -f png -s 2 -o image/sequence_iot_collector_emptying.png docs/iot-diagrams/sequence_iot_collector_emptying_v2.drawio
 ```
-
-Répéter la commande pour chaque fichier source.
