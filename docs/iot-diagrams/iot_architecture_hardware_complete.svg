@@ -1,0 +1,60 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1800" height="1100" viewBox="0 0 1800 1100">
+<defs>
+<style>
+.t{font:700 34px Arial;fill:#17365d}.sub{font:16px Arial;fill:#475569}.h{font:700 20px Arial;fill:#fff}.b{font:700 18px Arial;fill:#0f172a}.s{font:15px Arial;fill:#1e293b}.xs{font:13px Arial;fill:#334155}.box{stroke-width:3;rx:16;ry:16}.wire{fill:none;stroke-width:4;stroke-linecap:round;stroke-linejoin:round}.photo{fill:#fff;stroke:#cbd5e1;stroke-width:2;rx:10;ry:10}
+</style>
+<marker id="g" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto"><path d="M0 0L12 6L0 12Z" fill="#15803d"/></marker>
+<marker id="r" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto"><path d="M0 0L12 6L0 12Z" fill="#dc2626"/></marker>
+<marker id="o" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto"><path d="M0 0L12 6L0 12Z" fill="#ea580c"/></marker>
+<marker id="u" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto"><path d="M0 0L12 6L0 12Z" fill="#2563eb"/></marker>
+</defs>
+<rect width="1800" height="1100" fill="#f8fafc"/>
+<text x="900" y="52" text-anchor="middle" class="t">ECOREWIND — ARCHITECTURE MATÉRIELLE IOT</text>
+<text x="900" y="82" text-anchor="middle" class="sub">Prototype intelligent de tri, identification QR, pesée et transmission temps réel</text>
+
+<!-- sensors -->
+<rect x="35" y="125" width="430" height="565" fill="#ecfdf5" stroke="#15803d" class="box"/>
+<rect x="35" y="125" width="430" height="55" fill="#15803d" class="box"/><text x="250" y="161" text-anchor="middle" class="h">CAPTEURS / ENTRÉES</text>
+<rect x="65" y="205" width="370" height="120" fill="#fff" stroke="#86efac" class="box"/>
+<circle cx="120" cy="265" r="38" fill="#f8fafc" stroke="#16a34a" stroke-width="6"/><circle cx="120" cy="265" r="18" fill="#dcfce7"/><text x="185" y="242" class="b">PIR HC-SR505</text><text x="185" y="268" class="s">Détection présence / réveil</text><text x="185" y="296" class="s">OUT → GPIO 14</text>
+<rect x="65" y="350" width="370" height="145" fill="#fff" stroke="#86efac" class="box"/>
+<path d="M95 430h90" stroke="#64748b" stroke-width="14"/><path d="M110 410v40M135 410v40M160 410v40" stroke="#94a3b8" stroke-width="5"/><text x="220" y="395" class="b">Cellule de charge</text><text x="220" y="423" class="s">Mesure du poids du bac</text><text x="220" y="452" class="xs">Reliée au module HX711</text><text x="220" y="478" class="xs">Pont de Wheatstone</text>
+<rect x="65" y="520" width="370" height="135" fill="#fff" stroke="#86efac" class="box"/>
+<rect x="92" y="548" width="90" height="78" fill="#22c55e" stroke="#166534" stroke-width="3"/><rect x="108" y="563" width="58" height="35" fill="#166534"/><circle cx="118" cy="573" r="4" fill="#bbf7d0"/><circle cx="156" cy="573" r="4" fill="#bbf7d0"/><text x="210" y="555" class="b">HX711</text><text x="210" y="583" class="s">DOUT → GPIO 1</text><text x="210" y="610" class="s">SCK → GPIO 3</text><text x="210" y="637" class="xs">Amplificateur ADC 24 bits</text>
+
+<!-- controller -->
+<rect x="605" y="145" width="590" height="465" fill="#eff6ff" stroke="#1d4ed8" class="box"/>
+<rect x="605" y="145" width="590" height="58" fill="#1d4ed8" class="box"/><text x="900" y="183" text-anchor="middle" class="h">UNITÉ DE TRAITEMENT</text>
+<rect x="745" y="225" width="310" height="240" fill="#111827" stroke="#0f172a" stroke-width="4" rx="18"/>
+<rect x="805" y="258" width="190" height="115" fill="#263238" stroke="#94a3b8" stroke-width="4" rx="8"/><circle cx="900" cy="315" r="37" fill="#050505" stroke="#64748b" stroke-width="7"/><circle cx="900" cy="315" r="17" fill="#1e293b" stroke="#cbd5e1" stroke-width="3"/>
+<text x="900" y="405" text-anchor="middle" style="font:700 25px Arial;fill:#fff">ESP32-CAM AI Thinker</text><text x="900" y="438" text-anchor="middle" style="font:16px Arial;fill:#dbeafe">Caméra OV2640 intégrée • Scan QR</text>
+<text x="900" y="500" text-anchor="middle" class="b">Traitement local + Wi-Fi + Deep Sleep</text><text x="900" y="530" text-anchor="middle" class="s">ESP32QRCodeReader • FreeRTOS Queue</text><text x="900" y="563" text-anchor="middle" class="xs">La caméra n’est pas un périphérique externe</text>
+
+<!-- actuators -->
+<rect x="1335" y="125" width="430" height="565" fill="#fff1f2" stroke="#dc2626" class="box"/>
+<rect x="1335" y="125" width="430" height="55" fill="#dc2626" class="box"/><text x="1550" y="161" text-anchor="middle" class="h">ACTIONNEURS / INTERFACE</text>
+<rect x="1365" y="205" width="370" height="120" fill="#fff" stroke="#fda4af" class="box"/>
+<rect x="1390" y="235" width="70" height="55" fill="#1f2937" rx="7"/><line x1="1425" y1="235" x2="1448" y2="215" stroke="#78350f" stroke-width="8" stroke-linecap="round"/><text x="1490" y="242" class="b">Servo utilisateur</text><text x="1490" y="268" class="s">Couvercle dépôt citoyen</text><text x="1490" y="296" class="s">PWM → GPIO 2 • 5 s</text>
+<rect x="1365" y="350" width="370" height="120" fill="#fff" stroke="#fda4af" class="box"/>
+<rect x="1390" y="380" width="70" height="55" fill="#1f2937" rx="7"/><line x1="1425" y1="380" x2="1448" y2="360" stroke="#78350f" stroke-width="8" stroke-linecap="round"/><text x="1490" y="387" class="b">Servo collecteur</text><text x="1490" y="413" class="s">Couvercle de vidage</text><text x="1490" y="441" class="s">PWM → GPIO 4 • 8 s</text>
+<rect x="1365" y="495" width="370" height="145" fill="#fff" stroke="#fdba74" class="box"/>
+<rect x="1390" y="530" width="105" height="62" fill="#263238" stroke="#0f766e" stroke-width="4" rx="5"/><rect x="1402" y="542" width="81" height="38" fill="#1d9bf0" opacity=".7"/><text x="1525" y="540" class="b">LCD I²C 16×2</text><text x="1525" y="568" class="s">SDA → GPIO 15</text><text x="1525" y="596" class="s">SCL → GPIO 13</text>
+
+<!-- bottom cloud/power -->
+<rect x="35" y="755" width="560" height="245" fill="#fff7ed" stroke="#ea580c" class="box"/><rect x="35" y="755" width="560" height="52" fill="#ea580c" class="box"/><text x="315" y="790" text-anchor="middle" class="h">ALIMENTATION ET SÉCURITÉ</text><text x="65" y="845" class="s">• Adaptateur stabilisé : 5 V / 3 A minimum</text><text x="65" y="875" class="s">• Rail 5 V stable et séparé pour les servos</text><text x="65" y="905" class="s">• GND commun entre ESP32, capteurs et servos</text><text x="65" y="935" class="s">• Condensateur 470–1000 µF près des servos</text><text x="65" y="965" class="s">• Ne jamais alimenter les servos en 3,3 V</text>
+
+<rect x="650" y="735" width="450" height="265" fill="#eff6ff" stroke="#2563eb" class="box"/><rect x="650" y="735" width="450" height="52" fill="#2563eb" class="box"/><text x="875" y="770" text-anchor="middle" class="h">COMMUNICATION</text><text x="680" y="830" class="b">ESP32-CAM → Wi-Fi → Routeur</text><path d="M760 875q115-90 230 0M790 900q85-60 170 0" fill="none" stroke="#2563eb" stroke-width="5"/><circle cx="875" cy="920" r="7" fill="#2563eb"/><text x="680" y="957" class="s">Transmission vers Firebase Realtime Database</text>
+
+<rect x="1155" y="735" width="610" height="265" fill="#faf5ff" stroke="#7e22ce" class="box"/><rect x="1155" y="735" width="610" height="52" fill="#7e22ce" class="box"/><text x="1460" y="770" text-anchor="middle" class="h">FIREBASE REALTIME DATABASE</text><text x="1190" y="825" class="s">/utilisateurs/{qrID}/role</text><text x="1190" y="855" class="s">/utilisateurs/{qrID}/score</text><text x="1190" y="885" class="s">/poubelles/BIN-GENERAL-001/poids</text><text x="1190" y="915" class="s">/poubelles/BIN-GENERAL-001/etat</text><text x="1190" y="960" class="xs">Données : rôle, score, poids et état du bac</text>
+
+<!-- energy state -->
+<rect x="610" y="1020" width="1180" height="55" fill="#f1f5f9" stroke="#64748b" class="box"/><text x="1200" y="1054" text-anchor="middle" class="s">Deep Sleep : absence ≥ 10 s → LCD/Wi-Fi arrêtés → HX711 power_down → servos détachés → réveil PIR GPIO14</text>
+
+<!-- wires -->
+<path d="M465 260H605" class="wire" stroke="#15803d" marker-end="url(#g)"/><text x="510" y="248" class="xs">GPIO 14</text>
+<path d="M465 585H530V480H605" class="wire" stroke="#2563eb" marker-end="url(#u)"/><text x="490" y="570" class="xs">DOUT/SCK</text>
+<path d="M1195 270H1335" class="wire" stroke="#dc2626" marker-end="url(#r)"/><text x="1225" y="258" class="xs">GPIO 2 PWM</text>
+<path d="M1195 390H1335" class="wire" stroke="#dc2626" marker-end="url(#r)"/><text x="1225" y="378" class="xs">GPIO 4 PWM</text>
+<path d="M1195 510H1335" class="wire" stroke="#ea580c" marker-end="url(#o)"/><text x="1220" y="498" class="xs">I²C GPIO15/13</text>
+<path d="M900 610V735" class="wire" stroke="#2563eb" stroke-dasharray="9 9" marker-end="url(#u)"/><path d="M1100 865H1155" class="wire" stroke="#2563eb" stroke-dasharray="9 9" marker-end="url(#u)"/>
+</svg>
