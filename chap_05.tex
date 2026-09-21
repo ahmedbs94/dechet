@@ -131,37 +131,54 @@ La classe \texttt{User} conserve notamment le rôle, le QR personnel et le score
 \releasefigure{image/class_release2_sprint3_smartbin.png}{0.98}{Diagramme de classes du Sprint 3 -- Collecte intelligente et IoT}{class_release2_sprint3_smartbin.drawio}
 \label{fig:r2_s3_class}
 
-\subsection{Diagramme de séquence -- Gestion d'énergie}
+\subsection{Diagrammes de séquence}
+\label{sec:r2_s3_sequences}
 
-Afin de réduire la consommation lorsque la poubelle n'est pas utilisée, le prototype exploite le capteur PIR comme source de réveil. L'ESP32-CAM peut entrer en sommeil profond. Lorsqu'une présence est détectée, l'interruption réveille le microcontrôleur, puis les périphériques nécessaires sont initialisés et la connexion Wi-Fi est établie avant l'utilisation de Firebase.
+Les diagrammes de séquence du Sprint 3 présentent les scénarios dynamiques sous forme d'interactions entre les acteurs, le prototype IoT et les services logiciels. Les fragments combinés UML sont utilisés pour représenter explicitement les alternatives, les répétitions et les sous-interactions réutilisables :
+\begin{itemize}
+    \item \textbf{\texttt{alt}} représente les différents cas possibles selon une condition ;
+    \item \textbf{\texttt{loop}} représente une opération répétée ;
+    \item \textbf{\texttt{ref}} représente une interaction détaillée définie dans un autre sous-scénario.
+\end{itemize}
 
-Dans la version implémentée, l'absence de mouvement déclenche une temporisation avant le retour au sommeil profond. Le code utilise une temporisation de présence de 10 secondes. Avant le sommeil, les éléments énergivores ou inutiles sont désactivés autant que possible : Wi-Fi, servomoteurs, rétroéclairage LCD et alimentation du HX711. Le PIR reste utilisé comme source de réveil.
+\subsubsection{Scénario 1 : dépôt d'un déchet par un citoyen}
 
-\releasefigure{image/sequence_release2_sprint3_energy.png}{0.98}{Diagramme de séquence -- Gestion d'énergie de la poubelle intelligente}{sequence_release2_sprint3_energy.drawio}
+Le citoyen présente son QR code devant l'ESP32-CAM. Le prototype lit le QR code et consulte Firebase afin de déterminer le rôle associé. Le fragment \texttt{alt} distingue le cas d'un QR valide associé à un citoyen du cas d'un QR invalide ou d'un rôle non autorisé. Dans le cas valide, le système mesure le poids avant le dépôt, ouvre le couvercle, mesure le poids après le dépôt, calcule la différence puis met à jour le score et les informations du SmartBin.
+
+Le fragment \texttt{ref} représente la sous-interaction de vérification et de mise à jour des données. Le fragment \texttt{loop} représente le retour à l'écran de scan lorsque le système attend un nouveau QR code.
+
+\releasefigure{image/sequence_release2_sprint3_depot_citoyen.png}{0.98}{Diagramme de séquence -- Dépôt d'un déchet par un citoyen}{sequence_release2_sprint3_depot_citoyen.drawio}
+\label{fig:r2_s3_seq_depot}
+
+\subsubsection{Scénario 2 : vidage d'une poubelle par le collecteur}
+
+Le collecteur présente son QR code devant l'ESP32-CAM. Le système lit le code puis vérifie son rôle dans Firebase. Le fragment \texttt{alt} distingue le collecteur autorisé du QR invalide ou d'un rôle différent. Pour un collecteur valide, le système passe en mode vidage, ouvre le mécanisme, permet le retrait des déchets, enregistre l'opération, effectue la remise à zéro de la balance et synchronise l'état du bac.
+
+Le fragment \texttt{ref} représente la vérification du rôle puis l'enregistrement de l'opération de collecte. Le fragment \texttt{loop} représente la répétition du scénario pour les différentes poubelles prévues dans la tournée.
+
+\releasefigure{image/sequence_release2_sprint3_vidage_collecteur.png}{0.98}{Diagramme de séquence -- Vidage d'une poubelle par le collecteur}{sequence_release2_sprint3_vidage_collecteur.drawio}
+\label{fig:r2_s3_seq_collecteur}
+
+\subsubsection{Scénario 3 : gestion de l'énergie}
+
+Au repos, la poubelle intelligente est placée en \textit{Deep Sleep}. Le capteur HC-SR505 détecte une présence et déclenche le réveil de l'ESP32-CAM. Après le réveil, les périphériques nécessaires sont activés, puis la connexion Wi-Fi et l'initialisation Firebase sont réalisées.
+
+Le premier fragment \texttt{alt} distingue la présence détectée de l'absence de présence. Le fragment \texttt{loop} représente la surveillance répétée du mouvement. Un second \texttt{alt} distingue une nouvelle présence avant l'expiration du temporisateur et l'absence de mouvement pendant la durée définie. Le fragment \texttt{ref} représente la sous-interaction de préparation du retour en sommeil profond.
+
+\releasefigure{image/sequence_release2_sprint3_energy.png}{0.98}{Diagramme de séquence -- Gestion d'énergie avec PIR et Deep Sleep}{sequence_release2_sprint3_energy.drawio}
 \label{fig:r2_s3_seq_energy}
 
 \subsection{Fonctionnement du dépôt citoyen}
 
-Le flux de dépôt peut être résumé comme suit :
-
-\begin{enumerate}
-    \item Le citoyen présente son QR code devant l'ESP32-CAM.
-    \item Le système identifie l'utilisateur et vérifie son rôle via Firebase.
-    \item Le poids initial du bac est mesuré par le HX711.
-    \item Le servomoteur ouvre le couvercle.
-    \item Après le dépôt, le poids est mesuré une deuxième fois.
-    \item Le poids ajouté est calculé par différence.
-    \item Les points sont calculés à partir du poids ajouté et le score du citoyen est mis à jour.
-    \item Le poids et l'état du SmartBin sont synchronisés.
-\end{enumerate}
+Le scénario de dépôt est donc structuré en plusieurs étapes : identification par QR code, vérification du rôle, mesure du poids initial, ouverture du couvercle, dépôt, mesure du poids final, calcul du poids ajouté, attribution des points et synchronisation des données.
 
 \subsection{Fonctionnement du vidage par le collecteur}
 
-Le collecteur utilise son propre QR code. Lorsque le rôle \texttt{collector} est identifié, le prototype passe en mode vidage, ouvre le mécanisme dédié puis remet la balance à zéro après l'opération. L'opération est enregistrée dans l'historique de collecte afin de permettre le suivi des vidages.
+Le scénario de vidage suit une logique analogue d'identification, mais la condition du rôle dirige le système vers le mode collecteur. Après le retrait des déchets, le poids est remis à zéro et l'opération est enregistrée afin de conserver la traçabilité de la collecte.
 
 \subsection{Gestion de l'énergie}
 
-Le mécanisme d'économie d'énergie est basé sur une machine d'état simple : \textit{Deep Sleep} $\rightarrow$ \textit{Wake-up} $\rightarrow$ \textit{Initialisation} $\rightarrow$ \textit{Surveillance} $\rightarrow$ \textit{Temporisation} $\rightarrow$ \textit{Deep Sleep}$. Le HC-SR505 est connecté au GPIO utilisé comme source de réveil. Ainsi, l'ESP32-CAM n'a pas besoin de maintenir en permanence tous les périphériques actifs lorsque la zone est inactive.
+Le scénario énergétique suit la séquence : \textit{Deep Sleep} $\rightarrow$ \textit{Wake-up} $\rightarrow$ \textit{activation des périphériques} $\rightarrow$ \textit{connexion Wi-Fi} $\rightarrow$ \textit{initialisation Firebase} $\rightarrow$ \textit{surveillance} $\rightarrow$ \textit{temporisation} $\rightarrow$ \textit{Deep Sleep}. L'utilisation des fragments \texttt{alt}, \texttt{loop} et \texttt{ref} permet de représenter les décisions, les répétitions et les sous-scénarios sans transformer le diagramme en simple liste d'actions.
 
 \subsection{Synchronisation avec Firebase}
 
