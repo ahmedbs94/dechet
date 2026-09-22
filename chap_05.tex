@@ -1,106 +1,12 @@
 \chapter{Release 2 : Collecte intelligente et IoT}
 \label{chap:release2}
 
-\section{Introduction}
-
-La deuxième release du projet EcoRewind est consacrée à la \textbf{collecte intelligente et à l'IoT}. Elle a pour objectif de prolonger les fonctionnalités de la plateforme par un parcours de dépôt des déchets, la gestion des types de déchets et des points de collecte, puis par la gestion opérationnelle des missions de collecte et l'intégration d'une poubelle intelligente connectée.
-
-Contrairement à une organisation où toutes les fonctionnalités IoT seraient regroupées dans un seul sprint, cette release est divisée en deux sprints complémentaires. Le \textbf{Sprint 3} porte principalement sur les fonctionnalités fonctionnelles liées au dépôt et à la collecte, tandis que le \textbf{Sprint 4} introduit la dimension opérationnelle et matérielle : missions de collecte, centres, équipements et SmartBins.
-
-\section{Planification de la Release 2}
-
-La Release 2 est planifiée sur deux sprints pour une durée totale de \textbf{23 jours}.
-
-\begin{table}[H]
-\centering
-\caption{Planification de la Release 2 -- Collecte intelligente et IoT}
-\label{tab:release2_planning}
-\begin{tabular}{|p{2.2cm}|p{8.3cm}|p{2.2cm}|}
-\hline
-\rowcolor{gray!25}
-\textbf{Sprint} & \textbf{Fonctionnalités principales} & \textbf{Durée} \\ \hline
-\textbf{Sprint 3} &
-\begin{itemize}
-    \item Dépôt des déchets ;
-    \item Scan du QR code ;
-    \item Gestion des types de déchets ;
-    \item Gestion des points de collecte.
-\end{itemize}
-& \textbf{11 jours} \\ \hline
-\textbf{Sprint 4} &
-\begin{itemize}
-    \item Missions de collecte et mise à jour de leur état ;
-    \item Suivi des centres et des équipements ;
-    \item Intégration de la poubelle intelligente ;
-    \item Transmission des données de remplissage ;
-    \item Suivi des poubelles par l'administrateur.
-\end{itemize}
-& \textbf{12 jours} \\ \hline
-\end{tabular}
-\end{table}
-
-\section{Sprint 3 : Dépôt et organisation de la collecte}
-\label{sec:r2_sprint3}
-
-\subsection{Objectifs du Sprint 3}
-
-Le Sprint 3, d'une durée de \textbf{11 jours}, vise à mettre en place le parcours fonctionnel du dépôt des déchets. Le citoyen peut s'identifier grâce à son QR code, préciser le type de déchet qu'il souhaite déposer et consulter les points de collecte disponibles.
-
-Ce sprint constitue la base fonctionnelle de la collecte intelligente. Il permet notamment de relier l'identification du citoyen aux opérations de dépôt et de structurer les informations relatives aux différents types de déchets et aux points de collecte.
-
-\subsection{Backlog du Sprint 3}
-
-\begin{longtable}{|>{\centering\arraybackslash}p{1cm}|p{9.3cm}|>{\centering\arraybackslash}p{2cm}|}
-\caption{Backlog du Sprint 3}
-\label{tab:r2_s3_backlog}
-\\ \hline
-\rowcolor{gray!25}
-\textbf{ID} & \textbf{User Story} & \textbf{Priorité}
-\\ \hline
-\endfirsthead
-\hline
-\rowcolor{gray!25}
-\textbf{ID} & \textbf{User Story} & \textbf{Priorité}
-\\ \hline
-\endhead
-S3.1 & En tant que citoyen, je veux scanner mon QR code afin de m'identifier avant une opération de dépôt. & Élevée \\ \hline
-S3.2 & En tant que citoyen, je veux déposer un déchet en indiquant son type. & Élevée \\ \hline
-S3.3 & En tant que citoyen, je veux consulter les types de déchets pris en charge. & Moyenne \\ \hline
-S3.4 & En tant que citoyen, je veux consulter les points de collecte disponibles et leurs informations. & Élevée \\ \hline
-\end{longtable}
-
-\subsection{Scan du QR code}
-
-Le QR code constitue le mécanisme d'identification utilisé lors du dépôt. Le citoyen présente son code devant le dispositif. Celui-ci le scanne puis vérifie les informations associées afin de déterminer si l'opération peut être poursuivie.
-
-Le scénario distingue deux possibilités à l'aide d'un fragment UML \texttt{alt}. Lorsque le QR code est valide et correspond à un utilisateur autorisé, le dépôt peut continuer. Dans le cas contraire, le système informe le citoyen que l'accès au dépôt n'est pas autorisé.
-
-\subsection{Dépôt et gestion des types de déchets}
-
-Après l'identification, le citoyen sélectionne le type de déchet correspondant à son dépôt. La gestion des types permet de distinguer les différentes catégories prises en charge par la plateforme et de conserver cette information avec l'opération de dépôt.
-
-Le scénario de dépôt est représenté avec un fragment \texttt{loop} lorsque l'utilisateur souhaite effectuer plusieurs dépôts successifs. Le fragment \texttt{ref} permet de représenter séparément la sous-interaction d'attribution des points lorsque celle-ci est déclenchée par le dépôt.
-
-\subsection{Gestion des points de collecte}
-
-La plateforme permet au citoyen de consulter les points de collecte disponibles. Pour chaque point, les informations utiles peuvent comprendre son nom, son adresse et le type de déchets associé.
-
-Un fragment \texttt{loop} permet de représenter la consultation successive des points disponibles. Un fragment \texttt{alt} permet de distinguer le cas où le type de déchet est accepté du cas où il ne l'est pas.
-
-\subsection{Diagramme de cas d'utilisation}
-
-Le diagramme de cas d'utilisation de la Release 2 regroupe les fonctionnalités du Sprint 3 et du Sprint 4 afin de présenter la vision fonctionnelle globale de la collecte intelligente.
-
-\begin{figure}[H]
-\centering
-\IfFileExists{image/usecase_release2_collecte_intelligente.png}{%
-\includegraphics[width=0.98\textwidth]{image/usecase_release2_collecte_intelligente.png}}{%
-\fbox{\parbox[c][4cm][c]{0.9\textwidth}{\centering
-\textbf{Diagramme de cas d'utilisation}\\
-\texttt{usecase\_release2\_sprint3\_smartbin.drawio}}}
-\caption{Diagramme de cas d'utilisation -- Release 2}
+% Affichage robuste des diagrammes : le chapitre reste compilable
+% même lorsque les PNG n'ont pas encore été exportés depuis Draw.io.
+\providecommand{\releasefigure}[4]{%
+\releasefigure{image/usecase_release2_collecte_intelligente.png}{0.98}{Diagramme de cas d'utilisation -- Release 2}{usecase_release2_collecte_intelligente.drawio}
 \label{fig:r2_usecase}
-\end{figure}
+
 
 \subsection{Diagrammes de séquence du Sprint 3}
 
@@ -117,16 +23,9 @@ Le diagramme utilise :
     \item \texttt{loop} pour représenter la répétition des dépôts.
 \end{itemize}
 
-\begin{figure}[H]
-\centering
-\IfFileExists{image/sequence_release2_sprint3_depot_citoyen.png}{%
-\includegraphics[width=0.98\textwidth]{image/sequence_release2_sprint3_depot_citoyen.png}}{%
-\fbox{\parbox[c][4cm][c]{0.9\textwidth}{\centering
-\textbf{Diagramme de séquence}\\
-\texttt{sequence\_release2\_sprint3\_depot\_citoyen.drawio}}}
-\caption{Diagramme de séquence -- Dépôt des déchets et scan du QR code}
+\releasefigure{image/sequence_release2_sprint3_depot_citoyen.png}{0.98}{Diagramme de séquence -- Dépôt des déchets et scan du QR code}{sequence_release2_sprint3_depot_citoyen.drawio}
 \label{fig:r2_s3_seq_depot}
-\end{figure}
+
 
 \subsubsection{Scénario 2 : types de déchets et points de collecte}
 
@@ -134,16 +33,9 @@ Le citoyen consulte les points de collecte disponibles. Le système récupère l
 
 Le fragment \texttt{loop} représente la consultation successive des points de collecte. Le fragment \texttt{alt} distingue les types de déchets acceptés et non acceptés. Le fragment \texttt{ref} représente la mise à jour des informations relatives au point de collecte.
 
-\begin{figure}[H]
-\centering
-\IfFileExists{image/sequence_release2_sprint3_vidage_collecteur.png}{%
-\includegraphics[width=0.98\textwidth]{image/sequence_release2_sprint3_vidage_collecteur.png}}{%
-\fbox{\parbox[c][4cm][c]{0.9\textwidth}{\centering
-\textbf{Diagramme de séquence}\\
-\texttt{sequence\_release2\_sprint3\_vidage\_collecteur.drawio}}}
-\caption{Diagramme de séquence -- Types de déchets et points de collecte}
+\releasefigure{image/sequence_release2_sprint3_vidage_collecteur.png}{0.98}{Diagramme de séquence -- Types de déchets et points de collecte}{sequence_release2_sprint3_vidage_collecteur.drawio}
 \label{fig:r2_s3_seq_points}
-\end{figure}
+
 
 \section{Sprint 4 : Gestion opérationnelle et SmartBin}
 \label{sec:r2_sprint4}
@@ -211,16 +103,9 @@ Le diagramme de classes de la Release 2 regroupe les principales entités néces
 
 Les relations entre ces classes permettent de relier les utilisateurs aux opérations de dépôt, les centres aux équipements et aux poubelles, ainsi que les missions aux opérations de collecte.
 
-\begin{figure}[H]
-\centering
-\IfFileExists{image/class_release2_collecte_intelligente.png}{%
-\includegraphics[width=0.98\textwidth]{image/class_release2_collecte_intelligente.png}}{%
-\fbox{\parbox[c][4cm][c]{0.9\textwidth}{\centering
-\textbf{Diagramme de classes}\\
-\texttt{class\_release2\_sprint3\_smartbin.drawio}}}
-\caption{Diagramme de classes -- Release 2}
+\releasefigure{image/class_release2_collecte_intelligente.png}{0.98}{Diagramme de classes -- Release 2}{class_release2_collecte_intelligente.drawio}
 \label{fig:r2_class}
-\end{figure}
+
 
 \subsection{Diagrammes de séquence du Sprint 4}
 
@@ -230,16 +115,9 @@ Le collecteur consulte les missions disponibles. Le système retourne les missio
 
 Le fragment \texttt{alt} distingue notamment une mission en attente d'une mission déjà terminée. Le fragment \texttt{loop} permet de représenter le traitement successif des missions d'une tournée. Le fragment \texttt{ref} représente l'enregistrement de l'opération de collecte.
 
-\begin{figure}[H]
-\centering
-\IfFileExists{image/sequence_release2_sprint4_missions_collecte.png}{%
-\includegraphics[width=0.98\textwidth]{image/sequence_release2_sprint4_missions_collecte.png}}{%
-\fbox{\parbox[c][4cm][c]{0.9\textwidth}{\centering
-\textbf{Diagramme de séquence}\\
-\texttt{sequence\_release2\_sprint4\_missions\_collecte.drawio}}}
-\caption{Diagramme de séquence -- Missions de collecte et mise à jour de leur état}
+\releasefigure{image/sequence_release2_sprint4_missions_collecte.png}{0.98}{Diagramme de séquence -- Missions de collecte et mise à jour de leur état}{sequence_release2_sprint4_missions_collecte.drawio}
 \label{fig:r2_s4_seq_missions}
-\end{figure}
+
 
 \subsubsection{Scénario 2 : transmission du remplissage et suivi du SmartBin}
 
@@ -247,16 +125,9 @@ Le SmartBin mesure les données nécessaires au calcul du remplissage et les tra
 
 Le fragment \texttt{alt} distingue le cas où le niveau de remplissage nécessite une intervention du cas où le niveau reste normal. Le fragment \texttt{loop} représente la surveillance périodique des poubelles. Le fragment \texttt{ref} représente la consultation des SmartBins par l'administrateur.
 
-\begin{figure}[H]
-\centering
-\IfFileExists{image/sequence_release2_sprint4_smartbin_remplissage.png}{%
-\includegraphics[width=0.98\textwidth]{image/sequence_release2_sprint4_smartbin_remplissage.png}}{%
-\fbox{\parbox[c][4cm][c]{0.9\textwidth}{\centering
-\textbf{Diagramme de séquence}\\
-\texttt{sequence\_release2\_sprint4\_smartbin\_remplissage.drawio}}}
-\caption{Diagramme de séquence -- Transmission des données de remplissage et suivi du SmartBin}
+\releasefigure{image/sequence_release2_sprint4_smartbin_remplissage.png}{0.98}{Diagramme de séquence -- Transmission des données de remplissage et suivi du SmartBin}{sequence_release2_sprint4_smartbin_remplissage.drawio}
 \label{fig:r2_s4_seq_smartbin}
-\end{figure}
+
 
 \section{Bilan de la Release 2}
 
