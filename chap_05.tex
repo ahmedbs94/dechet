@@ -1,193 +1,271 @@
-\chapter{Release 2 : Sensibilisation, récompenses et collecte intelligente}
+\chapter{Release 2 : Collecte intelligente et IoT}
 \label{chap:release2}
 
-\providecommand{\releasefigure}[4]{%
-\begin{figure}[H]
-    \centering
-    \IfFileExists{#1}{%
-        \includegraphics[width=#2\textwidth]{#1}%
-    }{%
-        \fbox{\parbox[c][4.0cm][c]{0.88\textwidth}{\centering
-        \textbf{Diagramme à exporter depuis Draw.io}\\[0.25cm]
-        \texttt{\detokenize{#4}}\\
-        vers\\
-        \texttt{\detokenize{#1}}}}%
-    }%
-    \caption{#3}
-\end{figure}}
+\section{Introduction}
 
-\section{Introduction de la Release 2}
+La deuxième release du projet EcoRewind est consacrée à la \textbf{collecte intelligente et à l'IoT}. Elle a pour objectif de prolonger les fonctionnalités de la plateforme par un parcours de dépôt des déchets, la gestion des types de déchets et des points de collecte, puis par la gestion opérationnelle des missions de collecte et l'intégration d'une poubelle intelligente connectée.
 
-La Release 2 étend la plateforme EcoRewind au-delà de la consultation et de la participation communautaire. Elle introduit progressivement la sensibilisation environnementale, l'évaluation des connaissances, la récompense des citoyens et l'intégration d'une poubelle intelligente connectée.
+Contrairement à une organisation où toutes les fonctionnalités IoT seraient regroupées dans un seul sprint, cette release est divisée en deux sprints complémentaires. Le \textbf{Sprint 3} porte principalement sur les fonctionnalités fonctionnelles liées au dépôt et à la collecte, tandis que le \textbf{Sprint 4} introduit la dimension opérationnelle et matérielle : missions de collecte, centres, équipements et SmartBins.
 
-La Release 2 est organisée autour de trois axes. Le premier concerne les contenus éducatifs et les ressources de sensibilisation. Le deuxième permet d'évaluer les connaissances des citoyens au moyen de quiz et de valoriser leur progression. Le troisième introduit la collecte intelligente : une poubelle équipée d'un ESP32-CAM, d'un capteur de mouvement HC-SR505, d'un capteur de poids HX711, de servomoteurs et d'un écran LCD communique avec EcoRewind via Wi-Fi et Firebase Realtime Database.
+\section{Planification de la Release 2}
 
-\section{Sprint 1 : Sensibilisation et éducation environnementale}
-\label{sec:r2_sprint1}
+La Release 2 est planifiée sur deux sprints pour une durée totale de \textbf{23 jours}.
 
-\subsection{Objectifs}
-
-L'objectif du Sprint 1 est de mettre à disposition des citoyens des contenus permettant de mieux comprendre le tri des déchets et les comportements favorables à la protection de l'environnement. Les contenus peuvent être organisés par catégories et présentés sous forme de vidéos ou de ressources pédagogiques.
-
-\begin{longtable}{|>{\centering\arraybackslash}p{1cm}|p{9.2cm}|>{\centering\arraybackslash}p{2cm}|}
-\caption{Backlog du Sprint 1 -- Sensibilisation et éducation}
-\label{tab:r2_s1_backlog}\\
+\begin{table}[H]
+\centering
+\caption{Planification de la Release 2 -- Collecte intelligente et IoT}
+\label{tab:release2_planning}
+\begin{tabular}{|p{2.2cm}|p{8.3cm}|p{2.2cm}|}
 \hline
-\rowcolor{gray!35}\textbf{ID} & \textbf{User Story} & \textbf{Priorité}\\ \hline
-\endfirsthead
-\hline
-\rowcolor{gray!35}\textbf{ID} & \textbf{User Story} & \textbf{Priorité}\\ \hline
-\endhead
-1.1 & En tant que citoyen, je veux consulter des contenus éducatifs sur le tri et l'environnement. & Élevée\\ \hline
-1.2 & En tant qu'éducateur, je veux organiser les contenus pédagogiques par catégories. & Élevée\\ \hline
-1.3 & En tant que citoyen, je veux consulter les vidéos et ressources disponibles. & Élevée\\ \hline
-\end{longtable}
+\rowcolor{gray!25}
+\textbf{Sprint} & \textbf{Fonctionnalités principales} & \textbf{Durée} \\ \hline
+\textbf{Sprint 3} &
+\begin{itemize}
+    \item Dépôt des déchets ;
+    \item Scan du QR code ;
+    \item Gestion des types de déchets ;
+    \item Gestion des points de collecte.
+\end{itemize}
+& \textbf{11 jours} \\ \hline
+\textbf{Sprint 4} &
+\begin{itemize}
+    \item Missions de collecte et mise à jour de leur état ;
+    \item Suivi des centres et des équipements ;
+    \item Intégration de la poubelle intelligente ;
+    \item Transmission des données de remplissage ;
+    \item Suivi des poubelles par l'administrateur.
+\end{itemize}
+& \textbf{12 jours} \\ \hline
+\end{tabular}
+\end{table}
 
-\section{Sprint 2 : Quiz, évaluation et récompenses}
-\label{sec:r2_sprint2}
-
-\subsection{Objectifs}
-
-Le Sprint 2 complète la sensibilisation par une évaluation des connaissances. Un quiz est associé à un fichier PDF de questions. Les questions et le corrigé peuvent être préparés à partir du document pédagogique. Une soumission conserve les réponses du citoyen et son score sur 10. Le système peut également associer des récompenses au profil du citoyen.
-
-Les modèles persistants du module distinguent les quiz des soumissions : un \texttt{Quiz} appartient à un éducateur et possède un état de traitement, tandis qu'une \texttt{QuizSubmission} appartient à un citoyen et conserve notamment la note, les réponses et l'état de correction.
-
-\begin{longtable}{|>{\centering\arraybackslash}p{1cm}|p{9.2cm}|>{\centering\arraybackslash}p{2cm}|}
-\caption{Backlog du Sprint 2 -- Quiz et récompenses}
-\label{tab:r2_s2_backlog}\\
-\hline
-\rowcolor{gray!35}\textbf{ID} & \textbf{User Story} & \textbf{Priorité}\\ \hline
-\endfirsthead
-\hline
-\rowcolor{gray!35}\textbf{ID} & \textbf{User Story} & \textbf{Priorité}\\ \hline
-\endhead
-2.1 & En tant qu'éducateur, je veux créer un quiz à partir d'une ressource PDF. & Élevée\\ \hline
-2.2 & En tant que citoyen, je veux répondre à un quiz environnemental. & Élevée\\ \hline
-2.3 & En tant que citoyen, je veux consulter ma note et mon feedback. & Élevée\\ \hline
-2.4 & En tant que citoyen, je veux débloquer des récompenses selon ma progression. & Moyenne\\ \hline
-\end{longtable}
-
-\subsection{Principe de notation}
-
-Une soumission est enregistrée avec les réponses du citoyen puis corrigée. Le résultat est exprimé sur 10 et peut être associé à un feedback. La classe \texttt{UserReward} permet de persister les récompenses débloquées et d'éviter le double-déblocage d'une même récompense pour un même utilisateur.
-
-\section{Sprint 3 : Collecte intelligente et IoT}
+\section{Sprint 3 : Dépôt et organisation de la collecte}
 \label{sec:r2_sprint3}
 
 \subsection{Objectifs du Sprint 3}
 
-L'objectif du Sprint 3 est d'intégrer une poubelle intelligente capable d'interagir avec le citoyen et le collecteur tout en remontant les informations utiles à la plateforme. Le système repose sur les composants suivants :
+Le Sprint 3, d'une durée de \textbf{11 jours}, vise à mettre en place le parcours fonctionnel du dépôt des déchets. Le citoyen peut s'identifier grâce à son QR code, préciser le type de déchet qu'il souhaite déposer et consulter les points de collecte disponibles.
 
-\begin{itemize}
-    \item \textbf{ESP32-CAM AI Thinker} : unité de traitement et lecteur du QR code ;
-    \item \textbf{HC-SR505 PIR} : détection de présence utilisée comme source de réveil ;
-    \item \textbf{HX711 + cellule de charge} : mesure du poids des déchets ;
-    \item \textbf{servomoteurs} : commande des mécanismes d'ouverture ;
-    \item \textbf{LCD I2C} : affichage des états et messages ;
-    \item \textbf{Wi-Fi} : connexion réseau de l'ESP32 ;
-    \item \textbf{Firebase Realtime Database} : synchronisation des informations du prototype.
-\end{itemize}
-
-Le code du prototype utilise notamment un identifiant de bac, le poids mesuré, l'état du bac, le QR code utilisateur et les informations nécessaires à l'attribution des points.
+Ce sprint constitue la base fonctionnelle de la collecte intelligente. Il permet notamment de relier l'identification du citoyen aux opérations de dépôt et de structurer les informations relatives aux différents types de déchets et aux points de collecte.
 
 \subsection{Backlog du Sprint 3}
 
-\begin{longtable}{|>{\centering\arraybackslash}p{1cm}|p{8.9cm}|>{\centering\arraybackslash}p{1.8cm}|>{\centering\arraybackslash}p{1.5cm}|}
-\caption{Backlog du Sprint 3 -- Collecte intelligente et IoT}
-\label{tab:r2_s3_backlog}\\
-\hline
-\rowcolor{gray!35}\textbf{ID} & \textbf{User Story} & \textbf{Priorité} & \textbf{État}\\ \hline
+\begin{longtable}{|>{\centering\arraybackslash}p{1cm}|p{9.3cm}|>{\centering\arraybackslash}p{2cm}|}
+\caption{Backlog du Sprint 3}
+\label{tab:r2_s3_backlog}
+\\ \hline
+\rowcolor{gray!25}
+\textbf{ID} & \textbf{User Story} & \textbf{Priorité}
+\\ \hline
 \endfirsthead
 \hline
-\rowcolor{gray!35}\textbf{ID} & \textbf{User Story} & \textbf{Priorité} & \textbf{État}\\ \hline
+\rowcolor{gray!25}
+\textbf{ID} & \textbf{User Story} & \textbf{Priorité}
+\\ \hline
 \endhead
-3.1 & En tant que citoyen, je veux scanner mon QR code afin d'être identifié par la poubelle intelligente. & Élevée & Réalisée\\ \hline
-3.2 & En tant que citoyen, je veux déposer mes déchets et obtenir des points selon le poids ajouté. & Élevée & Réalisée\\ \hline
-3.3 & En tant que collecteur, je veux scanner une poubelle afin d'effectuer son vidage. & Élevée & Réalisée\\ \hline
-3.4 & En tant que collecteur, je veux enregistrer l'opération de collecte et remettre le poids du bac à zéro. & Élevée & Réalisée\\ \hline
-3.5 & En tant qu'intercommunalité, je veux recevoir les informations relatives aux opérations de collecte. & Moyenne & Réalisée\\ \hline
-3.6 & En tant que système, je veux réduire la consommation énergétique du prototype lorsqu'aucune présence n'est détectée. & Élevée & Réalisée\\ \hline
+S3.1 & En tant que citoyen, je veux scanner mon QR code afin de m'identifier avant une opération de dépôt. & Élevée \\ \hline
+S3.2 & En tant que citoyen, je veux déposer un déchet en indiquant son type. & Élevée \\ \hline
+S3.3 & En tant que citoyen, je veux consulter les types de déchets pris en charge. & Moyenne \\ \hline
+S3.4 & En tant que citoyen, je veux consulter les points de collecte disponibles et leurs informations. & Élevée \\ \hline
 \end{longtable}
 
-\subsection{Spécification des besoins fonctionnels}
+\subsection{Scan du QR code}
 
-Le citoyen utilise son QR personnel pour être reconnu. Le prototype vérifie le rôle associé au QR dans Firebase. Pour un utilisateur citoyen, le système mesure le poids avant dépôt, ouvre le mécanisme correspondant, mesure le poids après dépôt, calcule le poids ajouté puis attribue les points. Le prototype met ensuite à jour l'état et le poids du bac.
+Le QR code constitue le mécanisme d'identification utilisé lors du dépôt. Le citoyen présente son code devant le dispositif. Celui-ci le scanne puis vérifie les informations associées afin de déterminer si l'opération peut être poursuivie.
 
-Pour un collecteur, le scan déclenche le mode vidage. Après l'ouverture, la balance est remise à zéro et le bac est déclaré vide. Côté backend, l'entité \texttt{CollectorLog} conserve notamment le collecteur, le bac, le poids avant vidage, la date de collecte et l'indicateur d'envoi de notification.
+Le scénario distingue deux possibilités à l'aide d'un fragment UML \texttt{alt}. Lorsque le QR code est valide et correspond à un utilisateur autorisé, le dépôt peut continuer. Dans le cas contraire, le système informe le citoyen que l'accès au dépôt n'est pas autorisé.
+
+\subsection{Dépôt et gestion des types de déchets}
+
+Après l'identification, le citoyen sélectionne le type de déchet correspondant à son dépôt. La gestion des types permet de distinguer les différentes catégories prises en charge par la plateforme et de conserver cette information avec l'opération de dépôt.
+
+Le scénario de dépôt est représenté avec un fragment \texttt{loop} lorsque l'utilisateur souhaite effectuer plusieurs dépôts successifs. Le fragment \texttt{ref} permet de représenter séparément la sous-interaction d'attribution des points lorsque celle-ci est déclenchée par le dépôt.
+
+\subsection{Gestion des points de collecte}
+
+La plateforme permet au citoyen de consulter les points de collecte disponibles. Pour chaque point, les informations utiles peuvent comprendre son nom, son adresse et le type de déchets associé.
+
+Un fragment \texttt{loop} permet de représenter la consultation successive des points disponibles. Un fragment \texttt{alt} permet de distinguer le cas où le type de déchet est accepté du cas où il ne l'est pas.
 
 \subsection{Diagramme de cas d'utilisation}
 
-Le diagramme distingue les responsabilités du citoyen, de l'administrateur, du collecteur et de l'intercommunalité. Les composants matériels et les services externes sont représentés à l'extérieur de la frontière fonctionnelle d'EcoRewind.
+Le diagramme de cas d'utilisation de la Release 2 regroupe les fonctionnalités du Sprint 3 et du Sprint 4 afin de présenter la vision fonctionnelle globale de la collecte intelligente.
 
-\releasefigure{image/usecase_release2_sprint3_smartbin.png}{0.98}{Diagramme de cas d'utilisation du Sprint 3 -- Collecte intelligente et IoT}{usecase_release2_sprint3_smartbin.drawio}
-\label{fig:r2_s3_uc}
+\begin{figure}[H]
+\centering
+\IfFileExists{image/usecase_release2_sprint3_smartbin.png}{%
+\includegraphics[width=0.98\textwidth]{image/usecase_release2_sprint3_smartbin.png}}{%
+\fbox{\parbox[c][4cm][c]{0.9\textwidth}{\centering
+\textbf{Diagramme de cas d'utilisation}\\
+\texttt{usecase\_release2\_sprint3\_smartbin.drawio}}}
+\caption{Diagramme de cas d'utilisation -- Release 2}
+\label{fig:r2_usecase}
+\end{figure}
+
+\subsection{Diagrammes de séquence du Sprint 3}
+
+Deux scénarios principaux sont retenus pour représenter les interactions du Sprint 3.
+
+\subsubsection{Scénario 1 : dépôt des déchets et scan du QR code}
+
+Le citoyen présente son QR code au dispositif. Le système le scanne, vérifie son identité et son rôle, puis autorise ou refuse la poursuite de l'opération. Lorsque le QR code est valide, le citoyen sélectionne le type de déchet, effectue le dépôt et le système traite les informations correspondantes.
+
+Le diagramme utilise :
+\begin{itemize}
+    \item \texttt{alt} pour distinguer un QR code valide d'un QR code invalide ;
+    \item \texttt{ref} pour représenter la sous-interaction d'attribution des points ;
+    \item \texttt{loop} pour représenter la répétition des dépôts.
+\end{itemize}
+
+\begin{figure}[H]
+\centering
+\IfFileExists{image/sequence_release2_sprint3_depot_citoyen.png}{%
+\includegraphics[width=0.98\textwidth]{image/sequence_release2_sprint3_depot_citoyen.png}}{%
+\fbox{\parbox[c][4cm][c]{0.9\textwidth}{\centering
+\textbf{Diagramme de séquence}\\
+\texttt{sequence\_release2\_sprint3\_depot\_citoyen.drawio}}}
+\caption{Diagramme de séquence -- Dépôt des déchets et scan du QR code}
+\label{fig:r2_s3_seq_depot}
+\end{figure}
+
+\subsubsection{Scénario 2 : types de déchets et points de collecte}
+
+Le citoyen consulte les points de collecte disponibles. Le système récupère les informations enregistrées et les affiche. Pour chaque point, le type de déchets accepté peut être vérifié afin d'orienter le citoyen vers un point adapté.
+
+Le fragment \texttt{loop} représente la consultation successive des points de collecte. Le fragment \texttt{alt} distingue les types de déchets acceptés et non acceptés. Le fragment \texttt{ref} représente la mise à jour des informations relatives au point de collecte.
+
+\begin{figure}[H]
+\centering
+\IfFileExists{image/sequence_release2_sprint3_vidage_collecteur.png}{%
+\includegraphics[width=0.98\textwidth]{image/sequence_release2_sprint3_vidage_collecteur.png}}{%
+\fbox{\parbox[c][4cm][c]{0.9\textwidth}{\centering
+\textbf{Diagramme de séquence}\\
+\texttt{sequence\_release2\_sprint3\_vidage\_collecteur.drawio}}}
+\caption{Diagramme de séquence -- Types de déchets et points de collecte}
+\label{fig:r2_s3_seq_points}
+\end{figure}
+
+\section{Sprint 4 : Gestion opérationnelle et SmartBin}
+\label{sec:r2_sprint4}
+
+\subsection{Objectifs du Sprint 4}
+
+Le Sprint 4, d'une durée de \textbf{12 jours}, complète le Sprint 3 par les fonctionnalités de gestion opérationnelle et par l'intégration de la poubelle intelligente.
+
+Il couvre cinq éléments principaux : la gestion des missions de collecte, la mise à jour de leur état, le suivi des centres et des équipements, l'intégration du SmartBin et la transmission des données de remplissage. L'administrateur dispose également d'une vue permettant de suivre l'état des poubelles.
+
+\subsection{Backlog du Sprint 4}
+
+\begin{longtable}{|>{\centering\arraybackslash}p{1cm}|p{9.3cm}|>{\centering\arraybackslash}p{2cm}|}
+\caption{Backlog du Sprint 4}
+\label{tab:r2_s4_backlog}
+\\ \hline
+\rowcolor{gray!25}
+\textbf{ID} & \textbf{User Story} & \textbf{Priorité}
+\\ \hline
+\endfirsthead
+\hline
+\rowcolor{gray!25}
+\textbf{ID} & \textbf{User Story} & \textbf{Priorité}
+\\ \hline
+S4.1 & En tant que collecteur, je veux consulter mes missions de collecte et mettre à jour leur état. & Élevée \\ \hline
+S4.2 & En tant qu'administrateur, je veux suivre les centres de collecte et leurs équipements. & Élevée \\ \hline
+S4.3 & En tant que système, je veux intégrer les SmartBins à la plateforme EcoRewind. & Élevée \\ \hline
+S4.4 & En tant que système, je veux transmettre les données de remplissage des SmartBins. & Élevée \\ \hline
+S4.5 & En tant qu'administrateur, je veux suivre l'état et le niveau de remplissage des poubelles. & Élevée \\ \hline
+\end{longtable}
+
+\subsection{Missions de collecte}
+
+Une mission de collecte représente une opération attribuée à un collecteur. Elle possède un état permettant de suivre son avancement, par exemple \textit{en attente}, \textit{en cours} ou \textit{terminée}.
+
+Lorsqu'une mission est sélectionnée, le collecteur peut faire évoluer son état. Le système enregistre la modification afin que les autres acteurs disposent d'une information actualisée.
+
+\subsection{Suivi des centres et des équipements}
+
+Les centres de collecte constituent les points organisationnels auxquels peuvent être associés plusieurs équipements. L'administrateur peut consulter les centres ainsi que l'état de leurs équipements.
+
+Cette fonctionnalité permet de centraliser les informations nécessaires au suivi opérationnel et d'identifier les équipements nécessitant une intervention.
+
+\subsection{Intégration de la poubelle intelligente}
+
+La SmartBin constitue le composant IoT de la Release 2. Elle collecte des informations provenant des capteurs puis les transmet à la plateforme. Les informations principales associées à une poubelle comprennent son identifiant, sa localisation, son type de déchet, son poids et son état.
+
+La communication entre le prototype et la plateforme est réalisée par l'intermédiaire du réseau Wi-Fi et d'un service de données distant. Les informations reçues peuvent ensuite être exploitées par l'application pour assurer le suivi des poubelles.
+
+\subsection{Transmission des données de remplissage}
+
+Le niveau de remplissage est déterminé à partir des données de poids du SmartBin. Les mesures sont transmises à la plateforme afin de conserver un état actualisé de chaque poubelle.
+
+Lorsque le niveau atteint une condition nécessitant une intervention, le système peut identifier la poubelle comme prioritaire et transmettre une notification aux acteurs concernés.
+
+\subsection{Suivi des poubelles par l'administrateur}
+
+L'administrateur dispose d'une vue de suivi regroupant les informations des SmartBins. Il peut notamment consulter leur état, leur niveau de remplissage et leur localisation.
+
+Cette vue permet de rapprocher les données provenant du dispositif IoT des informations opérationnelles relatives aux centres et aux missions de collecte.
 
 \subsection{Diagramme de classes}
 
-Le modèle de données du Sprint 3 distingue le bac, les scans citoyens, les opérations de collecte et les points de collecte. \texttt{SmartBin} est rattachée à un \texttt{CollectionPoint}. \texttt{BinScan} conserve l'historique des scans et les informations de poids et de points. \texttt{CollectorLog} trace les vidages réalisés par les collecteurs.
+Le diagramme de classes de la Release 2 regroupe les principales entités nécessaires aux deux sprints. Le modèle comprend notamment \texttt{User}, \texttt{BinScan}, \texttt{CollectionPoint}, \texttt{MissionCollecte}, \texttt{CentreCollecte}, \texttt{Equipement}, \texttt{SmartBin}, \texttt{DonneeRemplissage} et \texttt{CollectorLog}.
 
-La classe \texttt{User} conserve notamment le rôle, le QR personnel et le score global. Les notifications sont adressées aux utilisateurs via leur identifiant et peuvent être propagées par le service de notifications.
+Les relations entre ces classes permettent de relier les utilisateurs aux opérations de dépôt, les centres aux équipements et aux poubelles, ainsi que les missions aux opérations de collecte.
 
-\releasefigure{image/class_release2_sprint3_smartbin.png}{0.98}{Diagramme de classes du Sprint 3 -- Collecte intelligente et IoT}{class_release2_sprint3_smartbin.drawio}
-\label{fig:r2_s3_class}
+\begin{figure}[H]
+\centering
+\IfFileExists{image/class_release2_sprint3_smartbin.png}{%
+\includegraphics[width=0.98\textwidth]{image/class_release2_sprint3_smartbin.png}}{%
+\fbox{\parbox[c][4cm][c]{0.9\textwidth}{\centering
+\textbf{Diagramme de classes}\\
+\texttt{class\_release2\_sprint3\_smartbin.drawio}}}
+\caption{Diagramme de classes -- Release 2}
+\label{fig:r2_class}
+\end{figure}
 
-\subsection{Diagrammes de séquence}
-\label{sec:r2_s3_sequences}
+\subsection{Diagrammes de séquence du Sprint 4}
 
-Les diagrammes de séquence du Sprint 3 présentent les scénarios dynamiques sous forme d'interactions entre les acteurs, le prototype IoT et les services logiciels. Les fragments combinés UML sont utilisés pour représenter explicitement les alternatives, les répétitions et les sous-interactions réutilisables :
-\begin{itemize}
-    \item \textbf{\texttt{alt}} représente les différents cas possibles selon une condition ;
-    \item \textbf{\texttt{loop}} représente une opération répétée ;
-    \item \textbf{\texttt{ref}} représente une interaction détaillée définie dans un autre sous-scénario.
-\end{itemize}
+\subsubsection{Scénario 1 : mission de collecte}
 
-\subsubsection{Scénario 1 : dépôt d'un déchet par un citoyen}
+Le collecteur consulte les missions disponibles. Le système retourne les missions ainsi que leur état. Lorsqu'une mission est sélectionnée, son état est mis à jour puis enregistré.
 
-Le citoyen présente son QR code devant l'ESP32-CAM. Le prototype lit le QR code et consulte Firebase afin de déterminer le rôle associé. Le fragment \texttt{alt} distingue le cas d'un QR valide associé à un citoyen du cas d'un QR invalide ou d'un rôle non autorisé. Dans le cas valide, le système mesure le poids avant le dépôt, ouvre le couvercle, mesure le poids après le dépôt, calcule la différence puis met à jour le score et les informations du SmartBin.
+Le fragment \texttt{alt} distingue notamment une mission en attente d'une mission déjà terminée. Le fragment \texttt{loop} permet de représenter le traitement successif des missions d'une tournée. Le fragment \texttt{ref} représente l'enregistrement de l'opération de collecte.
 
-Le fragment \texttt{ref} représente la sous-interaction de vérification et de mise à jour des données. Le fragment \texttt{loop} représente le retour à l'écran de scan lorsque le système attend un nouveau QR code.
+\begin{figure}[H]
+\centering
+\IfFileExists{image/sequence_release2_sprint4_missions_collecte.png}{%
+\includegraphics[width=0.98\textwidth]{image/sequence_release2_sprint4_missions_collecte.png}}{%
+\fbox{\parbox[c][4cm][c]{0.9\textwidth}{\centering
+\textbf{Diagramme de séquence}\\
+\texttt{sequence\_release2\_sprint4\_missions\_collecte.drawio}}}
+\caption{Diagramme de séquence -- Missions de collecte et mise à jour de leur état}
+\label{fig:r2_s4_seq_missions}
+\end{figure}
 
-\releasefigure{image/sequence_release2_sprint3_depot_citoyen.png}{0.98}{Diagramme de séquence -- Dépôt d'un déchet par un citoyen}{sequence_release2_sprint3_depot_citoyen.drawio}
-\label{fig:r2_s3_seq_depot}
+\subsubsection{Scénario 2 : transmission du remplissage et suivi du SmartBin}
 
-\subsubsection{Scénario 2 : vidage d'une poubelle par le collecteur}
+Le SmartBin mesure les données nécessaires au calcul du remplissage et les transmet à EcoRewind. Les données sont enregistrées afin de mettre à jour l'état de la poubelle.
 
-Le collecteur présente son QR code devant l'ESP32-CAM. Le système lit le code puis vérifie son rôle dans Firebase. Le fragment \texttt{alt} distingue le collecteur autorisé du QR invalide ou d'un rôle différent. Pour un collecteur valide, le système passe en mode vidage, ouvre le mécanisme, permet le retrait des déchets, enregistre l'opération, effectue la remise à zéro de la balance et synchronise l'état du bac.
+Le fragment \texttt{alt} distingue le cas où le niveau de remplissage nécessite une intervention du cas où le niveau reste normal. Le fragment \texttt{loop} représente la surveillance périodique des poubelles. Le fragment \texttt{ref} représente la consultation des SmartBins par l'administrateur.
 
-Le fragment \texttt{ref} représente la vérification du rôle puis l'enregistrement de l'opération de collecte. Le fragment \texttt{loop} représente la répétition du scénario pour les différentes poubelles prévues dans la tournée.
+\begin{figure}[H]
+\centering
+\IfFileExists{image/sequence_release2_sprint4_smartbin_remplissage.png}{%
+\includegraphics[width=0.98\textwidth]{image/sequence_release2_sprint4_smartbin_remplissage.png}}{%
+\fbox{\parbox[c][4cm][c]{0.9\textwidth}{\centering
+\textbf{Diagramme de séquence}\\
+\texttt{sequence\_release2\_sprint4\_smartbin\_remplissage.drawio}}}
+\caption{Diagramme de séquence -- Transmission des données de remplissage et suivi du SmartBin}
+\label{fig:r2_s4_seq_smartbin}
+\end{figure}
 
-\releasefigure{image/sequence_release2_sprint3_vidage_collecteur.png}{0.98}{Diagramme de séquence -- Vidage d'une poubelle par le collecteur}{sequence_release2_sprint3_vidage_collecteur.drawio}
-\label{fig:r2_s3_seq_collecteur}
+\section{Bilan de la Release 2}
 
-\subsubsection{Scénario 3 : gestion de l'énergie}
+La Release 2 est ainsi structurée de manière progressive. Le Sprint 3, réalisé sur 11 jours, met en place le parcours fonctionnel du dépôt : identification par QR code, gestion des types de déchets et consultation des points de collecte. Le Sprint 4, réalisé sur 12 jours, ajoute la dimension opérationnelle : missions de collecte, suivi des centres et équipements, intégration des SmartBins, transmission des données de remplissage et suivi des poubelles par l'administrateur.
 
-Au repos, la poubelle intelligente est placée en \textit{Deep Sleep}. Le capteur HC-SR505 détecte une présence et déclenche le réveil de l'ESP32-CAM. Après le réveil, les périphériques nécessaires sont activés, puis la connexion Wi-Fi et l'initialisation Firebase sont réalisées.
+Cette organisation permet de séparer clairement les fonctionnalités orientées vers le citoyen des fonctionnalités de supervision et de gestion de la collecte, tout en préparant leur interaction au sein de la même plateforme EcoRewind.
 
-Le premier fragment \texttt{alt} distingue la présence détectée de l'absence de présence. Le fragment \texttt{loop} représente la surveillance répétée du mouvement. Un second \texttt{alt} distingue une nouvelle présence avant l'expiration du temporisateur et l'absence de mouvement pendant la durée définie. Le fragment \texttt{ref} représente la sous-interaction de préparation du retour en sommeil profond.
+\section{Conclusion}
 
-\releasefigure{image/sequence_release2_sprint3_energy.png}{0.98}{Diagramme de séquence -- Gestion d'énergie avec PIR et Deep Sleep}{sequence_release2_sprint3_energy.drawio}
-\label{fig:r2_s3_seq_energy}
+La Release 2 apporte à EcoRewind une chaîne fonctionnelle complète autour de la collecte intelligente. Le Sprint 3 établit le parcours de dépôt et les informations nécessaires à l'orientation du citoyen. Le Sprint 4 étend ce fonctionnement aux acteurs opérationnels et au dispositif IoT.
 
-\subsection{Fonctionnement du dépôt citoyen}
-
-Le scénario de dépôt est donc structuré en plusieurs étapes : identification par QR code, vérification du rôle, mesure du poids initial, ouverture du couvercle, dépôt, mesure du poids final, calcul du poids ajouté, attribution des points et synchronisation des données.
-
-\subsection{Fonctionnement du vidage par le collecteur}
-
-Le scénario de vidage suit une logique analogue d'identification, mais la condition du rôle dirige le système vers le mode collecteur. Après le retrait des déchets, le poids est remis à zéro et l'opération est enregistrée afin de conserver la traçabilité de la collecte.
-
-\subsection{Gestion de l'énergie}
-
-Le scénario énergétique suit la séquence : \textit{Deep Sleep} $\rightarrow$ \textit{Wake-up} $\rightarrow$ \textit{activation des périphériques} $\rightarrow$ \textit{connexion Wi-Fi} $\rightarrow$ \textit{initialisation Firebase} $\rightarrow$ \textit{surveillance} $\rightarrow$ \textit{temporisation} $\rightarrow$ \textit{Deep Sleep}. L'utilisation des fragments \texttt{alt}, \texttt{loop} et \texttt{ref} permet de représenter les décisions, les répétitions et les sous-scénarios sans transformer le diagramme en simple liste d'actions.
-
-\subsection{Synchronisation avec Firebase}
-
-Firebase Realtime Database est utilisé par le prototype pour conserver les informations nécessaires à l'échange entre la poubelle et la plateforme. Les données manipulées comprennent notamment le score d'un utilisateur ainsi que le poids et l'état d'un bac.
-
-\section{Réalisation et validation de la Release 2}
-
-La validation de la Release 2 porte sur trois niveaux : les fonctionnalités de l'application, la persistance des données et le comportement du prototype IoT. Pour le SmartBin, les scénarios de validation comprennent la détection de présence, le réveil du système, la connexion Wi-Fi, la synchronisation Firebase, la lecture du QR code, la mesure du poids avant et après dépôt, l'attribution des points, le vidage par le collecteur et le retour en sommeil profond.
-
-\section{Conclusion de la Release 2}
-
-La Release 2 complète EcoRewind par une dimension pédagogique et une interaction physique avec le dispositif de collecte. Le Sprint 3 constitue le lien entre l'application et le prototype IoT : le citoyen est identifié par QR code, le poids du dépôt est mesuré, les points sont attribués et l'état du bac est synchronisé. Le mécanisme de sommeil profond piloté par le capteur PIR permet en parallèle de limiter l'activité du prototype pendant les périodes d'inactivité.
+Les diagrammes de cas d'utilisation, de classes et de séquence permettent de représenter cette évolution à différents niveaux : les fonctionnalités attendues, la structure des données et les interactions entre les acteurs, la plateforme et les SmartBins.
