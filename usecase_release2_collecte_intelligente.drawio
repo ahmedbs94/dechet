@@ -111,7 +111,10 @@
         <mxCell id="x1" value="&lt;&lt;extend&gt;&gt;" style="dashed=1;endArrow=open;html=1;fontSize=10;" edge="1" parent="1" source="notif" target="fill"><mxGeometry relative="1" as="geometry"/></mxCell>
         <mxCell id="x2" value="&lt;&lt;extend&gt;&gt;" style="dashed=1;endArrow=open;html=1;fontSize=10;" edge="1" parent="1" source="notifyInter" target="notif"><mxGeometry relative="1" as="geometry"/></mxCell>
 
-        <mxCell id="g1" style="endArrow=block;endFill=0;html=1;" edge="1" parent="1" source="cit" target="col"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="user" value="Utilisateur EcoRewind" style="shape=umlActor;html=1;verticalLabelPosition=bottom;verticalAlign=top;" vertex="1" parent="1"><mxGeometry x="50" y="60" width="120" height="80" as="geometry"/></mxCell>
+        <mxCell id="g1" style="endArrow=block;endFill=0;html=1;" edge="1" parent="1" source="cit" target="user"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="g2" style="endArrow=block;endFill=0;html=1;" edge="1" parent="1" source="col" target="user"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="g3" style="endArrow=block;endFill=0;html=1;" edge="1" parent="1" source="adm" target="user"><mxGeometry relative="1" as="geometry"/></mxCell>
       </root>
     </mxGraphModel>
   </diagram>
