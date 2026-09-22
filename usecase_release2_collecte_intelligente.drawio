@@ -10,10 +10,11 @@
 <mxCell id="system" value="Système EcoRewind" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=#2563EB;fillColor=#F8FBFF;fontSize=15;fontStyle=1;verticalAlign=top;spacingTop=8;" vertex="1" parent="1"><mxGeometry x="250" y="70" width="1180" height="1050" as="geometry"/></mxCell>
 <mxCell id="external" value="Prototype / services externes" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=#7C3AED;fillColor=#FAF5FF;fontSize=15;fontStyle=1;verticalAlign=top;spacingTop=8;" vertex="1" parent="1"><mxGeometry x="1450" y="70" width="330" height="1050" as="geometry"/></mxCell>
 
-<mxCell id="cit" value="Citoyen" style="shape=umlActor;verticalLabelPosition=bottom;html=1;" vertex="1" parent="1"><mxGeometry x="75" y="140" width="80" height="80" as="geometry"/></mxCell>
-<mxCell id="col" value="Collecteur" style="shape=umlActor;verticalLabelPosition=bottom;html=1;" vertex="1" parent="1"><mxGeometry x="75" y="340" width="80" height="80" as="geometry"/></mxCell>
-<mxCell id="adm" value="Administrateur" style="shape=umlActor;verticalLabelPosition=bottom;html=1;" vertex="1" parent="1"><mxGeometry x="60" y="540" width="110" height="80" as="geometry"/></mxCell>
-<mxCell id="int" value="Intercommunalité" style="shape=umlActor;verticalLabelPosition=bottom;html=1;" vertex="1" parent="1"><mxGeometry x="45" y="760" width="140" height="80" as="geometry"/></mxCell>
+<mxCell id="user" value="Utilisateur EcoRewind" style="shape=umlActor;verticalLabelPosition=bottom;html=1;fontStyle=1;" vertex="1" parent="1"><mxGeometry x="55" y="120" width="120" height="80" as="geometry"/></mxCell>
+<mxCell id="cit" value="Citoyen" style="shape=umlActor;verticalLabelPosition=bottom;html=1;" vertex="1" parent="1"><mxGeometry x="75" y="250" width="80" height="80" as="geometry"/></mxCell>
+<mxCell id="col" value="Collecteur" style="shape=umlActor;verticalLabelPosition=bottom;html=1;" vertex="1" parent="1"><mxGeometry x="75" y="420" width="80" height="80" as="geometry"/></mxCell>
+<mxCell id="adm" value="Administrateur" style="shape=umlActor;verticalLabelPosition=bottom;html=1;" vertex="1" parent="1"><mxGeometry x="60" y="600" width="110" height="80" as="geometry"/></mxCell>
+<mxCell id="int" value="Intercommunalité" style="shape=umlActor;verticalLabelPosition=bottom;html=1;" vertex="1" parent="1"><mxGeometry x="45" y="790" width="140" height="80" as="geometry"/></mxCell>
 
 <mxCell id="scanCitizen" value="Scanner le QR code citoyen" style="ellipse;whiteSpace=wrap;html=1;fillColor=#E8F3FF;strokeColor=#2563EB;" vertex="1" parent="1"><mxGeometry x="290" y="120" width="220" height="55" as="geometry"/></mxCell>
 <mxCell id="openCitizen" value="Ouvrir la porte de dépôt" style="ellipse;whiteSpace=wrap;html=1;fillColor=#E8F3FF;strokeColor=#2563EB;" vertex="1" parent="1"><mxGeometry x="550" y="120" width="220" height="55" as="geometry"/></mxCell>
@@ -51,7 +52,7 @@
 <mxCell id="fcm" value="Firebase Cloud Messaging (FCM)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F3F4F6;strokeColor=#6B7280;fontSize=12;" vertex="1" parent="1"><mxGeometry x="1500" y="640" width="230" height="65" as="geometry"/></mxCell>
 
 <!-- Associations acteurs -->
-<mxCell id="a1" value="" style="endArrow=none;html=1;" edge="1" parent="1" source="cit" target="scanCitizen"/>
+<mxCell id="a1" value="" style="endArrow=none;html=1;strokeWidth=1.5;" edge="1" parent="1" source="cit" target="scanCitizen"/>
 <mxCell id="a2" value="" style="endArrow=none;html=1;" edge="1" parent="1" source="cit" target="deposit"/>
 <mxCell id="a3" value="" style="endArrow=none;html=1;" edge="1" parent="1" source="cit" target="consultPoints"/>
 <mxCell id="a4" value="" style="endArrow=none;html=1;" edge="1" parent="1" source="col" target="scanCollector"/>
@@ -84,8 +85,13 @@
 <mxCell id="e14" value="" style="endArrow=none;html=1;" edge="1" parent="1" source="firebase" target="collectionData"/>
 <mxCell id="e15" value="" style="endArrow=none;html=1;" edge="1" parent="1" source="fcm" target="notify"/>
 
+<!-- Généralisation / héritage UML : les rôles applicatifs héritent de l'acteur générique -->
+<mxCell id="g1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;dashed=0;endArrow=block;endFill=0;strokeWidth=1.5;" edge="1" parent="1" source="cit" target="user"><mxGeometry relative="1" as="geometry"/></mxCell>
+<mxCell id="g2" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;dashed=0;endArrow=block;endFill=0;strokeWidth=1.5;" edge="1" parent="1" source="col" target="user"><mxGeometry relative="1" as="geometry"/></mxCell>
+<mxCell id="g3" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;dashed=0;endArrow=block;endFill=0;strokeWidth=1.5;" edge="1" parent="1" source="adm" target="user"><mxGeometry relative="1" as="geometry"/></mxCell>
+
 <!-- Includes -->
-<mxCell id="i1" value="&lt;&lt;include&gt;&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;dashed=1;endArrow=open;endFill=0;fontSize=10;" edge="1" parent="1" source="deposit" target="scanCitizen"/>
+<mxCell id="i1" value="&lt;&lt;include&gt;&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;dashed=1;endArrow=open;endFill=0;strokeWidth=1.5;fontSize=10;" edge="1" parent="1" source="deposit" target="scanCitizen"/>
 <mxCell id="i2" value="&lt;&lt;include&gt;&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;dashed=1;endArrow=open;endFill=0;fontSize=10;" edge="1" parent="1" source="deposit" target="openCitizen"/>
 <mxCell id="i3" value="&lt;&lt;include&gt;&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;dashed=1;endArrow=open;endFill=0;fontSize=10;" edge="1" parent="1" source="deposit" target="type"/>
 <mxCell id="i4" value="&lt;&lt;include&gt;&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;dashed=1;endArrow=open;endFill=0;fontSize=10;" edge="1" parent="1" source="deposit" target="weight"/>
@@ -105,6 +111,7 @@
 <!-- Extends -->
 <mxCell id="x1" value="&lt;&lt;extend&gt;&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;dashed=1;endArrow=open;endFill=0;fontSize=10;" edge="1" parent="1" source="notify" target="fillData"/>
 <mxCell id="x2" value="&lt;&lt;extend&gt;&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;dashed=1;endArrow=open;endFill=0;fontSize=10;" edge="1" parent="1" source="notifyInter" target="notify"/>
+<mxCell id="legend" value="Légende :  ─── association acteur/système    - - - - &lt;&lt;include&gt;&gt; / &lt;&lt;extend&gt;&gt;    △ généralisation / héritage" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=#9CA3AF;fillColor=#FFFFFF;fontSize=11;fontStyle=1;" vertex="1" parent="1"><mxGeometry x="300" y="1010" width="1050" height="60" as="geometry"/></mxCell>
 </root>
 </mxGraphModel>
 </diagram>
