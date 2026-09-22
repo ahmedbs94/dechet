@@ -93,7 +93,7 @@
         <mxCell id="p12" style="endArrow=none;html=1;" edge="1" parent="1" source="firebase" target="fill"><mxGeometry relative="1" as="geometry"/></mxCell>
         <mxCell id="p13" style="endArrow=none;html=1;" edge="1" parent="1" source="fcm" target="notif"><mxGeometry relative="1" as="geometry"/></mxCell>
 
-        <mxCell id="i1" value="&lt;&lt;include&gt;&gt;" style="dashed=1;endArrow=open;html=1;fontSize=10;" edge="1" parent="1" source="deposit" target="scanC"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="i1" value="&lt;&lt;include&gt;&gt;" style="dashed=1;endArrow=open;endFill=0;html=1;fontSize=11;labelBackgroundColor=#FFFFFF;align=center;verticalAlign=middle;" edge="1" parent="1" source="deposit" target="scanC"><mxGeometry relative="1" as="geometry"/></mxCell>
         <mxCell id="i2" value="&lt;&lt;include&gt;&gt;" style="dashed=1;endArrow=open;html=1;fontSize=10;" edge="1" parent="1" source="deposit" target="openC"><mxGeometry relative="1" as="geometry"/></mxCell>
         <mxCell id="i3" value="&lt;&lt;include&gt;&gt;" style="dashed=1;endArrow=open;html=1;fontSize=10;" edge="1" parent="1" source="deposit" target="type"><mxGeometry relative="1" as="geometry"/></mxCell>
         <mxCell id="i4" value="&lt;&lt;include&gt;&gt;" style="dashed=1;endArrow=open;html=1;fontSize=10;" edge="1" parent="1" source="deposit" target="weight"><mxGeometry relative="1" as="geometry"/></mxCell>
@@ -108,8 +108,8 @@
         <mxCell id="i13" value="&lt;&lt;include&gt;&gt;" style="dashed=1;endArrow=open;html=1;fontSize=10;" edge="1" parent="1" source="adminTrack" target="smartTrack"><mxGeometry relative="1" as="geometry"/></mxCell>
         <mxCell id="i14" value="&lt;&lt;include&gt;&gt;" style="dashed=1;endArrow=open;html=1;fontSize=10;" edge="1" parent="1" source="data" target="fill"><mxGeometry relative="1" as="geometry"/></mxCell>
 
-        <mxCell id="x1" value="&lt;&lt;extend&gt;&gt;" style="dashed=1;endArrow=open;html=1;fontSize=10;" edge="1" parent="1" source="notif" target="fill"><mxGeometry relative="1" as="geometry"/></mxCell>
-        <mxCell id="x2" value="&lt;&lt;extend&gt;&gt;" style="dashed=1;endArrow=open;html=1;fontSize=10;" edge="1" parent="1" source="notifyInter" target="notif"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="x1" value="&lt;&lt;extend&gt;&gt;" style="dashed=1;endArrow=open;endFill=0;html=1;fontSize=11;labelBackgroundColor=#FFFFFF;align=center;verticalAlign=middle;" edge="1" parent="1" source="notif" target="fill"><mxGeometry relative="1" as="geometry"><mxPoint x="690" y="665" as="targetPoint"/><mxPoint x="830" y="690" as="sourcePoint"/></mxGeometry></mxCell>
+        <mxCell id="x2" value="&lt;&lt;extend&gt;&gt;" style="dashed=1;endArrow=open;endFill=0;html=1;fontSize=11;labelBackgroundColor=#FFFFFF;align=center;verticalAlign=middle;" edge="1" parent="1" source="notifyInter" target="notif"><mxGeometry relative="1" as="geometry"><mxPoint x="785" y="690" as="targetPoint"/><mxPoint x="785" y="810" as="sourcePoint"/></mxGeometry></mxCell>
 
         <mxCell id="user" value="Utilisateur EcoRewind" style="shape=umlActor;html=1;verticalLabelPosition=bottom;verticalAlign=top;" vertex="1" parent="1"><mxGeometry x="50" y="60" width="120" height="80" as="geometry"/></mxCell>
         <mxCell id="g1" style="endArrow=block;endFill=0;html=1;" edge="1" parent="1" source="cit" target="user"><mxGeometry relative="1" as="geometry"/></mxCell>
