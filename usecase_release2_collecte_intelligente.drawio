@@ -1,57 +1,111 @@
-<?xml version="1.0" encoding="UTF-8"?><mxfile compressed="false" host="app.diagrams.net"><diagram id="page-1" name="Cas d’utilisation – Release 2"><mxGraphModel dx="0" dy="0" grid="1" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" math="0" shadow="0" gridSize="10" pageWidth="1700" pageHeight="1000" background="#FFFFFF"><root><mxCell id="0"/><mxCell id="1" parent="0"/><mxCell id="t" value="Diagramme de cas d’utilisation – Release 2 : Collecte intelligente et IoT" style="text;html=1;strokeColor=none;fillColor=none;fontSize=20;fontStyle=1;fontColor=#0F3B78;align=left;" vertex="1" parent="1"><mxGeometry x="25" y="15" width="1500" height="40" as="geometry"/></mxCell><mxCell id="u" value="Acteurs" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=#2563EB;fillColor=#EFF6FF;fontSize=15;fontStyle=1;verticalAlign=top;spacingTop=8;" vertex="1" parent="1"><mxGeometry x="20" y="70" width="210" height="820" as="geometry"/></mxCell><mxCell id="s" value="Système EcoRewind" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=#2563EB;fillColor=#F8FBFF;fontSize=15;fontStyle=1;verticalAlign=top;spacingTop=8;" vertex="1" parent="1"><mxGeometry x="250" y="70" width="1050" height="820" as="geometry"/></mxCell><mxCell id="x" value="Systèmes externes" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=#7C3AED;fillColor=#FAF5FF;fontSize=15;fontStyle=1;verticalAlign=top;spacingTop=8;" vertex="1" parent="1"><mxGeometry x="1320" y="70" width="320" height="820" as="geometry"/></mxCell>
-<mxCell id="cit" value="Citoyen" style="shape=umlActor;verticalLabelPosition=bottom;html=1;" vertex="1" parent="1"><mxGeometry x="75" y="150" width="80" height="80" as="geometry"/></mxCell>
-<mxCell id="col" value="Collecteur" style="shape=umlActor;verticalLabelPosition=bottom;html=1;" vertex="1" parent="1"><mxGeometry x="75" y="330" width="80" height="80" as="geometry"/></mxCell>
-<mxCell id="adm" value="Administrateur" style="shape=umlActor;verticalLabelPosition=bottom;html=1;" vertex="1" parent="1"><mxGeometry x="60" y="510" width="110" height="80" as="geometry"/></mxCell>
-<mxCell id="int" value="Intercommunalité" style="shape=umlActor;verticalLabelPosition=bottom;html=1;" vertex="1" parent="1"><mxGeometry x="45" y="690" width="140" height="80" as="geometry"/></mxCell>
-<mxCell id="q" value="Scanner le QR code" style="ellipse;whiteSpace=wrap;html=1;fillColor=#E8F3FF;strokeColor=#2563EB;" vertex="1" parent="1"><mxGeometry x="310" y="125" width="210" height="55" as="geometry"/></mxCell>
-<mxCell id="dep" value="Déposer les déchets" style="ellipse;whiteSpace=wrap;html=1;fillColor=#E8F3FF;strokeColor=#2563EB;" vertex="1" parent="1"><mxGeometry x="600" y="125" width="210" height="55" as="geometry"/></mxCell>
-<mxCell id="type" value="Gérer les types de déchets" style="ellipse;whiteSpace=wrap;html=1;fillColor=#E8F3FF;strokeColor=#2563EB;" vertex="1" parent="1"><mxGeometry x="900" y="125" width="240" height="55" as="geometry"/></mxCell>
-<mxCell id="points" value="Consulter les points de collecte" style="ellipse;whiteSpace=wrap;html=1;fillColor=#E8F3FF;strokeColor=#2563EB;" vertex="1" parent="1"><mxGeometry x="330" y="245" width="240" height="55" as="geometry"/></mxCell>
-<mxCell id="mission" value="Gérer les missions de collecte" style="ellipse;whiteSpace=wrap;html=1;fillColor=#EDE9FE;strokeColor=#7C3AED;" vertex="1" parent="1"><mxGeometry x="650" y="245" width="250" height="55" as="geometry"/></mxCell>
-<mxCell id="etat" value="Mettre à jour l’état d’une mission" style="ellipse;whiteSpace=wrap;html=1;fillColor=#EDE9FE;strokeColor=#7C3AED;" vertex="1" parent="1"><mxGeometry x="940" y="245" width="260" height="55" as="geometry"/></mxCell>
-<mxCell id="centres" value="Suivre les centres et équipements" style="ellipse;whiteSpace=wrap;html=1;fillColor=#EDE9FE;strokeColor=#7C3AED;" vertex="1" parent="1"><mxGeometry x="350" y="380" width="260" height="55" as="geometry"/></mxCell>
-<mxCell id="bins" value="Suivre les SmartBins" style="ellipse;whiteSpace=wrap;html=1;fillColor=#EDE9FE;strokeColor=#7C3AED;" vertex="1" parent="1"><mxGeometry x="690" y="380" width="220" height="55" as="geometry"/></mxCell>
-<mxCell id="fill" value="Recevoir les données de remplissage" style="ellipse;whiteSpace=wrap;html=1;fillColor=#EDE9FE;strokeColor=#7C3AED;" vertex="1" parent="1"><mxGeometry x="950" y="380" width="250" height="55" as="geometry"/></mxCell>
-<mxCell id="notif" value="Recevoir les notifications des équipements" style="ellipse;whiteSpace=wrap;html=1;fillColor=#FCE7F3;strokeColor=#DB2777;" vertex="1" parent="1"><mxGeometry x="360" y="520" width="280" height="55" as="geometry"/></mxCell>
-<mxCell id="data" value="Consulter les données de collecte" style="ellipse;whiteSpace=wrap;html=1;fillColor=#FCE7F3;strokeColor=#DB2777;" vertex="1" parent="1"><mxGeometry x="720" y="520" width="250" height="55" as="geometry"/></mxCell>
-<mxCell id="admin" value="Suivre les poubelles par l’administrateur" style="ellipse;whiteSpace=wrap;html=1;fillColor=#FCE7F3;strokeColor=#DB2777;" vertex="1" parent="1"><mxGeometry x="1010" y="520" width="250" height="55" as="geometry"/></mxCell>
-<mxCell id="smart" value="Poubelle intelligente / ESP32" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F3F4F6;strokeColor=#6B7280;fontSize=12;" vertex="1" parent="1"><mxGeometry x="1360" y="180" width="240" height="70" as="geometry"/></mxCell>
-<mxCell id="firebase" value="Firebase Realtime Database" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F3F4F6;strokeColor=#6B7280;fontSize=12;" vertex="1" parent="1"><mxGeometry x="1360" y="340" width="240" height="70" as="geometry"/></mxCell>
-<mxCell id="fcm" value="Service de notifications (FCM)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F3F4F6;strokeColor=#6B7280;fontSize=12;" vertex="1" parent="1"><mxGeometry x="1360" y="500" width="240" height="70" as="geometry"/></mxCell>
-<mxCell id="e1" value="" style="endArrow=none;html=1;" edge="1" parent="1" source="cit" target="q"/><mxCell id="e2" value="" style="endArrow=none;html=1;" edge="1" parent="1" source="cit" target="dep"/><mxCell id="e3" value="" style="endArrow=none;html=1;" edge="1" parent="1" source="cit" target="points"/><mxCell id="e4" value="" style="endArrow=none;html=1;" edge="1" parent="1" source="col" target="mission"/><mxCell id="e5" value="" style="endArrow=none;html=1;" edge="1" parent="1" source="col" target="etat"/><mxCell id="e6" value="" style="endArrow=none;html=1;" edge="1" parent="1" source="col" target="bins"/><mxCell id="e7" value="" style="endArrow=none;html=1;" edge="1" parent="1" source="adm" target="centres"/><mxCell id="e8" value="" style="endArrow=none;html=1;" edge="1" parent="1" source="adm" target="admin"/><mxCell id="e9" value="" style="endArrow=none;html=1;" edge="1" parent="1" source="int" target="notif"/><mxCell id="e10" value="" style="endArrow=none;html=1;" edge="1" parent="1" source="int" target="data"/><mxCell id="e11" value="" style="endArrow=none;html=1;" edge="1" parent="1" source="smart" target="fill"/><mxCell id="e12" value="" style="endArrow=none;html=1;" edge="1" parent="1" source="firebase" target="fill"/><mxCell id="e13" value="" style="endArrow=none;html=1;" edge="1" parent="1" source="fcm" target="notif"/>
-<mxCell id="r1" value="" style="endArrow=none;html=1;" edge="1" parent="1" source="adm" target="type"><mxGeometry relative="1" as="geometry"/></mxCell>
-<mxCell id="r2" value="&lt;&lt;include&gt;&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;dashed=1;endArrow=open;endFill=0;fontSize=11;" edge="1" parent="1" source="dep" target="q"><mxGeometry relative="1" as="geometry"/></mxCell>
-<mxCell id="r3" value="&lt;&lt;extend&gt;&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;dashed=1;endArrow=open;endFill=0;fontSize=11;" edge="1" parent="1" source="etat" target="mission"><mxGeometry relative="1" as="geometry"/></mxCell>
-<mxCell id="r4" value="&lt;&lt;include&gt;&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;dashed=1;endArrow=open;endFill=0;fontSize=11;" edge="1" parent="1" source="bins" target="fill"><mxGeometry relative="1" as="geometry"/></mxCell>
-<mxCell id="r5" value="&lt;&lt;extend&gt;&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;dashed=1;endArrow=open;endFill=0;fontSize=11;" edge="1" parent="1" source="notif" target="fill"><mxGeometry relative="1" as="geometry"/></mxCell>
-<mxCell id="r6" value="&lt;&lt;include&gt;&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;dashed=1;endArrow=open;endFill=0;fontSize=11;" edge="1" parent="1" source="admin" target="bins"><mxGeometry relative="1" as="geometry"/></mxCell>
-<mxCell id="r7" value="&lt;&lt;include&gt;&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;dashed=1;endArrow=open;endFill=0;fontSize=11;" edge="1" parent="1" source="data" target="mission"><mxGeometry relative="1" as="geometry"/></mxCell>
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile compressed="false" host="app.diagrams.net">
+<diagram id="release2-usecase" name="Cas d'utilisation – Release 2">
+<mxGraphModel dx="0" dy="0" grid="1" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" math="0" shadow="0" gridSize="10" pageWidth="1800" pageHeight="1200" background="#FFFFFF">
+<root>
+<mxCell id="0"/><mxCell id="1" parent="0"/>
+<mxCell id="title" value="Diagramme de cas d’utilisation – Release 2 : Collecte intelligente et IoT" style="text;html=1;strokeColor=none;fillColor=none;fontSize=20;fontStyle=1;fontColor=#0F3B78;align=left;" vertex="1" parent="1"><mxGeometry x="25" y="15" width="1650" height="40" as="geometry"/></mxCell>
 
-<mxCell id="a14" value="" style="endArrow=none;html=1;" edge="1" parent="1" source="adm" target="type"><mxGeometry relative="1" as="geometry"/></mxCell>
-<mxCell id="a15" value="" style="endArrow=none;html=1;" edge="1" parent="1" source="adm" target="points"><mxGeometry relative="1" as="geometry"/></mxCell>
-<mxCell id="a16" value="" style="endArrow=none;html=1;" edge="1" parent="1" source="adm" target="mission"><mxGeometry relative="1" as="geometry"/></mxCell>
-<mxCell id="a17" value="" style="endArrow=none;html=1;" edge="1" parent="1" source="adm" target="bins"><mxGeometry relative="1" as="geometry"/></mxCell>
-<mxCell id="a18" value="" style="endArrow=none;html=1;" edge="1" parent="1" source="adm" target="fill"><mxGeometry relative="1" as="geometry"/></mxCell>
-<mxCell id="a19" value="" style="endArrow=none;html=1;" edge="1" parent="1" source="adm" target="data"><mxGeometry relative="1" as="geometry"/></mxCell>
-<mxCell id="a20" value="" style="endArrow=none;html=1;" edge="1" parent="1" source="col" target="centres"><mxGeometry relative="1" as="geometry"/></mxCell>
-<mxCell id="a21" value="" style="endArrow=none;html=1;" edge="1" parent="1" source="int" target="centres"><mxGeometry relative="1" as="geometry"/></mxCell>
-<mxCell id="a22" value="" style="endArrow=none;html=1;" edge="1" parent="1" source="int" target="bins"><mxGeometry relative="1" as="geometry"/></mxCell>
-<mxCell id="a23" value="" style="endArrow=none;html=1;" edge="1" parent="1" source="int" target="fill"><mxGeometry relative="1" as="geometry"/></mxCell>
-<mxCell id="a24" value="" style="endArrow=none;html=1;" edge="1" parent="1" source="smart" target="q"><mxGeometry relative="1" as="geometry"/></mxCell>
-<mxCell id="a25" value="" style="endArrow=none;html=1;" edge="1" parent="1" source="smart" target="dep"><mxGeometry relative="1" as="geometry"/></mxCell>
-<mxCell id="a26" value="" style="endArrow=none;html=1;" edge="1" parent="1" source="smart" target="fill"><mxGeometry relative="1" as="geometry"/></mxCell>
-<mxCell id="a27" value="" style="endArrow=none;html=1;" edge="1" parent="1" source="firebase" target="fill"><mxGeometry relative="1" as="geometry"/></mxCell>
-<mxCell id="a28" value="" style="endArrow=none;html=1;" edge="1" parent="1" source="firebase" target="data"><mxGeometry relative="1" as="geometry"/></mxCell>
-<mxCell id="a29" value="" style="endArrow=none;html=1;" edge="1" parent="1" source="firebase" target="bins"><mxGeometry relative="1" as="geometry"/></mxCell>
-<mxCell id="a30" value="" style="endArrow=none;html=1;" edge="1" parent="1" source="fcm" target="notif"><mxGeometry relative="1" as="geometry"/></mxCell>
-<mxCell id="a31" value="" style="endArrow=none;html=1;" edge="1" parent="1" source="fcm" target="admin"><mxGeometry relative="1" as="geometry"/></mxCell>
-<mxCell id="i1" value="&lt;&lt;include&gt;&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;dashed=1;endArrow=open;endFill=0;fontSize=11;" edge="1" parent="1" source="dep" target="q"><mxGeometry relative="1" as="geometry"/></mxCell>
-<mxCell id="i2" value="&lt;&lt;include&gt;&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;dashed=1;endArrow=open;endFill=0;fontSize=11;" edge="1" parent="1" source="admin" target="bins"><mxGeometry relative="1" as="geometry"/></mxCell>
-<mxCell id="i3" value="&lt;&lt;include&gt;&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;dashed=1;endArrow=open;endFill=0;fontSize=11;" edge="1" parent="1" source="data" target="fill"><mxGeometry relative="1" as="geometry"/></mxCell>
-<mxCell id="i4" value="&lt;&lt;include&gt;&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;dashed=1;endArrow=open;endFill=0;fontSize=11;" edge="1" parent="1" source="fill" target="bins"><mxGeometry relative="1" as="geometry"/></mxCell>
-<mxCell id="i5" value="&lt;&lt;include&gt;&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;dashed=1;endArrow=open;endFill=0;fontSize=11;" edge="1" parent="1" source="mission" target="etat"><mxGeometry relative="1" as="geometry"/></mxCell>
-<mxCell id="i6" value="&lt;&lt;include&gt;&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;dashed=1;endArrow=open;endFill=0;fontSize=11;" edge="1" parent="1" source="mission" target="centres"><mxGeometry relative="1" as="geometry"/></mxCell>
-<mxCell id="i7" value="&lt;&lt;include&gt;&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;dashed=1;endArrow=open;endFill=0;fontSize=11;" edge="1" parent="1" source="dep" target="type"><mxGeometry relative="1" as="geometry"/></mxCell>
-<mxCell id="x1" value="&lt;&lt;extend&gt;&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;dashed=1;endArrow=open;endFill=0;fontSize=11;" edge="1" parent="1" source="notif" target="fill"><mxGeometry relative="1" as="geometry"/></mxCell>
-<mxCell id="x2" value="&lt;&lt;extend&gt;&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;dashed=1;endArrow=open;endFill=0;fontSize=11;" edge="1" parent="1" source="etat" target="mission"><mxGeometry relative="1" as="geometry"/></mxCell>
-</root></mxGraphModel></diagram></mxfile>
+<mxCell id="actors" value="Acteurs" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=#2563EB;fillColor=#EFF6FF;fontSize=15;fontStyle=1;verticalAlign=top;spacingTop=8;" vertex="1" parent="1"><mxGeometry x="20" y="70" width="210" height="1050" as="geometry"/></mxCell>
+<mxCell id="system" value="Système EcoRewind" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=#2563EB;fillColor=#F8FBFF;fontSize=15;fontStyle=1;verticalAlign=top;spacingTop=8;" vertex="1" parent="1"><mxGeometry x="250" y="70" width="1180" height="1050" as="geometry"/></mxCell>
+<mxCell id="external" value="Prototype / services externes" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=#7C3AED;fillColor=#FAF5FF;fontSize=15;fontStyle=1;verticalAlign=top;spacingTop=8;" vertex="1" parent="1"><mxGeometry x="1450" y="70" width="330" height="1050" as="geometry"/></mxCell>
+
+<mxCell id="cit" value="Citoyen" style="shape=umlActor;verticalLabelPosition=bottom;html=1;" vertex="1" parent="1"><mxGeometry x="75" y="140" width="80" height="80" as="geometry"/></mxCell>
+<mxCell id="col" value="Collecteur" style="shape=umlActor;verticalLabelPosition=bottom;html=1;" vertex="1" parent="1"><mxGeometry x="75" y="340" width="80" height="80" as="geometry"/></mxCell>
+<mxCell id="adm" value="Administrateur" style="shape=umlActor;verticalLabelPosition=bottom;html=1;" vertex="1" parent="1"><mxGeometry x="60" y="540" width="110" height="80" as="geometry"/></mxCell>
+<mxCell id="int" value="Intercommunalité" style="shape=umlActor;verticalLabelPosition=bottom;html=1;" vertex="1" parent="1"><mxGeometry x="45" y="760" width="140" height="80" as="geometry"/></mxCell>
+
+<mxCell id="scanCitizen" value="Scanner le QR code citoyen" style="ellipse;whiteSpace=wrap;html=1;fillColor=#E8F3FF;strokeColor=#2563EB;" vertex="1" parent="1"><mxGeometry x="290" y="120" width="220" height="55" as="geometry"/></mxCell>
+<mxCell id="openCitizen" value="Ouvrir la porte de dépôt" style="ellipse;whiteSpace=wrap;html=1;fillColor=#E8F3FF;strokeColor=#2563EB;" vertex="1" parent="1"><mxGeometry x="550" y="120" width="220" height="55" as="geometry"/></mxCell>
+<mxCell id="deposit" value="Déposer les déchets" style="ellipse;whiteSpace=wrap;html=1;fillColor=#E8F3FF;strokeColor=#2563EB;" vertex="1" parent="1"><mxGeometry x="810" y="120" width="200" height="55" as="geometry"/></mxCell>
+<mxCell id="type" value="Sélectionner le type de déchet" style="ellipse;whiteSpace=wrap;html=1;fillColor=#E8F3FF;strokeColor=#2563EB;" vertex="1" parent="1"><mxGeometry x="1040" y="120" width="250" height="55" as="geometry"/></mxCell>
+<mxCell id="weight" value="Peser les déchets" style="ellipse;whiteSpace=wrap;html=1;fillColor=#E8F3FF;strokeColor=#2563EB;" vertex="1" parent="1"><mxGeometry x="550" y="225" width="210" height="55" as="geometry"/></mxCell>
+<mxCell id="points" value="Calculer et attribuer les points" style="ellipse;whiteSpace=wrap;html=1;fillColor=#E8F3FF;strokeColor=#2563EB;" vertex="1" parent="1"><mxGeometry x="800" y="225" width="240" height="55" as="geometry"/></mxCell>
+<mxCell id="closeCitizen" value="Fermer la porte de dépôt" style="ellipse;whiteSpace=wrap;html=1;fillColor=#E8F3FF;strokeColor=#2563EB;" vertex="1" parent="1"><mxGeometry x="1080" y="225" width="210" height="55" as="geometry"/></mxCell>
+<mxCell id="consultPoints" value="Consulter les points de collecte" style="ellipse;whiteSpace=wrap;html=1;fillColor=#E8F3FF;strokeColor=#2563EB;" vertex="1" parent="1"><mxGeometry x="320" y="335" width="240" height="55" as="geometry"/></mxCell>
+<mxCell id="manageTypes" value="Gérer les types de déchets" style="ellipse;whiteSpace=wrap;html=1;fillColor=#E8F3FF;strokeColor=#2563EB;" vertex="1" parent="1"><mxGeometry x="590" y="335" width="230" height="55" as="geometry"/></mxCell>
+<mxCell id="managePoints" value="Gérer les points de collecte" style="ellipse;whiteSpace=wrap;html=1;fillColor=#E8F3FF;strokeColor=#2563EB;" vertex="1" parent="1"><mxGeometry x="850" y="335" width="230" height="55" as="geometry"/></mxCell>
+<mxCell id="missions" value="Consulter les missions de collecte" style="ellipse;whiteSpace=wrap;html=1;fillColor=#EDE9FE;strokeColor=#7C3AED;" vertex="1" parent="1"><mxGeometry x="1110" y="335" width="240" height="55" as="geometry"/></mxCell>
+
+<mxCell id="scanCollector" value="Scanner le QR code collecteur" style="ellipse;whiteSpace=wrap;html=1;fillColor=#EDE9FE;strokeColor=#7C3AED;" vertex="1" parent="1"><mxGeometry x="300" y="450" width="235" height="55" as="geometry"/></mxCell>
+<mxCell id="openEmpty" value="Ouvrir la porte de vidage" style="ellipse;whiteSpace=wrap;html=1;fillColor=#EDE9FE;strokeColor=#7C3AED;" vertex="1" parent="1"><mxGeometry x="570" y="450" width="220" height="55" as="geometry"/></mxCell>
+<mxCell id="emptyBin" value="Vider la poubelle" style="ellipse;whiteSpace=wrap;html=1;fillColor=#EDE9FE;strokeColor=#7C3AED;" vertex="1" parent="1"><mxGeometry x="825" y="450" width="190" height="55" as="geometry"/></mxCell>
+<mxCell id="resetWeight" value="Remettre le poids à zéro" style="ellipse;whiteSpace=wrap;html=1;fillColor=#EDE9FE;strokeColor=#7C3AED;" vertex="1" parent="1"><mxGeometry x="1045" y="450" width="210" height="55" as="geometry"/></mxCell>
+<mxCell id="updateStatus" value="Mettre à jour l’état de la SmartBin" style="ellipse;whiteSpace=wrap;html=1;fillColor=#EDE9FE;strokeColor=#7C3AED;" vertex="1" parent="1"><mxGeometry x="550" y="555" width="250" height="55" as="geometry"/></mxCell>
+<mxCell id="closeEmpty" value="Fermer la porte de vidage" style="ellipse;whiteSpace=wrap;html=1;fillColor=#EDE9FE;strokeColor=#7C3AED;" vertex="1" parent="1"><mxGeometry x="835" y="555" width="220" height="55" as="geometry"/></mxCell>
+<mxCell id="missionsState" value="Mettre à jour l’état d’une mission" style="ellipse;whiteSpace=wrap;html=1;fillColor=#EDE9FE;strokeColor=#7C3AED;" vertex="1" parent="1"><mxGeometry x="1080" y="555" width="250" height="55" as="geometry"/></mxCell>
+
+<mxCell id="centers" value="Suivre les centres et équipements" style="ellipse;whiteSpace=wrap;html=1;fillColor=#FCE7F3;strokeColor=#DB2777;" vertex="1" parent="1"><mxGeometry x="320" y="680" width="245" height="55" as="geometry"/></mxCell>
+<mxCell id="smartTracking" value="Suivre les SmartBins" style="ellipse;whiteSpace=wrap;html=1;fillColor=#FCE7F3;strokeColor=#DB2777;" vertex="1" parent="1"><mxGeometry x="600" y="680" width="220" height="55" as="geometry"/></mxCell>
+<mxCell id="fillData" value="Recevoir les données de remplissage" style="ellipse;whiteSpace=wrap;html=1;fillColor=#FCE7F3;strokeColor=#DB2777;" vertex="1" parent="1"><mxGeometry x="855" y="680" width="250" height="55" as="geometry"/></mxCell>
+<mxCell id="notify" value="Recevoir les notifications de collecte" style="ellipse;whiteSpace=wrap;html=1;fillColor=#FCE7F3;strokeColor=#DB2777;" vertex="1" parent="1"><mxGeometry x="1140" y="680" width="250" height="55" as="geometry"/></mxCell>
+<mxCell id="collectionData" value="Consulter les données de collecte" style="ellipse;whiteSpace=wrap;html=1;fillColor=#FCE7F3;strokeColor=#DB2777;" vertex="1" parent="1"><mxGeometry x="450" y="790" width="250" height="55" as="geometry"/></mxCell>
+<mxCell id="adminTrack" value="Suivre l’état et le remplissage des poubelles" style="ellipse;whiteSpace=wrap;html=1;fillColor=#FCE7F3;strokeColor=#DB2777;" vertex="1" parent="1"><mxGeometry x="750" y="790" width="280" height="55" as="geometry"/></mxCell>
+<mxCell id="interTrack" value="Suivre les opérations de collecte" style="ellipse;whiteSpace=wrap;html=1;fillColor=#FCE7F3;strokeColor=#DB2777;" vertex="1" parent="1"><mxGeometry x="1080" y="790" width="250" height="55" as="geometry"/></mxCell>
+<mxCell id="notifyInter" value="Notifier l’Intercommunalité" style="ellipse;whiteSpace=wrap;html=1;fillColor=#FCE7F3;strokeColor=#DB2777;" vertex="1" parent="1"><mxGeometry x="600" y="900" width="220" height="55" as="geometry"/></mxCell>
+
+<mxCell id="smart" value="SmartBin / ESP32" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F3F4F6;strokeColor=#6B7280;fontSize=12;" vertex="1" parent="1"><mxGeometry x="1500" y="160" width="230" height="65" as="geometry"/></mxCell>
+<mxCell id="sensor" value="HX711 + capteur de poids" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F3F4F6;strokeColor=#6B7280;fontSize=12;" vertex="1" parent="1"><mxGeometry x="1500" y="280" width="230" height="65" as="geometry"/></mxCell>
+<mxCell id="qr" value="Lecteur / caméra QR" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F3F4F6;strokeColor=#6B7280;fontSize=12;" vertex="1" parent="1"><mxGeometry x="1500" y="400" width="230" height="65" as="geometry"/></mxCell>
+<mxCell id="firebase" value="Firebase Realtime Database" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F3F4F6;strokeColor=#6B7280;fontSize=12;" vertex="1" parent="1"><mxGeometry x="1500" y="520" width="230" height="65" as="geometry"/></mxCell>
+<mxCell id="fcm" value="Firebase Cloud Messaging (FCM)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F3F4F6;strokeColor=#6B7280;fontSize=12;" vertex="1" parent="1"><mxGeometry x="1500" y="640" width="230" height="65" as="geometry"/></mxCell>
+
+<!-- Associations acteurs -->
+<mxCell id="a1" value="" style="endArrow=none;html=1;" edge="1" parent="1" source="cit" target="scanCitizen"/>
+<mxCell id="a2" value="" style="endArrow=none;html=1;" edge="1" parent="1" source="cit" target="deposit"/>
+<mxCell id="a3" value="" style="endArrow=none;html=1;" edge="1" parent="1" source="cit" target="consultPoints"/>
+<mxCell id="a4" value="" style="endArrow=none;html=1;" edge="1" parent="1" source="col" target="scanCollector"/>
+<mxCell id="a5" value="" style="endArrow=none;html=1;" edge="1" parent="1" source="col" target="missions"/>
+<mxCell id="a6" value="" style="endArrow=none;html=1;" edge="1" parent="1" source="col" target="missionsState"/>
+<mxCell id="a7" value="" style="endArrow=none;html=1;" edge="1" parent="1" source="adm" target="manageTypes"/>
+<mxCell id="a8" value="" style="endArrow=none;html=1;" edge="1" parent="1" source="adm" target="managePoints"/>
+<mxCell id="a9" value="" style="endArrow=none;html=1;" edge="1" parent="1" source="adm" target="centers"/>
+<mxCell id="a10" value="" style="endArrow=none;html=1;" edge="1" parent="1" source="adm" target="smartTracking"/>
+<mxCell id="a11" value="" style="endArrow=none;html=1;" edge="1" parent="1" source="adm" target="adminTrack"/>
+<mxCell id="a12" value="" style="endArrow=none;html=1;" edge="1" parent="1" source="adm" target="missions"/>
+<mxCell id="a13" value="" style="endArrow=none;html=1;" edge="1" parent="1" source="int" target="interTrack"/>
+<mxCell id="a14" value="" style="endArrow=none;html=1;" edge="1" parent="1" source="int" target="notifyInter"/>
+<mxCell id="a15" value="" style="endArrow=none;html=1;" edge="1" parent="1" source="int" target="collectionData"/>
+
+<!-- Associations prototype/services -->
+<mxCell id="e1" value="" style="endArrow=none;html=1;" edge="1" parent="1" source="smart" target="openCitizen"/>
+<mxCell id="e2" value="" style="endArrow=none;html=1;" edge="1" parent="1" source="smart" target="closeCitizen"/>
+<mxCell id="e3" value="" style="endArrow=none;html=1;" edge="1" parent="1" source="smart" target="openEmpty"/>
+<mxCell id="e4" value="" style="endArrow=none;html=1;" edge="1" parent="1" source="smart" target="closeEmpty"/>
+<mxCell id="e5" value="" style="endArrow=none;html=1;" edge="1" parent="1" source="smart" target="updateStatus"/>
+<mxCell id="e6" value="" style="endArrow=none;html=1;" edge="1" parent="1" source="smart" target="fillData"/>
+<mxCell id="e7" value="" style="endArrow=none;html=1;" edge="1" parent="1" source="sensor" target="weight"/>
+<mxCell id="e8" value="" style="endArrow=none;html=1;" edge="1" parent="1" source="sensor" target="resetWeight"/>
+<mxCell id="e9" value="" style="endArrow=none;html=1;" edge="1" parent="1" source="qr" target="scanCitizen"/>
+<mxCell id="e10" value="" style="endArrow=none;html=1;" edge="1" parent="1" source="qr" target="scanCollector"/>
+<mxCell id="e11" value="" style="endArrow=none;html=1;" edge="1" parent="1" source="firebase" target="points"/>
+<mxCell id="e12" value="" style="endArrow=none;html=1;" edge="1" parent="1" source="firebase" target="fillData"/>
+<mxCell id="e13" value="" style="endArrow=none;html=1;" edge="1" parent="1" source="firebase" target="smartTracking"/>
+<mxCell id="e14" value="" style="endArrow=none;html=1;" edge="1" parent="1" source="firebase" target="collectionData"/>
+<mxCell id="e15" value="" style="endArrow=none;html=1;" edge="1" parent="1" source="fcm" target="notify"/>
+
+<!-- Includes -->
+<mxCell id="i1" value="&lt;&lt;include&gt;&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;dashed=1;endArrow=open;endFill=0;fontSize=10;" edge="1" parent="1" source="deposit" target="scanCitizen"/>
+<mxCell id="i2" value="&lt;&lt;include&gt;&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;dashed=1;endArrow=open;endFill=0;fontSize=10;" edge="1" parent="1" source="deposit" target="openCitizen"/>
+<mxCell id="i3" value="&lt;&lt;include&gt;&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;dashed=1;endArrow=open;endFill=0;fontSize=10;" edge="1" parent="1" source="deposit" target="type"/>
+<mxCell id="i4" value="&lt;&lt;include&gt;&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;dashed=1;endArrow=open;endFill=0;fontSize=10;" edge="1" parent="1" source="deposit" target="weight"/>
+<mxCell id="i5" value="&lt;&lt;include&gt;&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;dashed=1;endArrow=open;endFill=0;fontSize=10;" edge="1" parent="1" source="deposit" target="points"/>
+<mxCell id="i6" value="&lt;&lt;include&gt;&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;dashed=1;endArrow=open;endFill=0;fontSize=10;" edge="1" parent="1" source="deposit" target="closeCitizen"/>
+<mxCell id="i7" value="&lt;&lt;include&gt;&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;dashed=1;endArrow=open;endFill=0;fontSize=10;" edge="1" parent="1" source="points" target="weight"/>
+<mxCell id="i8" value="&lt;&lt;include&gt;&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;dashed=1;endArrow=open;endFill=0;fontSize=10;" edge="1" parent="1" source="emptyBin" target="scanCollector"/>
+<mxCell id="i9" value="&lt;&lt;include&gt;&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;dashed=1;endArrow=open;endFill=0;fontSize=10;" edge="1" parent="1" source="emptyBin" target="openEmpty"/>
+<mxCell id="i10" value="&lt;&lt;include&gt;&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;dashed=1;endArrow=open;endFill=0;fontSize=10;" edge="1" parent="1" source="emptyBin" target="resetWeight"/>
+<mxCell id="i11" value="&lt;&lt;include&gt;&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;dashed=1;endArrow=open;endFill=0;fontSize=10;" edge="1" parent="1" source="emptyBin" target="closeEmpty"/>
+<mxCell id="i12" value="&lt;&lt;include&gt;&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;dashed=1;endArrow=open;endFill=0;fontSize=10;" edge="1" parent="1" source="emptyBin" target="updateStatus"/>
+<mxCell id="i13" value="&lt;&lt;include&gt;&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;dashed=1;endArrow=open;endFill=0;fontSize=10;" edge="1" parent="1" source="missions" target="missionsState"/>
+<mxCell id="i14" value="&lt;&lt;include&gt;&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;dashed=1;endArrow=open;endFill=0;fontSize=10;" edge="1" parent="1" source="smartTracking" target="fillData"/>
+<mxCell id="i15" value="&lt;&lt;include&gt;&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;dashed=1;endArrow=open;endFill=0;fontSize=10;" edge="1" parent="1" source="adminTrack" target="smartTracking"/>
+<mxCell id="i16" value="&lt;&lt;include&gt;&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;dashed=1;endArrow=open;endFill=0;fontSize=10;" edge="1" parent="1" source="collectionData" target="fillData"/>
+
+<!-- Extends -->
+<mxCell id="x1" value="&lt;&lt;extend&gt;&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;dashed=1;endArrow=open;endFill=0;fontSize=10;" edge="1" parent="1" source="notify" target="fillData"/>
+<mxCell id="x2" value="&lt;&lt;extend&gt;&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;dashed=1;endArrow=open;endFill=0;fontSize=10;" edge="1" parent="1" source="notifyInter" target="notify"/>
+</root>
+</mxGraphModel>
+</diagram>
+</mxfile>
