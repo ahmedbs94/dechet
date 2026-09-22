@@ -1,98 +1,118 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<mxfile host="app.diagrams.net" modified="2026-09-23T00:00:00.000Z" agent="Mozilla/5.0" version="24.7.17" type="device">
-<diagram id="release2-usecase" name="Page-1">
-<mxGraphModel dx="1200" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1800" pageHeight="1200" math="0" shadow="0">
-<root><mxCell id="0"/><mxCell id="1" parent="0"/>
-<mxCell id="title" value="Diagramme de cas d’utilisation – Release 2 : Collecte intelligente et IoT" style="text;html=1;strokeColor=none;fillColor=none;fontSize=20;fontStyle=1;align=left;" vertex="1" parent="1"><mxGeometry x="25" y="15" width="1650" height="40" as="geometry"/></mxCell>
-<mxCell id="actors" value="ACTEURS" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=#000000;fillColor=#FFFFFF;fontSize=15;fontStyle=1;verticalAlign=top;spacingTop=8;" vertex="1" parent="1"><mxGeometry x="20" y="70" width="210" height="1050" as="geometry"/></mxCell>
-<mxCell id="system" value="SYSTÈME ECOREWIND" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=#000000;fillColor=#FFFFFF;fontSize=15;fontStyle=1;verticalAlign=top;spacingTop=8;" vertex="1" parent="1"><mxGeometry x="250" y="70" width="1180" height="1050" as="geometry"/></mxCell>
-<mxCell id="external" value="PROTOTYPE / SERVICES" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=#000000;fillColor=#FFFFFF;fontSize=15;fontStyle=1;verticalAlign=top;spacingTop=8;" vertex="1" parent="1"><mxGeometry x="1450" y="70" width="330" height="1050" as="geometry"/></mxCell>
-<mxCell id="user" value="Utilisateur EcoRewind" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;fontStyle=1;" vertex="1" parent="1"><mxGeometry x="55" y="120" width="120" height="80" as="geometry"/></mxCell>
-<mxCell id="cit" value="Citoyen" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;" vertex="1" parent="1"><mxGeometry x="75" y="260" width="80" height="80" as="geometry"/></mxCell>
-<mxCell id="col" value="Collecteur" style="shape=umlActor;verticalLabelPosition=bottom;html=1;" vertex="1" parent="1"><mxGeometry x="75" y="450" width="80" height="80" as="geometry"/></mxCell>
-<mxCell id="adm" value="Administrateur" style="shape=umlActor;verticalLabelPosition=bottom;html=1;" vertex="1" parent="1"><mxGeometry x="60" y="650" width="110" height="80" as="geometry"/></mxCell>
-<mxCell id="int" value="Intercommunalité" style="shape=umlActor;verticalLabelPosition=bottom;html=1;" vertex="1" parent="1"><mxGeometry x="45" y="830" width="140" height="80" as="geometry"/></mxCell>
-<mxCell id="scanCitizen" value="Scanner le QR code citoyen" style="ellipse;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;" vertex="1" parent="1"><mxGeometry x="290" y="110" width="220" height="55" as="geometry"/></mxCell>
-<mxCell id="openCitizen" value="Ouvrir la porte de dépôt" style="ellipse;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;" vertex="1" parent="1"><mxGeometry x="560" y="110" width="220" height="55" as="geometry"/></mxCell>
-<mxCell id="deposit" value="Déposer les déchets" style="ellipse;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;" vertex="1" parent="1"><mxGeometry x="830" y="110" width="200" height="55" as="geometry"/></mxCell>
-<mxCell id="type" value="Sélectionner le type de déchet" style="ellipse;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;" vertex="1" parent="1"><mxGeometry x="1080" y="110" width="250" height="55" as="geometry"/></mxCell>
-<mxCell id="weight" value="Peser les déchets" style="ellipse;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;" vertex="1" parent="1"><mxGeometry x="560" y="220" width="210" height="55" as="geometry"/></mxCell>
-<mxCell id="points" value="Calculer et attribuer les points" style="ellipse;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;" vertex="1" parent="1"><mxGeometry x="820" y="220" width="240" height="55" as="geometry"/></mxCell>
-<mxCell id="closeCitizen" value="Fermer la porte de dépôt" style="ellipse;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;" vertex="1" parent="1"><mxGeometry x="1090" y="220" width="210" height="55" as="geometry"/></mxCell>
-<mxCell id="consultPoints" value="Consulter les points de collecte" style="ellipse;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;" vertex="1" parent="1"><mxGeometry x="300" y="330" width="240" height="55" as="geometry"/></mxCell>
-<mxCell id="manageTypes" value="Gérer les types de déchets" style="ellipse;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;" vertex="1" parent="1"><mxGeometry x="580" y="330" width="230" height="55" as="geometry"/></mxCell>
-<mxCell id="managePoints" value="Gérer les points de collecte" style="ellipse;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;" vertex="1" parent="1"><mxGeometry x="850" y="330" width="230" height="55" as="geometry"/></mxCell>
-<mxCell id="missions" value="Consulter les missions de collecte" style="ellipse;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;" vertex="1" parent="1"><mxGeometry x="1110" y="330" width="240" height="55" as="geometry"/></mxCell>
-<mxCell id="scanCollector" value="Scanner le QR code collecteur" style="ellipse;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;" vertex="1" parent="1"><mxGeometry x="290" y="450" width="235" height="55" as="geometry"/></mxCell>
-<mxCell id="openEmpty" value="Ouvrir la porte de vidage" style="ellipse;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;" vertex="1" parent="1"><mxGeometry x="560" y="450" width="220" height="55" as="geometry"/></mxCell>
-<mxCell id="emptyBin" value="Vider la poubelle" style="ellipse;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;" vertex="1" parent="1"><mxGeometry x="820" y="450" width="190" height="55" as="geometry"/></mxCell>
-<mxCell id="resetWeight" value="Remettre le poids à zéro" style="ellipse;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;" vertex="1" parent="1"><mxGeometry x="1040" y="450" width="210" height="55" as="geometry"/></mxCell>
-<mxCell id="updateStatus" value="Mettre à jour l’état de la SmartBin" style="ellipse;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;" vertex="1" parent="1"><mxGeometry x="550" y="550" width="250" height="55" as="geometry"/></mxCell>
-<mxCell id="closeEmpty" value="Fermer la porte de vidage" style="ellipse;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;" vertex="1" parent="1"><mxGeometry x="830" y="550" width="220" height="55" as="geometry"/></mxCell>
-<mxCell id="missionsState" value="Mettre à jour l’état d’une mission" style="ellipse;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;" vertex="1" parent="1"><mxGeometry x="1080" y="550" width="250" height="55" as="geometry"/></mxCell>
-<mxCell id="centers" value="Suivre les centres et équipements" style="ellipse;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;" vertex="1" parent="1"><mxGeometry x="300" y="680" width="245" height="55" as="geometry"/></mxCell>
-<mxCell id="smartTracking" value="Suivre les SmartBins" style="ellipse;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;" vertex="1" parent="1"><mxGeometry x="590" y="680" width="220" height="55" as="geometry"/></mxCell>
-<mxCell id="fillData" value="Recevoir les données de remplissage" style="ellipse;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;" vertex="1" parent="1"><mxGeometry x="850" y="680" width="250" height="55" as="geometry"/></mxCell>
-<mxCell id="notify" value="Recevoir les notifications de collecte" style="ellipse;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;" vertex="1" parent="1"><mxGeometry x="1130" y="680" width="250" height="55" as="geometry"/></mxCell>
-<mxCell id="collectionData" value="Consulter les données de collecte" style="ellipse;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;" vertex="1" parent="1"><mxGeometry x="420" y="790" width="250" height="55" as="geometry"/></mxCell>
-<mxCell id="adminTrack" value="Suivre l’état et le remplissage des poubelles" style="ellipse;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;" vertex="1" parent="1"><mxGeometry x="720" y="790" width="280" height="55" as="geometry"/></mxCell>
-<mxCell id="interTrack" value="Suivre les opérations de collecte" style="ellipse;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;" vertex="1" parent="1"><mxGeometry x="1050" y="790" width="250" height="55" as="geometry"/></mxCell>
-<mxCell id="notifyInter" value="Notifier l’Intercommunalité" style="ellipse;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;" vertex="1" parent="1"><mxGeometry x="580" y="900" width="220" height="55" as="geometry"/></mxCell>
-<mxCell id="smart" value="SmartBin / ESP32" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;" vertex="1" parent="1"><mxGeometry x="1500" y="160" width="230" height="65" as="geometry"/></mxCell>
-<mxCell id="sensor" value="HX711 + capteur de poids" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;" vertex="1" parent="1"><mxGeometry x="1500" y="280" width="230" height="65" as="geometry"/></mxCell>
-<mxCell id="qr" value="Lecteur / caméra QR" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;" vertex="1" parent="1"><mxGeometry x="1500" y="400" width="230" height="65" as="geometry"/></mxCell>
-<mxCell id="firebase" value="Firebase Realtime Database" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;" vertex="1" parent="1"><mxGeometry x="1500" y="520" width="230" height="65" as="geometry"/></mxCell>
-<mxCell id="fcm" value="Firebase Cloud Messaging (FCM)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;" vertex="1" parent="1"><mxGeometry x="1500" y="640" width="230" height="65" as="geometry"/></mxCell>
-<mxCell id="legend" value="Légende : ─── association    - - - <<include>> / <<extend>> →    △ généralisation / héritage" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=#000000;fillColor=#FFFFFF;fontSize=11;fontStyle=1;" vertex="1" parent="1"><mxGeometry x="300" y="1010" width="1050" height="60" as="geometry"/></mxCell>
-<mxCell id="a1" value="" style="endArrow=none;html=1;strokeColor=#000000;strokeWidth=1.5;" edge="1" parent="1" source="cit" target="scanCitizen"><mxGeometry relative="1" as="geometry"/></mxCell>
-<mxCell id="a2" value="" style="endArrow=none;html=1;strokeColor=#000000;" edge="1" parent="1" source="cit" target="deposit"><mxGeometry relative="1" as="geometry"/></mxCell>
-<mxCell id="a3" value="" style="endArrow=none;html=1;strokeColor=#000000;" edge="1" parent="1" source="cit" target="consultPoints"><mxGeometry relative="1" as="geometry"/></mxCell>
-<mxCell id="a4" value="" style="endArrow=none;html=1;strokeColor=#000000;" edge="1" parent="1" source="col" target="scanCollector"><mxGeometry relative="1" as="geometry"/></mxCell>
-<mxCell id="a5" value="" style="endArrow=none;html=1;strokeColor=#000000;" edge="1" parent="1" source="col" target="missions"><mxGeometry relative="1" as="geometry"/></mxCell>
-<mxCell id="a6" value="" style="endArrow=none;html=1;strokeColor=#000000;" edge="1" parent="1" source="col" target="missionsState"><mxGeometry relative="1" as="geometry"/></mxCell>
-<mxCell id="a7" value="" style="endArrow=none;html=1;strokeColor=#000000;" edge="1" parent="1" source="adm" target="manageTypes"><mxGeometry relative="1" as="geometry"/></mxCell>
-<mxCell id="a8" value="" style="endArrow=none;html=1;strokeColor=#000000;" edge="1" parent="1" source="adm" target="managePoints"><mxGeometry relative="1" as="geometry"/></mxCell>
-<mxCell id="a9" value="" style="endArrow=none;html=1;strokeColor=#000000;" edge="1" parent="1" source="adm" target="centers"><mxGeometry relative="1" as="geometry"/></mxCell>
-<mxCell id="a10" value="" style="endArrow=none;html=1;strokeColor=#000000;" edge="1" parent="1" source="adm" target="smartTracking"><mxGeometry relative="1" as="geometry"/></mxCell>
-<mxCell id="a11" value="" style="endArrow=none;html=1;strokeColor=#000000;" edge="1" parent="1" source="adm" target="adminTrack"><mxGeometry relative="1" as="geometry"/></mxCell>
-<mxCell id="a12" value="" style="endArrow=none;html=1;strokeColor=#000000;" edge="1" parent="1" source="adm" target="missions"><mxGeometry relative="1" as="geometry"/></mxCell>
-<mxCell id="a13" value="" style="endArrow=none;html=1;strokeColor=#000000;" edge="1" parent="1" source="int" target="interTrack"><mxGeometry relative="1" as="geometry"/></mxCell>
-<mxCell id="a14" value="" style="endArrow=none;html=1;strokeColor=#000000;" edge="1" parent="1" source="int" target="notifyInter"><mxGeometry relative="1" as="geometry"/></mxCell>
-<mxCell id="a15" value="" style="endArrow=none;html=1;strokeColor=#000000;" edge="1" parent="1" source="int" target="collectionData"><mxGeometry relative="1" as="geometry"/></mxCell>
-<mxCell id="e1" value="" style="endArrow=none;html=1;strokeColor=#000000;" edge="1" parent="1" source="smart" target="openCitizen"><mxGeometry relative="1" as="geometry"/></mxCell>
-<mxCell id="e2" value="" style="endArrow=none;html=1;strokeColor=#000000;" edge="1" parent="1" source="smart" target="closeCitizen"><mxGeometry relative="1" as="geometry"/></mxCell>
-<mxCell id="e3" value="" style="endArrow=none;html=1;strokeColor=#000000;" edge="1" parent="1" source="smart" target="openEmpty"><mxGeometry relative="1" as="geometry"/></mxCell>
-<mxCell id="e4" value="" style="endArrow=none;html=1;strokeColor=#000000;" edge="1" parent="1" source="smart" target="closeEmpty"><mxGeometry relative="1" as="geometry"/></mxCell>
-<mxCell id="e5" value="" style="endArrow=none;html=1;strokeColor=#000000;" edge="1" parent="1" source="smart" target="updateStatus"><mxGeometry relative="1" as="geometry"/></mxCell>
-<mxCell id="e6" value="" style="endArrow=none;html=1;strokeColor=#000000;" edge="1" parent="1" source="smart" target="fillData"><mxGeometry relative="1" as="geometry"/></mxCell>
-<mxCell id="e7" value="" style="endArrow=none;html=1;strokeColor=#000000;" edge="1" parent="1" source="sensor" target="weight"><mxGeometry relative="1" as="geometry"/></mxCell>
-<mxCell id="e8" value="" style="endArrow=none;html=1;strokeColor=#000000;" edge="1" parent="1" source="sensor" target="resetWeight"><mxGeometry relative="1" as="geometry"/></mxCell>
-<mxCell id="e9" value="" style="endArrow=none;html=1;strokeColor=#000000;" edge="1" parent="1" source="qr" target="scanCitizen"><mxGeometry relative="1" as="geometry"/></mxCell>
-<mxCell id="e10" value="" style="endArrow=none;html=1;strokeColor=#000000;" edge="1" parent="1" source="qr" target="scanCollector"><mxGeometry relative="1" as="geometry"/></mxCell>
-<mxCell id="e11" value="" style="endArrow=none;html=1;strokeColor=#000000;" edge="1" parent="1" source="firebase" target="points"><mxGeometry relative="1" as="geometry"/></mxCell>
-<mxCell id="e12" value="" style="endArrow=none;html=1;strokeColor=#000000;" edge="1" parent="1" source="firebase" target="fillData"><mxGeometry relative="1" as="geometry"/></mxCell>
-<mxCell id="e13" value="" style="endArrow=none;html=1;strokeColor=#000000;" edge="1" parent="1" source="firebase" target="smartTracking"><mxGeometry relative="1" as="geometry"/></mxCell>
-<mxCell id="e14" value="" style="endArrow=none;html=1;strokeColor=#000000;" edge="1" parent="1" source="firebase" target="collectionData"><mxGeometry relative="1" as="geometry"/></mxCell>
-<mxCell id="e15" value="" style="endArrow=none;html=1;strokeColor=#000000;" edge="1" parent="1" source="fcm" target="notify"><mxGeometry relative="1" as="geometry"/></mxCell>
-<mxCell id="g1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=0;strokeColor=#000000;strokeWidth=1.5;" edge="1" parent="1" source="cit" target="user"><mxGeometry relative="1" as="geometry"/></mxCell>
-<mxCell id="g2" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=0;strokeColor=#000000;strokeWidth=1.5;" edge="1" parent="1" source="col" target="user"><mxGeometry relative="1" as="geometry"/></mxCell>
-<mxCell id="g3" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=0;strokeColor=#000000;strokeWidth=1.5;" edge="1" parent="1" source="adm" target="user"><mxGeometry relative="1" as="geometry"/></mxCell>
-<mxCell id="i1" value="&lt;&lt;include&gt;&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;dashed=1;endArrow=open;endFill=0;strokeColor=#000000;fontSize=10;" edge="1" parent="1" source="deposit" target="scanCitizen"><mxGeometry relative="1" as="geometry"/></mxCell>
-<mxCell id="i2" value="&lt;&lt;include&gt;&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;dashed=1;endArrow=open;endFill=0;strokeColor=#000000;fontSize=10;" edge="1" parent="1" source="deposit" target="openCitizen"><mxGeometry relative="1" as="geometry"/></mxCell>
-<mxCell id="i3" value="&lt;&lt;include&gt;&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;dashed=1;endArrow=open;endFill=0;strokeColor=#000000;fontSize=10;" edge="1" parent="1" source="deposit" target="type"><mxGeometry relative="1" as="geometry"/></mxCell>
-<mxCell id="i4" value="&lt;&lt;include&gt;&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;dashed=1;endArrow=open;endFill=0;strokeColor=#000000;fontSize=10;" edge="1" parent="1" source="deposit" target="weight"><mxGeometry relative="1" as="geometry"/></mxCell>
-<mxCell id="i5" value="&lt;&lt;include&gt;&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;dashed=1;endArrow=open;endFill=0;strokeColor=#000000;fontSize=10;" edge="1" parent="1" source="deposit" target="points"><mxGeometry relative="1" as="geometry"/></mxCell>
-<mxCell id="i6" value="&lt;&lt;include&gt;&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;dashed=1;endArrow=open;endFill=0;strokeColor=#000000;fontSize=10;" edge="1" parent="1" source="deposit" target="closeCitizen"><mxGeometry relative="1" as="geometry"/></mxCell>
-<mxCell id="i7" value="&lt;&lt;include&gt;&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;dashed=1;endArrow=open;endFill=0;strokeColor=#000000;fontSize=10;" edge="1" parent="1" source="points" target="weight"><mxGeometry relative="1" as="geometry"/></mxCell>
-<mxCell id="i8" value="&lt;&lt;include&gt;&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;dashed=1;endArrow=open;endFill=0;strokeColor=#000000;fontSize=10;" edge="1" parent="1" source="emptyBin" target="scanCollector"><mxGeometry relative="1" as="geometry"/></mxCell>
-<mxCell id="i9" value="&lt;&lt;include&gt;&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;dashed=1;endArrow=open;endFill=0;strokeColor=#000000;fontSize=10;" edge="1" parent="1" source="emptyBin" target="openEmpty"><mxGeometry relative="1" as="geometry"/></mxCell>
-<mxCell id="i10" value="&lt;&lt;include&gt;&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;dashed=1;endArrow=open;endFill=0;strokeColor=#000000;fontSize=10;" edge="1" parent="1" source="emptyBin" target="resetWeight"><mxGeometry relative="1" as="geometry"/></mxCell>
-<mxCell id="i11" value="&lt;&lt;include&gt;&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;dashed=1;endArrow=open;endFill=0;strokeColor=#000000;fontSize=10;" edge="1" parent="1" source="emptyBin" target="closeEmpty"><mxGeometry relative="1" as="geometry"/></mxCell>
-<mxCell id="i12" value="&lt;&lt;include&gt;&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;dashed=1;endArrow=open;endFill=0;strokeColor=#000000;fontSize=10;" edge="1" parent="1" source="emptyBin" target="updateStatus"><mxGeometry relative="1" as="geometry"/></mxCell>
-<mxCell id="i13" value="&lt;&lt;include&gt;&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;dashed=1;endArrow=open;endFill=0;strokeColor=#000000;fontSize=10;" edge="1" parent="1" source="missions" target="missionsState"><mxGeometry relative="1" as="geometry"/></mxCell>
-<mxCell id="i14" value="&lt;&lt;include&gt;&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;dashed=1;endArrow=open;endFill=0;strokeColor=#000000;fontSize=10;" edge="1" parent="1" source="smartTracking" target="fillData"><mxGeometry relative="1" as="geometry"/></mxCell>
-<mxCell id="i15" value="&lt;&lt;include&gt;&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;dashed=1;endArrow=open;endFill=0;strokeColor=#000000;fontSize=10;" edge="1" parent="1" source="adminTrack" target="smartTracking"><mxGeometry relative="1" as="geometry"/></mxCell>
-<mxCell id="i16" value="&lt;&lt;include&gt;&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;dashed=1;endArrow=open;endFill=0;strokeColor=#000000;fontSize=10;" edge="1" parent="1" source="collectionData" target="fillData"><mxGeometry relative="1" as="geometry"/></mxCell>
-<mxCell id="x1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;dashed=1;endArrow=open;endFill=0;strokeColor=#000000;fontSize=10;" edge="1" parent="1" source="notify" target="fillData"><mxGeometry relative="1" as="geometry"/></mxCell>
-<mxCell id="x2" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;dashed=1;endArrow=open;endFill=0;strokeColor=#000000;fontSize=10;" edge="1" parent="1" source="notifyInter" target="notify"><mxGeometry relative="1" as="geometry"/></mxCell>
-</root></mxGraphModel></diagram></mxfile>
+<mxfile host="app.diagrams.net">
+  <diagram name="Page-1" id="page1">
+    <mxGraphModel grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="1000" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        
+        <mxCell id="title" value="Diagramme de cas d'utilisation - Release 2 : Collecte intelligente et IoT" style="text;html=1;fontSize=20;fontStyle=1;align=left;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="30" y="20" width="1200" height="40" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="cit" value="Citoyen" style="shape=umlActor;html=1;verticalLabelPosition=bottom;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="50" y="150" width="80" height="100" as="geometry"/>
+        </mxCell>
+        <mxCell id="col" value="Collecteur" style="shape=umlActor;html=1;verticalLabelPosition=bottom;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="50" y="400" width="80" height="100" as="geometry"/>
+        </mxCell>
+        <mxCell id="adm" value="Administrateur" style="shape=umlActor;html=1;verticalLabelPosition=bottom;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="35" y="650" width="110" height="100" as="geometry"/>
+        </mxCell>
+        <mxCell id="inter" value="Intercommunalite" style="shape=umlActor;html=1;verticalLabelPosition=bottom;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="40" y="850" width="120" height="100" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="boundary" value="Système EcoRewind - Release 2" style="rounded=0;whiteSpace=wrap;html=1;strokeColor=#000000;fillColor=none;verticalAlign=top;align=center;spacingTop=10;fontStyle=1;fontSize=16;" vertex="1" parent="1">
+          <mxGeometry x="220" y="80" width="1120" height="850" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="scanC" value="Scanner le QR code citoyen" style="ellipse;whiteSpace=wrap;html=1;strokeColor=#000000;fillColor=#FFFFFF;" vertex="1" parent="1"><mxGeometry x="280" y="130" width="190" height="55" as="geometry"/></mxCell>
+        <mxCell id="openC" value="Ouvrir la porte de dépôt" style="ellipse;whiteSpace=wrap;html=1;strokeColor=#000000;fillColor=#FFFFFF;" vertex="1" parent="1"><mxGeometry x="520" y="130" width="190" height="55" as="geometry"/></mxCell>
+        <mxCell id="deposit" value="Déposer les déchets" style="ellipse;whiteSpace=wrap;html=1;strokeColor=#000000;fillColor=#FFFFFF;" vertex="1" parent="1"><mxGeometry x="760" y="130" width="180" height="55" as="geometry"/></mxCell>
+        <mxCell id="type" value="Sélectionner le type de déchet" style="ellipse;whiteSpace=wrap;html=1;strokeColor=#000000;fillColor=#FFFFFF;" vertex="1" parent="1"><mxGeometry x="990" y="130" width="230" height="55" as="geometry"/></mxCell>
+
+        <mxCell id="weight" value="Peser les déchets" style="ellipse;whiteSpace=wrap;html=1;strokeColor=#000000;fillColor=#FFFFFF;" vertex="1" parent="1"><mxGeometry x="300" y="240" width="180" height="55" as="geometry"/></mxCell>
+        <mxCell id="points" value="Calculer et attribuer les points" style="ellipse;whiteSpace=wrap;html=1;strokeColor=#000000;fillColor=#FFFFFF;" vertex="1" parent="1"><mxGeometry x="530" y="240" width="230" height="55" as="geometry"/></mxCell>
+        <mxCell id="closeC" value="Fermer la porte de dépôt" style="ellipse;whiteSpace=wrap;html=1;strokeColor=#000000;fillColor=#FFFFFF;" vertex="1" parent="1"><mxGeometry x="810" y="240" width="190" height="55" as="geometry"/></mxCell>
+        <mxCell id="collectPoints" value="Consulter les points de collecte" style="ellipse;whiteSpace=wrap;html=1;strokeColor=#000000;fillColor=#FFFFFF;" vertex="1" parent="1"><mxGeometry x="1040" y="240" width="230" height="55" as="geometry"/></mxCell>
+
+        <mxCell id="manageTypes" value="Gérer les types de déchets" style="ellipse;whiteSpace=wrap;html=1;strokeColor=#000000;fillColor=#FFFFFF;" vertex="1" parent="1"><mxGeometry x="280" y="350" width="210" height="55" as="geometry"/></mxCell>
+        <mxCell id="managePoints" value="Gérer les points de collecte" style="ellipse;whiteSpace=wrap;html=1;strokeColor=#000000;fillColor=#FFFFFF;" vertex="1" parent="1"><mxGeometry x="540" y="350" width="210" height="55" as="geometry"/></mxCell>
+        <mxCell id="missions" value="Gérer les missions de collecte" style="ellipse;whiteSpace=wrap;html=1;strokeColor=#000000;fillColor=#FFFFFF;" vertex="1" parent="1"><mxGeometry x="800" y="350" width="210" height="55" as="geometry"/></mxCell>
+        <mxCell id="missionState" value="Mettre à jour l'état d'une mission" style="ellipse;whiteSpace=wrap;html=1;strokeColor=#000000;fillColor=#FFFFFF;" vertex="1" parent="1"><mxGeometry x="1050" y="350" width="230" height="55" as="geometry"/></mxCell>
+
+        <mxCell id="scanCol" value="Scanner le QR code collecteur" style="ellipse;whiteSpace=wrap;html=1;strokeColor=#000000;fillColor=#FFFFFF;" vertex="1" parent="1"><mxGeometry x="280" y="470" width="220" height="55" as="geometry"/></mxCell>
+        <mxCell id="openE" value="Ouvrir la porte de vidage" style="ellipse;whiteSpace=wrap;html=1;strokeColor=#000000;fillColor=#FFFFFF;" vertex="1" parent="1"><mxGeometry x="540" y="470" width="200" height="55" as="geometry"/></mxCell>
+        <mxCell id="empty" value="Vider la poubelle" style="ellipse;whiteSpace=wrap;html=1;strokeColor=#000000;fillColor=#FFFFFF;" vertex="1" parent="1"><mxGeometry x="780" y="470" width="180" height="55" as="geometry"/></mxCell>
+        <mxCell id="reset" value="Remettre le poids à zéro" style="ellipse;whiteSpace=wrap;html=1;strokeColor=#000000;fillColor=#FFFFFF;" vertex="1" parent="1"><mxGeometry x="1000" y="470" width="210" height="55" as="geometry"/></mxCell>
+
+        <mxCell id="status" value="Mettre à jour l'état de la SmartBin" style="ellipse;whiteSpace=wrap;html=1;strokeColor=#000000;fillColor=#FFFFFF;" vertex="1" parent="1"><mxGeometry x="300" y="580" width="250" height="55" as="geometry"/></mxCell>
+        <mxCell id="closeE" value="Fermer la porte de vidage" style="ellipse;whiteSpace=wrap;html=1;strokeColor=#000000;fillColor=#FFFFFF;" vertex="1" parent="1"><mxGeometry x="590" y="580" width="210" height="55" as="geometry"/></mxCell>
+        <mxCell id="centers" value="Suivre les centres et équipements" style="ellipse;whiteSpace=wrap;html=1;strokeColor=#000000;fillColor=#FFFFFF;" vertex="1" parent="1"><mxGeometry x="840" y="580" width="230" height="55" as="geometry"/></mxCell>
+        <mxCell id="smartTrack" value="Suivre les SmartBins" style="ellipse;whiteSpace=wrap;html=1;strokeColor=#000000;fillColor=#FFFFFF;" vertex="1" parent="1"><mxGeometry x="1110" y="580" width="190" height="55" as="geometry"/></mxCell>
+
+        <mxCell id="fill" value="Recevoir les données de remplissage" style="ellipse;whiteSpace=wrap;html=1;strokeColor=#000000;fillColor=#FFFFFF;" vertex="1" parent="1"><mxGeometry x="280" y="690" width="250" height="55" as="geometry"/></mxCell>
+        <mxCell id="notif" value="Recevoir les notifications de collecte" style="ellipse;whiteSpace=wrap;html=1;strokeColor=#000000;fillColor=#FFFFFF;" vertex="1" parent="1"><mxGeometry x="580" y="690" width="250" height="55" as="geometry"/></mxCell>
+        <mxCell id="data" value="Consulter les données de collecte" style="ellipse;whiteSpace=wrap;html=1;strokeColor=#000000;fillColor=#FFFFFF;" vertex="1" parent="1"><mxGeometry x="880" y="690" width="230" height="55" as="geometry"/></mxCell>
+        <mxCell id="adminTrack" value="Suivre l'état et le remplissage des poubelles" style="ellipse;whiteSpace=wrap;html=1;strokeColor=#000000;fillColor=#FFFFFF;" vertex="1" parent="1"><mxGeometry x="1150" y="690" width="160" height="70" as="geometry"/></mxCell>
+
+        <mxCell id="interTrack" value="Suivre les opérations de collecte" style="ellipse;whiteSpace=wrap;html=1;strokeColor=#000000;fillColor=#FFFFFF;" vertex="1" parent="1"><mxGeometry x="390" y="810" width="240" height="55" as="geometry"/></mxCell>
+        <mxCell id="notifyInter" value="Notifier l'Intercommunalité" style="ellipse;whiteSpace=wrap;html=1;strokeColor=#000000;fillColor=#FFFFFF;" vertex="1" parent="1"><mxGeometry x="680" y="810" width="210" height="55" as="geometry"/></mxCell>
+
+        <mxCell id="smart" value="SmartBin / ESP32" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=#000000;fillColor=#FFFFFF;" vertex="1" parent="1"><mxGeometry x="1370" y="150" width="190" height="60" as="geometry"/></mxCell>
+        <mxCell id="hx" value="HX711 + capteur de poids" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=#000000;fillColor=#FFFFFF;" vertex="1" parent="1"><mxGeometry x="1370" y="270" width="190" height="60" as="geometry"/></mxCell>
+        <mxCell id="qr" value="Lecteur / caméra QR" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=#000000;fillColor=#FFFFFF;" vertex="1" parent="1"><mxGeometry x="1370" y="390" width="190" height="60" as="geometry"/></mxCell>
+        <mxCell id="firebase" value="Firebase Realtime Database" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=#000000;fillColor=#FFFFFF;" vertex="1" parent="1"><mxGeometry x="1370" y="510" width="190" height="60" as="geometry"/></mxCell>
+        <mxCell id="fcm" value="Firebase Cloud Messaging" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=#000000;fillColor=#FFFFFF;" vertex="1" parent="1"><mxGeometry x="1370" y="630" width="190" height="60" as="geometry"/></mxCell>
+
+        <mxCell id="a1" style="endArrow=none;html=1;" edge="1" parent="1" source="cit" target="deposit"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="a2" style="endArrow=none;html=1;" edge="1" parent="1" source="cit" target="collectPoints"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="a3" style="endArrow=none;html=1;" edge="1" parent="1" source="col" target="empty"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="a4" style="endArrow=none;html=1;" edge="1" parent="1" source="col" target="missions"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="a5" style="endArrow=none;html=1;" edge="1" parent="1" source="adm" target="manageTypes"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="a6" style="endArrow=none;html=1;" edge="1" parent="1" source="adm" target="managePoints"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="a7" style="endArrow=none;html=1;" edge="1" parent="1" source="adm" target="centers"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="a8" style="endArrow=none;html=1;" edge="1" parent="1" source="adm" target="smartTrack"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="a9" style="endArrow=none;html=1;" edge="1" parent="1" source="adm" target="adminTrack"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="a10" style="endArrow=none;html=1;" edge="1" parent="1" source="adm" target="missions"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="a11" style="endArrow=none;html=1;" edge="1" parent="1" source="inter" target="interTrack"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="a12" style="endArrow=none;html=1;" edge="1" parent="1" source="inter" target="data"><mxGeometry relative="1" as="geometry"/></mxCell>
+
+        <mxCell id="p1" style="endArrow=none;html=1;" edge="1" parent="1" source="smart" target="openC"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="p2" style="endArrow=none;html=1;" edge="1" parent="1" source="smart" target="closeC"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="p3" style="endArrow=none;html=1;" edge="1" parent="1" source="smart" target="openE"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="p4" style="endArrow=none;html=1;" edge="1" parent="1" source="smart" target="closeE"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="p5" style="endArrow=none;html=1;" edge="1" parent="1" source="smart" target="status"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="p6" style="endArrow=none;html=1;" edge="1" parent="1" source="smart" target="fill"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="p7" style="endArrow=none;html=1;" edge="1" parent="1" source="hx" target="weight"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="p8" style="endArrow=none;html=1;" edge="1" parent="1" source="hx" target="reset"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="p9" style="endArrow=none;html=1;" edge="1" parent="1" source="qr" target="scanC"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="p10" style="endArrow=none;html=1;" edge="1" parent="1" source="qr" target="scanCol"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="p11" style="endArrow=none;html=1;" edge="1" parent="1" source="firebase" target="points"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="p12" style="endArrow=none;html=1;" edge="1" parent="1" source="firebase" target="fill"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="p13" style="endArrow=none;html=1;" edge="1" parent="1" source="fcm" target="notif"><mxGeometry relative="1" as="geometry"/></mxCell>
+
+        <mxCell id="i1" value="&lt;&lt;include&gt;&gt;" style="dashed=1;endArrow=open;html=1;fontSize=10;" edge="1" parent="1" source="deposit" target="scanC"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="i2" value="&lt;&lt;include&gt;&gt;" style="dashed=1;endArrow=open;html=1;fontSize=10;" edge="1" parent="1" source="deposit" target="openC"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="i3" value="&lt;&lt;include&gt;&gt;" style="dashed=1;endArrow=open;html=1;fontSize=10;" edge="1" parent="1" source="deposit" target="type"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="i4" value="&lt;&lt;include&gt;&gt;" style="dashed=1;endArrow=open;html=1;fontSize=10;" edge="1" parent="1" source="deposit" target="weight"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="i5" value="&lt;&lt;include&gt;&gt;" style="dashed=1;endArrow=open;html=1;fontSize=10;" edge="1" parent="1" source="deposit" target="points"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="i6" value="&lt;&lt;include&gt;&gt;" style="dashed=1;endArrow=open;html=1;fontSize=10;" edge="1" parent="1" source="deposit" target="closeC"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="i7" value="&lt;&lt;include&gt;&gt;" style="dashed=1;endArrow=open;html=1;fontSize=10;" edge="1" parent="1" source="empty" target="scanCol"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="i8" value="&lt;&lt;include&gt;&gt;" style="dashed=1;endArrow=open;html=1;fontSize=10;" edge="1" parent="1" source="empty" target="openE"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="i9" value="&lt;&lt;include&gt;&gt;" style="dashed=1;endArrow=open;html=1;fontSize=10;" edge="1" parent="1" source="empty" target="reset"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="i10" value="&lt;&lt;include&gt;&gt;" style="dashed=1;endArrow=open;html=1;fontSize=10;" edge="1" parent="1" source="empty" target="status"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="i11" value="&lt;&lt;include&gt;&gt;" style="dashed=1;endArrow=open;html=1;fontSize=10;" edge="1" parent="1" source="empty" target="closeE"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="i12" value="&lt;&lt;include&gt;&gt;" style="dashed=1;endArrow=open;html=1;fontSize=10;" edge="1" parent="1" source="smartTrack" target="fill"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="i13" value="&lt;&lt;include&gt;&gt;" style="dashed=1;endArrow=open;html=1;fontSize=10;" edge="1" parent="1" source="adminTrack" target="smartTrack"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="i14" value="&lt;&lt;include&gt;&gt;" style="dashed=1;endArrow=open;html=1;fontSize=10;" edge="1" parent="1" source="data" target="fill"><mxGeometry relative="1" as="geometry"/></mxCell>
+
+        <mxCell id="x1" value="&lt;&lt;extend&gt;&gt;" style="dashed=1;endArrow=open;html=1;fontSize=10;" edge="1" parent="1" source="notif" target="fill"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="x2" value="&lt;&lt;extend&gt;&gt;" style="dashed=1;endArrow=open;html=1;fontSize=10;" edge="1" parent="1" source="notifyInter" target="notif"><mxGeometry relative="1" as="geometry"/></mxCell>
+
+        <mxCell id="g1" style="endArrow=block;endFill=0;html=1;" edge="1" parent="1" source="cit" target="col"><mxGeometry relative="1" as="geometry"/></mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
